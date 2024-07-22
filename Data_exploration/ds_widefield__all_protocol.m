@@ -1,0 +1,384 @@
+
+clear all
+clc
+Path = 'C:\Users\dsong\Documents\MATLAB\Da_Song\Data_analysis\mice\process\processed_data_v2\';
+
+% animals = {'DS000','DS001','DS003','DS004','DS005','DS006','AP018','AP019','AP020','AP021','AP022'};
+animals={'DS007'};
+for curr_animal=1:length(animals)
+    animal=animals{curr_animal};
+
+    mkdir([Path '\figures\' animal ]);
+    data_task=load([Path '\mat_data\' animal '_task.mat']);
+    data_lcr=load([Path '\mat_data\' animal '_lcr_passive.mat']);
+    data_hml=load([Path '\mat_data\' animal '_hml_passive_audio.mat']);
+
+
+    master_U_fn = fullfile(plab.locations.server_path,'Lab', ...
+        'widefield_alignment','U_master.mat');
+    load(master_U_fn);
+    load('C:\Users\dsong\Documents\MATLAB\Da_Song\DS_scripts_ptereslab\General_information\roi.mat')
+
+    surround_samplerate = 35;
+    surround_window_passive = [-0.5,1];
+    surround_window_task = [-0.2,1];
+    t_passive = surround_window_passive(1):1/surround_samplerate:surround_window_passive(2);
+    t_task = surround_window_task(1):1/surround_samplerate:surround_window_task(2);
+
+    period_passive=find(t_passive>0&t_passive<0.2);
+    period_task=find(t_task>0&t_task<0.2);
+    scale=0.008;
+
+
+    for curr_day=1:length(data_task.workflow_day)
+        if data_task.workflow_type(curr_day)==1|...
+                data_task.workflow_type(curr_day)==2|...
+                data_task.workflow_type(curr_day)==3
+
+
+
+            figure('Position',[0 50 2100 900]);
+
+            t = tiledlayout(6, 12, 'TileSpacing', 'compact', 'Padding', 'compact');
+
+            %% brain heatmap in task
+            wf_px_pro_buffer=plab.wf.svd2px(U_master, data_task.wf_px_task{curr_day});
+            scale=max(max(wf_px_pro_buffer(:,:,period_task,1:2),[],3),[],'all');
+
+            nexttile(1, [2, 2])
+            imagesc(max(wf_px_pro_buffer(:,:,period_task,1),[],3));axis image off;
+            ap.wf_draw('ccf','black');
+            clim(scale.*[-1,1]);
+            colormap(nexttile(1),ap.colormap('PWG'));
+            title('stim max(0-0.2s)')
+
+            nexttile(3, [2, 2])
+            imagesc(max(wf_px_pro_buffer(:,:,period_task,2),[],3));axis image off;
+            ap.wf_draw('ccf','black');
+            clim(scale.*[-1,1]);
+            colormap(nexttile(3),ap.colormap('PWG'));
+            title('movement max(0-0.2s)')
+             % colorbar(ax3,'southoutside')
+          colorbar
+
+            %%  mPFC response in single trial during task
+            buffer=data_task.wf_px_task_all{curr_day};
+            buffer_timespoint1= data_task.wf_px_task_all_timepoint{curr_day}(find(data_task.wf_px_task_all_type_id{curr_day}==2))-data_task.wf_px_task_all_timepoint{curr_day}(find(data_task.wf_px_task_all_type_id{curr_day}==1));
+            buffer_timespoint2= data_task.wf_px_task_all_timepoint{curr_day}(find(data_task.wf_px_task_all_type_id{curr_day}==3))-data_task.wf_px_task_all_timepoint{curr_day}(find(data_task.wf_px_task_all_type_id{curr_day}==1));
+            [B, idx] =sort(buffer_timespoint1);
+            buffer_reward= data_task.wf_px_task_all_reward_id{curr_day}(find(data_task.wf_px_task_all_type_id{curr_day}==1));
+
+            wf_px_pro_buffer=plab.wf.svd2px(U_master, buffer(:,:,find(data_task.wf_px_task_all_type_id{curr_day}==1)));
+            redata=reshape(wf_px_pro_buffer,size(wf_px_pro_buffer,1)*size(wf_px_pro_buffer,2),size(wf_px_pro_buffer,3),size(wf_px_pro_buffer,4));
+            roi_data_peri_av_mpfc=permute(mean(redata(roi1(1).data.mask(:),:,:),1),[2,3,1]);
+            roi_data_peri_av_v1=permute(mean(redata(roi1(3).data.mask(:),:,:),1),[2,3,1]);
+            roi_data_peri_av_a1=permute(mean(redata(roi1(6).data.mask(:),:,:),1),[2,3,1]);
+
+            nexttile(25, [3, 1]);
+            imagesc(t_task,[], roi_data_peri_av_mpfc(:,idx)');hold on
+            clim(0.8*abs(max(roi_data_peri_av_mpfc(:,idx),[],'all'))*[0,1])
+            colormap( nexttile(25),ap.colormap('WG'))
+            title('mPFC');
+            xlabel('Time from stim')
+            % colorbar('southoutside');
+            colorbar
+            % plot((buffer_timespoint(find(wf_px_task_all_type_id{curr_trial}==2))-buffer_timespoint( find(wf_px_task_all_type_id{curr_trial}==1))),1:length(idx),'.black')
+            plot(B,1:length(idx),'o', 'MarkerSize', 1,'Color','black')
+            plot(buffer_timespoint2(idx),1:length(idx),'o', 'MarkerSize', 1,'Color','blue')
+            plot(buffer_reward(idx)*2,1:length(idx),'o', 'MarkerSize', 1,'Color','r')
+
+
+            nexttile(61,[1,1])
+            plot_data=mean(roi_data_peri_av_mpfc,2);
+            sem_data = std(roi_data_peri_av_mpfc, 0, 2) / sqrt(size(roi_data_peri_av_mpfc, 2));  % 每行的SEM
+            ap.errorfill(t_task,plot_data, sem_data,[0,0,1],0.1,0.5);
+            xline(0)
+            box off
+
+
+
+
+            nexttile(26, [3, 1]);
+            imagesc(t_task,[], roi_data_peri_av_v1(:,idx)');hold on
+            clim(0.8*abs(max(roi_data_peri_av_v1(:,idx),[],'all'))*[0,1])
+            colormap( nexttile(26),ap.colormap('WG'))
+            title('Visual area')
+            xlabel('Time from stim')
+            % colorbar('southoutside');
+            colorbar
+            % plot((buffer_timespoint(find(wf_px_task_all_type_id{curr_trial}==2))-buffer_timespoint( find(wf_px_task_all_type_id{curr_trial}==1))),1:length(idx),'.black')
+            plot(B,1:length(idx),'o', 'MarkerSize', 1,'Color','black')
+            plot(buffer_timespoint2(idx),1:length(idx),'o', 'MarkerSize', 1,'Color','blue')
+            plot(buffer_reward(idx)*2,1:length(idx),'o', 'MarkerSize', 1,'Color','r')
+
+         
+            nexttile(62,[1,1])
+            plot_data=mean(roi_data_peri_av_v1,2);
+            sem_data = std(roi_data_peri_av_v1, 0, 2) / sqrt(size(roi_data_peri_av_v1, 2));  % 每行的SEM
+            ap.errorfill(t_task,plot_data, sem_data,[0,0,1],0.1,0.5);
+            xline(0)
+            box off
+
+
+
+            nexttile(27, [3, 1]);
+            imagesc(t_task,[], roi_data_peri_av_a1(:,idx)');hold on
+            clim(0.8*abs(max(roi_data_peri_av_a1(:,idx),[],'all'))*[0,1])
+            colormap( nexttile(27),ap.colormap('WG'))
+            title('Auditory area')
+            xlabel('Time from stim')
+            % colorbar('southoutside');
+            colorbar
+            % plot((buffer_timespoint(find(wf_px_task_all_type_id{curr_trial}==2))-buffer_timespoint( find(wf_px_task_all_type_id{curr_trial}==1))),1:length(idx),'.black')
+            plot(B,1:length(idx),'o', 'MarkerSize', 1,'Color','black')
+            plot(buffer_timespoint2(idx),1:length(idx),'o', 'MarkerSize', 1,'Color','blue')
+            plot(buffer_reward(idx)*2,1:length(idx),'o', 'MarkerSize', 1,'Color','r')
+
+
+             nexttile(63,[1,1])
+            plot_data=mean(roi_data_peri_av_a1,2);
+            sem_data = std(roi_data_peri_av_a1, 0, 2) / sqrt(size(roi_data_peri_av_a1, 2));  % 每行的SEM
+           ap.errorfill(t_task,plot_data, sem_data,[0,0,1],0.1,0.5);
+            xline(0)
+            box off
+
+            nexttile(28, [1, 1]);
+            imagesc(roi1(1).data.mask);axis image off;
+            ap.wf_draw('ccf','black');
+            clim([-1,1]);
+            colormap( nexttile(28),ap.colormap('KWG'))
+
+
+            title('mPFC')
+
+            nexttile(40, [1, 1]);
+            imagesc(roi1(3).data.mask);axis image off;
+            ap.wf_draw('ccf','black');
+            colormap( nexttile(40),ap.colormap('KWG'))
+            clim([-1,1]);
+            title('Visual area')
+            nexttile(52, [1, 1]);
+            imagesc(roi1(6).data.mask);axis image off;
+            ap.wf_draw('ccf','black');
+            colormap( nexttile(52),ap.colormap('KWG'))
+            title('Auditory area')
+            clim([-1,1]);
+
+
+
+
+
+
+
+
+
+
+            %% brain heatmap in lcr passive
+            buff_idx=find(strcmp(data_lcr.workflow_day,data_task.workflow_day{curr_day}));
+            if ~isempty (buff_idx)
+                wf_px_pro_lcr_buffer=plab.wf.svd2px(U_master, data_lcr.wf_px{buff_idx});
+
+                scale=max(max(wf_px_pro_lcr_buffer(:,:,period_passive,:),[],3),[],'all');
+
+            
+
+                for curr_passive=1:length( data_lcr.all_groups_name{buff_idx})
+                    nexttile((2*curr_passive+3),[2,2])
+                    imagesc(max(wf_px_pro_lcr_buffer(:,:,period_passive,curr_passive),[],3));axis image off;
+                    ap.wf_draw('ccf','black');
+                    clim(scale.*[-1,1]);
+                    title(['lcr max(0-0.2s) ' num2str(data_lcr.all_groups_name{buff_idx}(curr_passive))])
+                                    colormap(nexttile((2*curr_passive+3),[2,2]),ap.colormap('PWG'));
+
+                end
+                % colormap(nexttile((2*curr_passive+3),[2,2]),ap.colormap('PWG'));
+                % colorbar('southoutside');
+                colorbar
+
+
+                %% mPFC response in lcr passive
+                wf_px_all_pro=plab.wf.svd2px(U_master, data_lcr.wf_px_all{buff_idx});
+                redata=reshape(wf_px_all_pro,size(wf_px_all_pro,1)*size(wf_px_all_pro,2),size(wf_px_all_pro,3),size(wf_px_all_pro,4));
+                roi_data_peri_av_mpfc=permute(mean(redata(roi1(1).data.mask(:),:,:),1),[2,3,1]);
+                roi_data_peri_av_v1=permute(mean(redata(roi1(3).data.mask(:),:,:),1),[2,3,1]);
+
+                [curr_trial_type, indx_passive]=sort(data_lcr.trial_type{buff_idx});
+                % find(data_lcr.trial_state{curr_day}(indx_passive)==1)
+
+
+                roi_buffer=roi_data_peri_av_mpfc(:,indx_passive);
+
+                nexttile(11, [2, 1]);
+                buffer_data=roi_buffer(:,( find(data_lcr.trial_state{buff_idx}(indx_passive)==1)));
+                imagesc(t_task,[],buffer_data(11:end,:)');hold on
+                % clim(0.01*[-1,1]);colormap(ap.colormap('PWG'));
+                clim(max(abs(roi_data_peri_av_mpfc),[],'all')*[0,1]);
+                colormap(nexttile(11),ap.colormap('WG'))
+                % colorbar('southoutside');
+                colorbar
+                title('LmPFC')
+                % plot((trial_state{curr_trial}(indx_passive)-1),1:length(trial_state{curr_trial}),'o', 'MarkerSize', 0.5,'Color','blue')
+                if ~isempty(find(curr_trial_type( find(data_lcr.trial_state{buff_idx}(indx_passive)==1))==-90))
+                    plot(-0.1,find(curr_trial_type( find(data_lcr.trial_state{buff_idx}(indx_passive)==1))==-90),'|', 'MarkerSize', 1,'Color','black')
+                end
+                if ~isempty(find(curr_trial_type( find(data_lcr.trial_state{buff_idx}(indx_passive)==1))==0))
+                    plot(-0.1,find(curr_trial_type( find(data_lcr.trial_state{buff_idx}(indx_passive)==1))==0),'|', 'MarkerSize', 1,'Color','blue')
+                end
+                if ~isempty(find(curr_trial_type( find(data_lcr.trial_state{buff_idx}(indx_passive)==1))==90))
+                    plot(-0.1 ,find(curr_trial_type( find(data_lcr.trial_state{buff_idx}(indx_passive)==1))==90),'|', 'MarkerSize', 1,'Color','red')
+                end
+
+                    nexttile(53,[2,2])
+                    plot_data1=mean(buffer_data(11:end,find(curr_trial_type( find(data_lcr.trial_state{buff_idx}(indx_passive)==1))==-90)),2);
+                    sem_data1=std(buffer_data(11:end,find(curr_trial_type( find(data_lcr.trial_state{buff_idx}(indx_passive)==1))==-90)), 0, 2) / sqrt(size(roi_buffer(11:end,find(curr_trial_type( find(data_lcr.trial_state{buff_idx}(indx_passive)==1))==-90)), 2)); 
+                    ap.errorfill(t_task,plot_data1, sem_data1,[0.5,0.5,0.5],0.1,0.5);
+                    hold on
+                    plot_data1=mean(buffer_data(11:end,find(curr_trial_type( find(data_lcr.trial_state{buff_idx}(indx_passive)==1))==0)),2);
+                    sem_data1=std(buffer_data(11:end,find(curr_trial_type( find(data_lcr.trial_state{buff_idx}(indx_passive)==1))==0)), 0, 2) / sqrt(size(roi_buffer(11:end,find(curr_trial_type( find(data_lcr.trial_state{buff_idx}(indx_passive)==1))==-90)), 2)); 
+                    ap.errorfill(t_task,plot_data1, sem_data1,[0.5,0.5,1],0.1,0.5);
+                     hold on
+                    plot_data1=mean(buffer_data(11:end,find(curr_trial_type( find(data_lcr.trial_state{buff_idx}(indx_passive)==1))==90)),2);
+                    sem_data1=std(buffer_data(11:end,find(curr_trial_type( find(data_lcr.trial_state{buff_idx}(indx_passive)==1))==90)), 0, 2) / sqrt(size(roi_buffer(11:end,find(curr_trial_type( find(data_lcr.trial_state{buff_idx}(indx_passive)==1))==-90)), 2)); 
+                    ap.errorfill(t_task,plot_data1, sem_data1,[1,0,0],0.1,0.5);
+                    title('LmPFC in visual passive task')
+
+                  
+
+
+
+                roi_buffer=roi_data_peri_av_v1(:,indx_passive);
+                nexttile(12, [2, 1]);
+                imagesc(t_task,[],roi_buffer(11:end,( find(data_lcr.trial_state{buff_idx}(indx_passive)==1)))');hold on
+                % clim(0.01*[-1,1]);colormap(ap.colormap('PWG'));
+                clim(0.5*max(abs(roi_data_peri_av_v1),[],'all')*[0,1]);
+                colormap( nexttile(12),ap.colormap('WG'))
+                % colorbar('southoutside');
+                colorbar
+                title('L visual area')
+
+                % plot((trial_state{curr_trial}(indx_passive)-1),1:length(trial_state{curr_trial}),'o', 'MarkerSize', 0.5,'Color','blue')
+                if ~isempty(find(curr_trial_type( find(data_lcr.trial_state{buff_idx}(indx_passive)==1))==-90))
+                    plot(-0.1,find(curr_trial_type( find(data_lcr.trial_state{buff_idx}(indx_passive)==1))==-90),'|', 'MarkerSize', 1,'Color','black')
+                end
+                if ~isempty(find(curr_trial_type( find(data_lcr.trial_state{buff_idx}(indx_passive)==1))==0))
+                    plot(-0.1,find(curr_trial_type( find(data_lcr.trial_state{buff_idx}(indx_passive)==1))==0),'|', 'MarkerSize', 1,'Color','blue')
+                end
+                if ~isempty(find(curr_trial_type( find(data_lcr.trial_state{buff_idx}(indx_passive)==1))==90))
+                    plot(-0.1,find(curr_trial_type( find(data_lcr.trial_state{buff_idx}(indx_passive)==1))==90),'|', 'MarkerSize', 1,'Color','red')
+                end
+
+            end
+
+
+            % brain heatmap in hml passive
+            buff_idx=find(strcmp(data_hml.workflow_day,data_task.workflow_day{curr_day}));
+            if ~isempty (buff_idx)
+                wf_px_pro_hml_buffer=plab.wf.svd2px(U_master, data_hml.wf_px{buff_idx});
+                scale=max(max(wf_px_pro_hml_buffer(:,:,period_passive,:),[],3),[],'all');
+                for curr_passive=1:length( data_hml.all_groups_name{buff_idx})
+                    nexttile(2*curr_passive+27, [2, 2]);
+                    imagesc(max(wf_px_pro_hml_buffer(:,:,period_passive,curr_passive),[],3));axis image off;
+                    ap.wf_draw('ccf','black');
+                    clim(scale.*[-1,1]);
+                    title(['hml max(0-0.2s) ' num2str(data_hml.all_groups_name{buff_idx}(curr_passive))])
+               
+                colormap(nexttile(2*curr_passive+27, [2, 2]),ap.colormap('PWG'));
+                end
+                % colorbar('southoutside');
+                colorbar
+
+
+
+                %% mPFC response in hml passive
+                wf_px_all_pro=plab.wf.svd2px(U_master, data_hml.wf_px_all{buff_idx});
+                redata=reshape(wf_px_all_pro,size(wf_px_all_pro,1)*size(wf_px_all_pro,2),size(wf_px_all_pro,3),size(wf_px_all_pro,4));
+                roi_data_peri_av_mpfc=permute(mean(redata(roi1(1).data.mask(:),:,:),1),[2,3,1]);
+                roi_data_peri_av_a1=permute(mean(redata(roi1(6).data.mask(:),:,:),1),[2,3,1]);
+
+                [curr_trial_type, indx_passive]=sort(data_hml.trial_type{buff_idx});
+                % find(data_lcr.trial_state{curr_day}(indx_passive)==1)
+                roi_buffer=roi_data_peri_av_mpfc(:,indx_passive);
+                nexttile(35, [2, 1]);
+                buffer_data=roi_buffer(:,( find(data_hml.trial_state{buff_idx}(indx_passive)==1)));
+
+                imagesc(t_task,[],buffer_data(11:end,:)');hold on
+                % clim(0.01*[-1,1]);colormap(ap.colormap('PWG'));
+                clim(0.5*max(abs(roi_data_peri_av_mpfc),[],'all')*[0,1]);
+                colormap( nexttile(35),ap.colormap('WG'))
+                title('LmPFC')
+                colorbar
+                % colorbar('southoutside');
+                % plot((trial_state{curr_trial}(indx_passive)-1),1:length(trial_state{curr_trial}),'o', 'MarkerSize', 0.5,'Color','blue')
+                if ~isempty(find(curr_trial_type( find(data_hml.trial_state{buff_idx}(indx_passive)==1))==4000))
+                    plot(-0.1,find(curr_trial_type( find(data_hml.trial_state{buff_idx}(indx_passive)==1))==4000),'|', 'MarkerSize', 1,'Color','black')
+                end
+                if ~isempty(find(curr_trial_type( find(data_hml.trial_state{buff_idx}(indx_passive)==1))==8000))
+                    plot(-0.1,find(curr_trial_type( find(data_hml.trial_state{buff_idx}(indx_passive)==1))==8000),'|', 'MarkerSize', 1,'Color','blue')
+                end
+                if ~isempty(find(curr_trial_type( find(data_hml.trial_state{buff_idx}(indx_passive)==1))==12000))
+                    plot(-0.1,find(curr_trial_type( find(data_hml.trial_state{buff_idx}(indx_passive)==1))==12000),'|', 'MarkerSize', 1,'Color','red')
+                end
+
+
+
+                 nexttile(55,[2,2])
+                    plot_data1=mean(buffer_data(11:end,find(curr_trial_type( find(data_hml.trial_state{buff_idx}(indx_passive)==1))==4000)),2);
+                    sem_data1=std(buffer_data(11:end,find(curr_trial_type( find(data_hml.trial_state{buff_idx}(indx_passive)==1))==4000)), 0, 2) / sqrt(size(roi_buffer(11:end,find(curr_trial_type( find(data_hml.trial_state{buff_idx}(indx_passive)==1))==4000)), 2)); 
+                    ap.errorfill(t_task,plot_data1, sem_data1,[0.5,0.5,0.5],0.1,0.5);
+                    hold on
+                    plot_data1=mean(buffer_data(11:end,find(curr_trial_type( find(data_hml.trial_state{buff_idx}(indx_passive)==1))==8000)),2);
+                    sem_data1=std(buffer_data(11:end,find(curr_trial_type( find(data_hml.trial_state{buff_idx}(indx_passive)==1))==8000)), 0, 2) / sqrt(size(roi_buffer(11:end,find(curr_trial_type( find(data_hml.trial_state{buff_idx}(indx_passive)==1))==8000)), 2)); 
+                    ap.errorfill(t_task,plot_data1, sem_data1,[0.5,0.5,1],0.1,0.5);
+                     hold on
+                    plot_data1=mean(buffer_data(11:end,find(curr_trial_type( find(data_hml.trial_state{buff_idx}(indx_passive)==1))==12000)),2);
+                    sem_data1=std(buffer_data(11:end,find(curr_trial_type( find(data_hml.trial_state{buff_idx}(indx_passive)==1))==12000)), 0, 2) / sqrt(size(roi_buffer(11:end,find(curr_trial_type( find(data_hml.trial_state{buff_idx}(indx_passive)==1))==12000)), 2)); 
+                    ap.errorfill(t_task,plot_data1, sem_data1,[1,0,0],0.1,0.5);
+                    title('LmPFC in audio passive task')
+
+
+
+
+
+                roi_buffer=roi_data_peri_av_a1(:,indx_passive);
+                nexttile(36, [2, 1]);
+                imagesc(t_task,[],roi_buffer(11:end,( find(data_hml.trial_state{buff_idx}(indx_passive)==1)))');hold on
+                % clim(0.01*[-1,1]);colormap(ap.colormap('PWG'));
+                clim(0.5*max(abs(roi_data_peri_av_a1),[],'all')*[0,1]);
+                colormap( nexttile(36),ap.colormap('WG'))
+                % colorbar('southoutside');
+                colorbar
+                title('L Auditory area')
+                % plot((trial_state{curr_trial}(indx_passive)-1),1:length(trial_state{curr_trial}),'o', 'MarkerSize', 0.5,'Color','blue')
+                if ~isempty(find(curr_trial_type( find(data_hml.trial_state{buff_idx}(indx_passive)==1))==4000))
+                    plot(-0.1,find(curr_trial_type( find(data_hml.trial_state{buff_idx}(indx_passive)==1))==4000),'|', 'MarkerSize', 1,'Color','black')
+                end
+                if ~isempty(find(curr_trial_type( find(data_hml.trial_state{buff_idx}(indx_passive)==1))==8000))
+                    plot(-0.1,find(curr_trial_type( find(data_hml.trial_state{buff_idx}(indx_passive)==1))==8000),'|', 'MarkerSize', 1,'Color','blue')
+                end
+                if ~isempty(find(curr_trial_type( find(data_hml.trial_state{buff_idx}(indx_passive)==1))==12000))
+                    plot(-0.1,find(curr_trial_type( find(data_hml.trial_state{buff_idx}(indx_passive)==1))==12000),'|', 'MarkerSize', 1,'Color','red')
+                end
+
+
+                
+
+
+
+            end
+            if data_task.workflow_type(curr_day)==1
+                title_day=(['visual task day ' mat2str(curr_day-find(data_task.workflow_type==1,1)+1)]);
+            elseif data_task.workflow_type(curr_day)==2
+                title_day=(['auditory task day ' mat2str(curr_day-find(data_task.workflow_type==2,1)+1)]);
+            elseif data_task.workflow_type(curr_day)==3
+                title_day=(['mixed task day ' mat2str(curr_day-find(data_task.workflow_type==3,1)+1)]);
+            else title_day=(['other tasks '])
+
+            end
+            sgtitle([animal ' ' title_day], 'Interpreter', 'none');
+
+            saveas(gcf,[Path 'figures\' animal '\' title_day ], 'jpg');
+
+        end
+        close all
+    end
+end
