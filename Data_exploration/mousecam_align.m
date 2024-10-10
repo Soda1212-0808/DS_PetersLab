@@ -1,31 +1,5 @@
 
 
-
-
-
-
-
-
-% 
-% video = VideoReader(mousecam_fn);
-% grayFrames = arrayfun(@(idx) read(video, idx), 1:floor(video.Duration * video.FrameRate), 'UniformOutput', false);
-% camframes = cat(3, grayFrames{:});
-% 
-% frames_2 = ds.mc_align(camframes,animal,rec_day,'day_only');
-% ap.imscroll(camframes)
-
-
-
-
-
-
-
-
-
-
-
-
-
 %% Align facecam frames (nose/eye control point)
 
 % Overwrite, or add to existing data

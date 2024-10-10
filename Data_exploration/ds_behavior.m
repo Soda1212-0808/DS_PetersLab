@@ -2,10 +2,12 @@
 clear all
 Path = 'C:\Users\dsong\Documents\MATLAB\Da_Song\Data_analysis\mice\process\processed_data_v2\figures\';
 
+   animals = {'DS007','DS010','AP019','AP021','DS011','AP022','DS001'};
+  % animals = { 'DS003','DS004','DS000','DS006','DS005'};
 
-  % animals = {'AP018','AP020','AP022','DS001','AP019','AP021','DS000'};
-  animals = {'DS010','DS011'};
-   % animals = {'AP016'};
+   % animals = {'DS016'};
+  % animals = {'DS001','DS003'};
+    % animals = {'AP016'};
 
 reaction_time=2;
 % animals = {'DS000'};
@@ -22,8 +24,8 @@ for curr_animal_idx = 1:length(animals)
 
     animal = animals{curr_animal_idx};
 
-     % use_workflow = {'stim_wheel_right_stage1$|stim_wheel_right_stage1_audio_volume$|stim_wheel_right_stage1_audio_frequency$|stim_wheel_right_stage2$|stim_wheel_right_stage2_audio_volume$|stim_wheel_right_stage2_audio_frequency$'};
-     use_workflow = {'stim_wheel_right_stage*'};
+     use_workflow = {'stim_wheel_right_stage1$|stim_wheel_right_stage1_audio_volume$|stim_wheel_right_stage1_audio_frequency$|stim_wheel_right_stage2$|stim_wheel_right_stage2_audio_volume$|stim_wheel_right_stage2_audio_frequency$'};
+     % use_workflow = {'stim_wheel_right_stage*'};
 
     recordings = plab.find_recordings(animal,[],use_workflow);
 
@@ -40,6 +42,7 @@ for curr_animal_idx = 1:length(animals)
     success = nan(length(recordings),1);
     rxn_med = nan(length(recordings),1);
     frac_move_stimalign = nan(length(recordings),length(surround_time_points));
+    frac_velocity_stimalign= nan(length(recordings),length(surround_time_points));
     rxn_stat_p = nan(length(recordings),1);
     workflow_name= nan(length(recordings),1);
 
@@ -107,6 +110,8 @@ for curr_animal_idx = 1:length(animals)
             +wheel_move,pull_times,'previous');
 
         frac_move_stimalign(curr_recording,:) = nanmean(event_aligned_wheel_move,1);
+                
+        frac_velocity_stimalign(curr_recording,:) = nanmean(event_aligned_wheel_vel,1);
 
         % Get association stat
         rxn_stat_p(curr_recording) = AP_stimwheel_association_pvalue( ...
@@ -134,7 +139,7 @@ for curr_animal_idx = 1:length(animals)
 
 
     % Draw in tiled layout nested in master
-    t_animal = tiledlayout(tt,5,1);
+    t_animal = tiledlayout(tt,7,1);
     t_animal.Layout.Tile = curr_animal_idx;
     title(t_animal,animal);
 
@@ -154,18 +159,16 @@ for curr_animal_idx = 1:length(animals)
     if any(learned_day)
         xline(relative_day(learned_day),'g');
     end
-
     xlim([range_t1,relative_day(end)])
 
-    nexttile(t_animal);
 
+
+    nexttile(t_animal);
     yyaxis left
     plot(relative_day,rxn_med,'LineWidth',1)
     set(gca,'YScale','log');
     ylabel('Med. rxn');
     xlabel('Day');
-    %
-
     %
     ax = gca;
     ylim1 = ax.YLim;
@@ -173,7 +176,6 @@ for curr_animal_idx = 1:length(animals)
     ylim_linear = log10(ylim1);
     ylim_linear = 10 .^ ylim_linear;
     if ~visual_day==0
-
         bg1 =rectangle('Position', [visual_day(1)-0.5, ylim_linear(1), visual_day(end)-visual_day(1)+1, diff(ylim_linear)], 'FaceColor', '#DAE3F3', 'EdgeColor', 'none');
         uistack(bg1, 'bottom');
     end
@@ -181,7 +183,6 @@ for curr_animal_idx = 1:length(animals)
         bg2 =rectangle('Position', [audio_day(1)-0.5, ylim_linear(1), audio_day(end)-audio_day(1)+1, diff(ylim_linear)], 'FaceColor', '#FFB2B2', 'EdgeColor', 'none');
         uistack(bg2, 'bottom');
     end
-
     if any(nonrecorded_day)
         xline(nonrecorded_day,'--k');
     end
@@ -198,6 +199,8 @@ for curr_animal_idx = 1:length(animals)
     xlabel('Day');
     xlim([range_t1,relative_day(end)]);
 
+
+
     nexttile(t_animal);
     plot(relative_day,success)
     ylabel('success');
@@ -207,7 +210,6 @@ for curr_animal_idx = 1:length(animals)
 
 
     nexttile(t_animal);
-
     imagesc(surround_time_points,[],frac_move_stimalign); hold on;
     clim([0,1]);
     colormap(gca,ap.colormap('WK'));
@@ -225,17 +227,15 @@ for curr_animal_idx = 1:length(animals)
        plot(-0.5,find(workflow_name==1),'|b')
 
         
-    end
-
-
+     end
     ylim([(range_t1-0.5),(0.5+length(learned_day))])
+
+
 
     nexttile(t_animal); hold on
     set(gca,'ColorOrder',copper(length(recordings)));
-
     %plot(surround_time_points,frac_move_stimalign','linewidth',2);
     plot(surround_time_points,frac_move_stimalign(range_t1:end,:)','linewidth',2);
-
     xline(0,'color','k');
     ylabel('Fraction moving');
     xlabel('Time from stim');
@@ -246,6 +246,48 @@ for curr_animal_idx = 1:length(animals)
         % Store learned day across animals
         learned_day_all(curr_animal_idx) = find(learned_day,1);
     end
+
+
+
+    pre_time=max(frac_move_stimalign(:,surround_time_points>-2&surround_time_points<-1),[],2);
+    post_time=max(frac_move_stimalign(:,surround_time_points>0&surround_time_points<1),[],2);
+    react_index=(post_time-pre_time)./(post_time+pre_time);
+
+    nexttile(t_animal);
+    plot(react_index)
+    set(gca,'XTick',1:length(recordings),'XTickLabel', ...
+        cellfun(@(day,num) sprintf('%d (%s)',num,day(6:end)), ...
+        {recordings.day},num2cell(1:length(recordings)),'uni',false));
+    hold on 
+    yline(0)
+    ylim([-1, 1])
+
+    
+    nexttile(t_animal);
+    imagesc(surround_time_points,[],frac_velocity_stimalign); hold on;
+    clim([-500,500]);
+    colormap(gca,ap.colormap('PWG'));
+    set(gca,'YTick',1:length(recordings),'YTickLabel', ...
+        cellfun(@(day,num) sprintf('%d (%s)',num,day(6:end)), ...
+        {recordings.day},num2cell(1:length(recordings)),'uni',false));
+    xlabel('Time from stim');
+    if any(learned_day)
+        plot(-0.2,find(learned_day),'.g')
+    end
+    if any(workflow_name==2)
+        plot(-0.5,find(workflow_name==2),'|r')
+    end
+     if any(workflow_name==1)
+       plot(-0.5,find(workflow_name==1),'|b')
+
+        
+    end
+
+    ylim([(range_t1-0.5),(0.5+length(learned_day))])
+
+
+
+    
 
     drawnow;
 

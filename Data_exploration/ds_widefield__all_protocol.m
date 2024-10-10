@@ -4,7 +4,7 @@ clc
 Path = 'C:\Users\dsong\Documents\MATLAB\Da_Song\Data_analysis\mice\process\processed_data_v2\';
 
 % animals = {'DS000','DS001','DS003','DS004','DS005','DS006','AP018','AP019','AP020','AP021','AP022'};
-animals={'DS007'};
+animals={'DS010','DS011',};
 for curr_animal=1:length(animals)
     animal=animals{curr_animal};
 
@@ -34,7 +34,6 @@ for curr_animal=1:length(animals)
         if data_task.workflow_type(curr_day)==1|...
                 data_task.workflow_type(curr_day)==2|...
                 data_task.workflow_type(curr_day)==3
-
 
 
             figure('Position',[0 50 2100 900]);

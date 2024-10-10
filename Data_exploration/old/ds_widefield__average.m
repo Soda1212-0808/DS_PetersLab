@@ -1,7 +1,7 @@
 
 %%
 clear all
- animals = {'DS003','DS004','DS000'};
+ animals = {'DS010'};
  % animals = {'AP018','AP019','AP020','AP021','AP022','DS001'};
  % animals = {'AP019','AP021','AP022','DS001'};
  % animals = {'AP019','AP021'};

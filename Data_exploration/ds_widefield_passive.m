@@ -13,10 +13,12 @@ master_U_fn = fullfile(plab.locations.server_path,'Lab', ...
 
 for x=1:2
     if x==1
-        animals = {'DS010','DS011'};type_seq=1;
+        animals = {};type_seq=1;
         % animals = {'AP020','AP022','AP019','AP021'};type_seq=1;
 
-    else animals = {};type_seq=2;
+    else animals = {'DS016'};type_seq=2;
+            % else animals = {'DS016'};type_seq=2;
+
     end
     % animals = {'AP016','AP017'};type_seq=1;
     % animals = {'DS005'};type_seq=2;

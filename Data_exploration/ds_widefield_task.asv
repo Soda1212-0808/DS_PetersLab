@@ -83,10 +83,6 @@ for curr_animal_idx=1:length(animals)
         wf_px_task_all= cell(size(recordings));
         wf_px_task_all_timepoint=cell(size(recordings));
         tasktype=cell(size(recordings));
-
-          rxn_med = nan(length(recordings),1);
-    rxn_stat_p = nan(length(recordings),1);
-    stim2move= nan(length(recordings),1);
     end
 
 
@@ -96,15 +92,18 @@ for curr_animal_idx=1:length(animals)
     surround_sample_rate = 100;
     surround_time_points = surround_time(1):1/surround_sample_rate:surround_time(2);
 
-     n_trials_water = nan(length(recordings),2);
+    n_trials_water = nan(length(recordings),2);
     frac_move_day = nan(length(recordings),1);
     success = nan(length(recordings),1);
- 
+    rxn_med = nan(length(recordings),1);
     frac_move_stimalign = nan(length(recordings),length(surround_time_points));
+    rxn_stat_p = nan(length(recordings),1);
+
 
 
     if ~(file_length==length(recordings)&problem==0)
-       for curr_recording =file_length:length(recordings)
+        % for curr_recording =file_length:length(recordings)
+        for curr_recording =11:length(recordings)
 
             fprintf('The number of files is %d This file is: %d\n', length(recordings),curr_recording);
 
@@ -324,7 +323,7 @@ for curr_animal_idx=1:length(animals)
         end
 
         learned_day = rxn_stat_p < 0.05 & rxn_med < 2;
-        save([Path 'mat_data\' animal '_task.mat' ],'workflow_type','learned_day','rxn_med','rxn_stat_p','wf_px_task','wf_px_task_kernels','img_size','wf_px_task_all','wf_px_task_all_type_id','wf_px_task_all_reward_id','wf_px_task_all_timepoint','tasktype','workflow_day','stim2move', '-v7.3')
+        save([Path 'mat_data\' animal '_task.mat' ],'workflow_type','learned_day','rxn_med','rxn_stat_p','wf_px_task','wf_px_task_kernels','img_size','wf_px_task_all','wf_px_task_all_type_id','wf_px_task_all_reward_id','wf_px_task_all_timepoint','tasktype','workflow_day', '-v7.3')
 
     end
     % save([Path 'mat_data\' animal '_task.mat' ],'workflow_type','learned_day','wf_px_task','img_size','wf_px_task_all','wf_px_task_all_type_id','wf_px_task_all_reward_id','wf_px_task_all_timepoint','tasktype','workflow_day', '-v7.3')

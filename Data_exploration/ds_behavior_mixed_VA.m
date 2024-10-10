@@ -6,8 +6,8 @@ Path = 'C:\Users\dsong\Documents\MATLAB\Da_Song\Data_analysis\mice\process\proce
 % animals = {'AP019','AP020','AP021','AP022'};
 % animals = {'DS000','DS001','AP018','AP019','AP020','AP021','AP022'};
 % animals = {'AP018','AP022','DS001' ,'AP021','DS000'};
- animals = {'DS007'};
- % animals = {'DS003','DS004','DS005','DS006'};
+ animals = {'DS013','DS014','DS015','DS016'};
+ % animals = {'DS000','DS004','DS003','DS005','DS006'};
 
 
 figure('Position',[50 50 length(animals)*300 900]);
@@ -260,4 +260,4 @@ for curr_animal_idx = 1:length(animals)
 end
 
  saveas(gcf,[Path 'mixed_behavior_' strjoin(animals, '_')], 'jpg');
- saveas(gcf,[Path 'mixed_behavior_' strjoin(animals, '_') '.eps' ], 'epsc');
+ % saveas(gcf,[Path 'mixed_behavior_' strjoin(animals, '_') '.eps' ], 'epsc');

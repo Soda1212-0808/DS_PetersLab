@@ -1,5 +1,5 @@
 function [im_aligned,im_tform] = mc_align(im_unaligned,animal,day,align_type,master_align)
-% im_aligned = wf_align(im_unaligned,animal,day,align_type,master_align)
+% im_aligned = mc_align(im_unaligned,animal,day,align_type,master_align)
 %
 % Align widefield images across days and animals
 %
@@ -64,15 +64,21 @@ switch align_type
                 curr_avg_im_fn = plab.locations.filename('server', ...
                     animal,curr_day,recordings(curr_day_idx).recording{1}  ,'mousecam','mousecam.mj2');
 
-                vr = VideoReader(curr_avg_im_fn);
-                cam_im1 = read(vr,1);
-                cam_im_mean= zeros(size(cam_im1,1),size(cam_im1,2), 10);
-                for curr_frame=1:50
-                cam_im_mean(:,:,curr_frame) = read(vr,curr_frame*10);
-                end
-                cam_im_mean=mean(cam_im_mean,3);
+                try
+                    vr = VideoReader(curr_avg_im_fn);
+                    cam_im1 = read(vr,1);
+                    cam_im_mean= zeros(size(cam_im1,1),size(cam_im1,2), 10);
+                    for curr_frame=1:50
+                        cam_im_mean(:,:,curr_frame) = read(vr,curr_frame*10);
+                    end
+                    cam_im_mean=mean(cam_im_mean,3);
 
-                im_unaligned{curr_day_idx} = single(cam_im_mean);
+                    im_unaligned{curr_day_idx} = single(cam_im_mean);
+                catch ME
+                    warning(['wrong camera file at ', curr_day,':', ME.message] );
+                    im_unaligned{curr_day_idx}=single([]);
+                    continue;
+                end
             end
         end
 
@@ -116,6 +122,10 @@ switch align_type
         im_aligned = nan(ref_size(1),ref_size(2),length(im_unaligned));
         tform_matrix = cell(size(im_unaligned));
         for curr_im = 1:length(im_unaligned)
+            if isempty(im_unaligned{curr_im})
+                warning(['Skipping empty cell at index ', num2str(curr_im)]);
+                continue;
+            end
             im_tform = imregtform(im_unaligned{curr_im}, ...
                 im_ref,'rigid',optimizer,metric,'PyramidLevels',5);
             curr_im_reg = imwarp(im_unaligned{curr_im}, ...
@@ -145,11 +155,22 @@ switch align_type
 
             elseif isnumeric(user_input) && ismember(user_input,1:size(im_aligned,3))
                 % User selected a day to manually correct
-
+                if exist('fixedPoints' ,'var')
+              
+                   
                 % Select control points for selected image
                 [movingPoints,fixedPoints] = cpselect( ...
                     mat2gray(im_aligned(:,:,user_input),prctile(reshape(im_aligned(:,:,user_input),[],1),[0,98])), ...
+                    mat2gray(im_ref,double(prctile(im_ref(:),[0,98]))),movingPoints,fixedPoints,'Wait',true);
+                else
+   % Select control points for selected image
+                [movingPoints,fixedPoints] = cpselect( ...
+                    mat2gray(im_aligned(:,:,user_input),prctile(reshape(im_aligned(:,:,user_input),[],1),[0,98])), ...
                     mat2gray(im_ref,double(prctile(im_ref(:),[0,98]))),'Wait',true);
+
+                end
+
+
                 cp_tform = fitgeotform2d(movingPoints,fixedPoints,'similarity');
                 cp_rigid_tform = rigidtform2d(cp_tform.RotationAngle,cp_tform.Translation);
 
@@ -182,7 +203,7 @@ switch align_type
             mc_tform.day_tform = tform_matrix;
             mc_tform.ref_size = ref_size;
 
-             save(alignment_filename,'mc_tform');
+            save(alignment_filename,'mc_tform');
             disp(['Saved day transforms for ' animal '.'])
         elseif strcmp(user_input,'q')
             disp('Alignment not saved');
@@ -564,33 +585,37 @@ switch align_type
 
         % Transform image, cast to input data type
         tform = affinetform2d;
+        if ~isempty (curr_tform)
         tform.T = curr_tform;
         im_aligned = cast(imwarp(im_unaligned,tform,'Outputview',imref2d(ref_size)), ...
             class(im_unaligned));
+        else 
+            im_aligned=zeros(ref_size(1),ref_size(2),size(im_unaligned,3));
+        end
 
 
 end
 
 % %% Align CCF to VFS (RUN ONCE)
-% 
+%
 % alignment_path = fullfile(plab.locations.server_path,'Users','Andy_Peters','widefield_alignment');
-% 
+%
 % % Load master VFS
 % master_vfs_fn = fullfile(alignment_path,'master_vfs.mat');
 % load(master_vfs_fn);
 % master_align = master_vfs;
-% 
+%
 % % Load master blue image
 % master_blue_fn = fullfile(alignment_path,'master_blue.mat');
 % load(master_blue_fn);
-% 
+%
 % % Load CCF structure tree
 % allen_atlas_path = fileparts(which('template_volume_10um.npy'));
 % st = loadStructureTree(fullfile(allen_atlas_path,'structure_tree_safe_2017.csv'));
-% 
+%
 % % Load dorsal CCF areas
 % load(fullfile(alignment_path,'dorsal_cortex_borders.mat'));
-% 
+%
 % % Color visual areas by VFS by Zhuang/Waters eLife 2017 Fig 3c
 % dorsal_areas_unique = unique(dorsal_ccf_annotation(dorsal_ccf_annotation ~= 0));
 % a_idx = find(cellfun(@(name) contains(name,'Anterior area'),st.safe_name(dorsal_areas_unique)));
@@ -602,29 +627,29 @@ end
 % pm_idx = find(cellfun(@(name) contains(name,'posteromedial visual area'),st.safe_name(dorsal_areas_unique)));
 % li_idx = find(cellfun(@(name) contains(name,'Laterointermediate area'),st.safe_name(dorsal_areas_unique)));
 % rl_idx = find(cellfun(@(name) contains(name,'Rostrolateral area'),st.safe_name(dorsal_areas_unique)));
-% 
+%
 % ccf_vfs = zeros(size(dorsal_ccf_annotation));
 % ccf_vfs(ismember(dorsal_ccf_annotation,dorsal_areas_unique( ...
 %     [v1_idx,am_idx,al_idx,li_idx]))) = -1;
 % ccf_vfs(ismember(dorsal_ccf_annotation,dorsal_areas_unique( ...
 %     [a_idx,p_idx,pm_idx,rl_idx,lm_idx]))) = 1;
-% 
+%
 % % Overlay area boundaries on VFS
 % dorsal_boundary_mask = boundarymask(dorsal_ccf_annotation,4);
 % ccf_vfs_overlay = imoverlay(mat2gray(ccf_vfs),dorsal_boundary_mask,'b');
-% 
+%
 % % Threshold VFS
 % % (reference for alignment: Waters/Thompson, PLoS ONE 2019)
 % vfs_cutoff = 0.05;
 % master_vfs_thresh = zeros(size(master_vfs));
 % master_vfs_thresh(master_vfs < -vfs_cutoff) = -1;
 % master_vfs_thresh(master_vfs > vfs_cutoff) = 1;
-% 
+%
 % % Overlay VFS and average image
 % vfs_im_overlay = repmat(mat2gray(master_blue),1,1,3);
 % vfs_im_overlay(:,:,1) = vfs_im_overlay(:,:,1) + max(master_vfs,0)*0.5;
 % vfs_im_overlay(:,:,3) = vfs_im_overlay(:,:,3) - min(master_vfs,0)*0.5;
-% 
+%
 % % % (auto-align)
 % % [optimizer, metric] = imregconfig('monomodal');
 % % optimizer = registration.optimizer.OnePlusOneEvolutionary();
@@ -636,13 +661,13 @@ end
 % [movingPoints,fixedPoints] = cpselect( ...
 %     ccf_vfs_overlay,vfs_im_overlay,'Wait',true);
 % ccf_tform = fitgeotform2d(movingPoints,fixedPoints,'affine');
-% 
+%
 % dorsal_cortex_borders_aligned_long = cellfun(@(areas) cellfun(@(coords) ...
 %     [fliplr(coords),ones(size(coords,1),1)]*ccf_tform.T,areas,'uni',false), ...
 %     dorsal_cortex_borders,'uni',false);
 % dorsal_cortex_borders_aligned = cellfun(@(areas) cellfun(@(coords) ...
 %     coords,areas,'uni',false),dorsal_cortex_borders_aligned_long,'uni',false);
-% 
+%
 % % Plot alignment
 % figure;
 % subplot(1,2,1);
@@ -651,20 +676,20 @@ end
 %     plot(outline(:,2),outline(:,1),'color','k'),areas,'uni',false), ...
 %     dorsal_cortex_borders,'uni',false);
 % colormap(AP_colormap('BWR'));
-% 
+%
 % subplot(1,2,2);
 % imagesc(master_vfs_thresh); hold on; axis image off
 % cellfun(@(areas) cellfun(@(outline) ...
 %     plot(outline(:,1),outline(:,2),'color','k'),areas,'uni',false), ...
 %     dorsal_cortex_borders_aligned,'uni',false);
 % colormap(AP_colormap('BWR'));
-% 
+%
 % % Save master alignment
 % confirm_save = input('Overwrite CCF to master VFS alignment? (y/n): ','s');
 % if strcmp(confirm_save,'y')
 %     save_ccf_fn = fullfile(alignment_path,'dorsal_cortex_borders_aligned');
 %     save_ccf_tform_fn = fullfile(alignment_path,'ccf_tform.mat');
-% 
+%
 %     save(save_ccf_fn,'dorsal_cortex_borders_aligned');
 %     save(save_ccf_tform_fn,'ccf_tform');
 %     disp('Saved CCF to master VFS alignment.')
