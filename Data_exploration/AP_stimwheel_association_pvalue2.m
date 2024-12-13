@@ -19,6 +19,8 @@ function p = AP_stimwheel_association_pvalue2(stimOn_times,trial_events,stim_to_
 
 % Only look at completed trials
 n_trials = length([trial_events.timestamps.Outcome]);
+
+
 if ~exist('tasktype', 'var')
     tasktype=2 * ones(1, n_trials);
 end

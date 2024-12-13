@@ -1,6 +1,6 @@
-% 
-% animal='DS001'
-% ds.mc_align([],animal,[],'new_days');
+
+animal='DS001'
+ds.mc_align([],animal,[],'new_days');
 
 % % plab.find_recordings
 % % mc_align(im_unaligned,animal,day,align_type,master_align)
@@ -9,7 +9,7 @@
 clear all
 Path = 'C:\Users\dsong\Documents\MATLAB\Da_Song\Data_analysis\mice\process\processed_data_v2\';
 % animals={'DS002','DS003','DS004','DS005','DS006','DS007','DS010','DS011','DS013','DS014','DS015','DS016'};
-animals={'DS000','DS011', 'DS013','AP022'};
+animals={'DS001','DS007','DS010','DS011','AP018','AP019','AP020','AP021','AP022','DS000','DS003','DS004','DS006','DS013','DS014','DS015','DS016'};
 %DS011 'DS013','AP022'
 for curr_animal=1:length(animals)
    
@@ -47,7 +47,7 @@ for ss=1:2
     % 
     
     camera_all=cell(size(recordings,2),3);
-    camera_roi=cell(size(recordings,2),3);
+    camera_roi=cell(size(recordings,2),1);
     camera_image=cell(size(recordings,2),3);
     roi_mask=[];
     surround_t=[];
@@ -105,15 +105,12 @@ for ss=1:2
 
 
 
-
-
-
         %%  对camera图像进行ROI处理
         use_cam = mousecam_fn;
         use_t = mousecam_times;
 
         % (passive)
-        stim_window = [0,0.5];
+        stim_window = [0,0.1];
         quiescent_trials = arrayfun(@(x) ~any(wheel_move(...
             timelite.timestamps >= stimOn_times(x)+stim_window(1) & ...
             timelite.timestamps <= stimOn_times(x)+stim_window(2))), ...
@@ -148,12 +145,15 @@ for ss=1:2
         continue;
         end
 
-        % cam_im1 = read(vr,1);
+
+
+       
+         cam_im1 = read(vr,1);
         for curr_type=1:3
-            
+
             fprintf('%s\n', ['start type: ' num2str(curr_type) ]);
 
-            curr_use_align=use_align{curr_type}(2:end);
+            curr_use_align=use_align{curr_type}(1:end);
 
             cam_roi_diff_align = nan(length(curr_use_align),surround_frames*2);
             cam_all_diff_align=cell(length(curr_use_align),1);
@@ -182,126 +182,55 @@ for ss=1:2
                 % cam_roi_diff_align(curr_align,:) = ...
                 %     ((roi_mask(:))'*curr_clip_diff_flat)./sum(roi_mask,'all');
 
-                
+
                  cam_all_diff_align{curr_align}=abs(diff(double(ds.mc_align(squeeze(read(vr,curr_surround_frames)),animal,rec_day,'day_only')),[],3));
-                
+
                 ap.print_progress_fraction(curr_align,length(curr_use_align));
             end
 
              % camera_roi{curr_recording,curr_type}=cam_roi_diff_align;
              camera_all{curr_recording,curr_type}=mean(cat(4,cam_all_diff_align{:}),4);
-
-
-
-            % %% Align mousecam to event
-            % grab_frames = interp1(mousecam_times,1:length(mousecam_times), ...
-            %     curr_use_align,'previous') + [-1,1].*surround_frames2;
-            % 
-            % cam_align_avg = zeros(size(cam_im1,1),size(cam_im1,2), ...
-            %     surround_frames2*2+1);
-            % 
-            % 
-            % for curr_align = 2:length(curr_use_align)
-            %     curr_clip = double(ds.mc_align(squeeze(read(vr,grab_frames(curr_align,:))),animal,rec_day,'day_only') );
-            %     cam_align_avg = cam_align_avg + curr_clip./length(curr_use_align);
-            %     ap.print_progress_fraction(curr_align,length(curr_use_align));
-            % end
-            % 
-            % surround_t2 = (-surround_frames2:surround_frames2)./vr.FrameRate;
-            % surround_t_diff = surround_t2(2:end) + diff(surround_t2)/2;
-            % buffer=abs(diff(cam_align_avg,[],3));
-            % camera_image{curr_recording,curr_type}=max(buffer(:,:,16:30),[],3);
         end
 
-        clearvars('-except',preload_vars{:});
+        
+        %  cam_all_diff_align=cell(length(stimOn_times),1);
+        % 
+        % for curr_align = 1:length(stimOn_times)
+        % 
+        %         % Find closest camera frame to timepoint
+        %         curr_frame = interp1(mousecam_times,1:length(mousecam_times), ...
+        %             stimOn_times(curr_align),'nearest');
+        % 
+        %         % Pull surrounding frames
+        %         curr_surround_frames = curr_frame + [-surround_frames,surround_frames];
+        %         if any(curr_surround_frames < 0) || any(curr_surround_frames > vr.NumFrames)
+        %             continue
+        %         end
+        % 
+        %         curr_clip_diff_flat = reshape(abs(diff(double(...
+        %             squeeze(read(vr,curr_surround_frames))),[],3)),[],surround_frames*2);
+        % 
+        %         %对齐图像
+        %         curr_clip_diff_flat = reshape(abs(diff(double(...
+        %             ds.mc_align(squeeze(read(vr,curr_surround_frames)),animal,rec_day,'day_only')      ...
+        %             ),[],3)),[],surround_frames*2);
+        % 
+        %         % cam_roi_diff_align(curr_align,:) = ...
+        %         %     ((roi_mask(:))'*curr_clip_diff_flat)./sum(roi_mask,'all');
+        % 
+        % 
+        %          cam_all_diff_align{curr_align}=abs(diff(double(ds.mc_align(squeeze(read(vr,curr_surround_frames)),animal,rec_day,'day_only')),[],3));
+        % 
+        %         ap.print_progress_fraction(curr_align,length(stimOn_times));
+        %     end
+        %                   camera_roi{curr_recording}=cam_all_diff_align;
+
+            clearvars('-except',preload_vars{:});
 
 
     end
 
-    save([Path 'mat_data\' animal '_' passive_workflow '_face.mat' ],'camera_all','workflow_day', '-v7.3')
-
-% ap.imscroll(permute(camera_all{3},[2,3,4,1]))
-
-    % figure;
-    % for i=1:length(recordings)
-    %     nexttile;imagesc(surround_t(2:end),[],camera_roi{i});
-    % end
-    % 
-    % figure;
-    % for i=1:length(recordings)
-    %     nexttile
-    %     hold on;
-    %     plot(surround_t(2:end),nanmean(camera_roi{i},1));
-    %     plot(surround_t(2:end),nanmedian(camera_roi{i},1));
-    % end
-    % %%
-    % 
-    % figure('Position',[50 100 (length(recordings))*300 900]);
-    % tt = tiledlayout(1,length(recordings),'TileSpacing','tight');
-    % 
-    % for i=1:length(recordings)
-    % 
-    %     t_recodings = tiledlayout(tt,3,1);
-    %     t_recodings.Layout.Tile = i;
-    %     title(t_recodings,i);
-    %     for j=1:3
-    %         nexttile(t_recodings);
-    %         hold on;
-    %         plot(surround_t(2:end),nanmean(camera_roi{i,j},1));
-    %         plot(surround_t(2:end),nanmedian(camera_roi{i,j},1));
-    %         if ss==1
-    %             if i==1 & j==1
-    %                 ylabel('4k')
-    %             elseif i==1 & j==2
-    %                 ylabel('8k')
-    %             elseif i==1 & j==3
-    %                 ylabel('12k')
-    %             end
-    %         elseif ss==2
-    %             if i==1 & j==1
-    %                 ylabel('L')
-    %             elseif i==1 & j==2
-    %                 ylabel('M')
-    %             elseif i==1 & j==3
-    %                 ylabel('R')
-    %             end
-    %         end
-    %     end
-    % end
-
-    % %% imagesc
-    % figure('Position',[50 100 (length(recordings))*300 900]);
-    % tt = tiledlayout(1,length(recordings),'TileSpacing','tight');
-    % 
-    % for i=1:length(recordings)
-    % 
-    %     t_recodings = tiledlayout(tt,3,1);
-    %     t_recodings.Layout.Tile = i;
-    %     title(t_recodings,i);
-    %     for j=1:3
-    %         nexttile(t_recodings);
-    %         imagesc(surround_t2,[],camera_image{i,j});
-    %         colormap(ap.colormap('WK'));
-    %         if ss==1
-    %             if i==1 & j==1
-    %                 ylabel('4k')
-    %             elseif i==1 & j==2
-    %                 ylabel('8k')
-    %             elseif i==1 & j==3
-    %                 ylabel('12k')
-    %             end
-    %         elseif ss==2
-    %             if i==1 & j==1
-    %                 ylabel('L')
-    %             elseif i==1 & j==2
-    %                 ylabel('M')
-    %             elseif i==1 & j==3
-    %                 ylabel('R')
-    %             end
-    %         end
-    % 
-    %     end
-    % end
+    save([Path 'mat_data\' animal '_' passive_workflow '_face.mat' ],'camera_roi','workflow_day', '-v7.3')
 
 
 end

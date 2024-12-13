@@ -20,17 +20,12 @@ t_kernels=1/surround_samplerate*[-5:30];
 
 
 
-% animals = {'DS001','DS003'};
 
-% animals={'DS011'};
-% animals = {'AP018','AP019','AP020','AP021','AP022','DS000','DS001','DS003','DS004','DS005','DS006','DS007','DS010','DS011'};
-% animals = {'AP019','AP020','AP021','AP022','DS000','DS001','DS003','DS004','DS005','DS006'};
-animals = {'DS013','DS014','DS015','DS016'};
+animals = {'DS006','DS007'};
 
 % animals = {'AP018','AP019'}
 
-% animals={'DS006'};
-
+%% DS006
 
 for curr_animal_idx=1:length(animals)
     animal=animals{curr_animal_idx};
@@ -40,7 +35,9 @@ for curr_animal_idx=1:length(animals)
     passive_workflow = 'lcr_passive';
     recordings_passive = plab.find_recordings(animal,[],passive_workflow);
     % training_workflow = {'stim_wheel_right_stage2$|stim_wheel_right_stage2_audio_volume$'};
-    training_workflow = 'stim_wheel_right_stage1_audio_frequency$|stim_wheel_right_stage1_audio_volume$|stim_wheel_right_stage1$|stim_wheel_right_stage2*$|stim_wheel_right_frequency_stage2_mixed_VA$';
+    % training_workflow = 'stim_wheel_right_stage1_audio_frequency$|stim_wheel_right_stage1_audio_volume$|stim_wheel_right_stage1$|stim_wheel_right_stage2*$|stim_wheel_right_frequency_stage2_mixed_VA$';
+    training_workflow = 'stim_wheel_right_stage1_audio_frequency$|stim_wheel_right_stage1_audio_volume$|stim_wheel_right_stage1$|stim_wheel_right_stage2$|stim_wheel_right_stage2_audio_volume$|stim_wheel_right_frequency_stage2_mixed_VA$|stim_wheel_right_stage2_mixed_VA$';
+
     % training_workflow = 'visual_conditioning*';
     recordings_training = plab.find_recordings(animal,[],training_workflow);
 
@@ -57,8 +54,9 @@ for curr_animal_idx=1:length(animals)
 
 
     %%是否存在保存过之前的数据的文件
-    if     exist ([Path 'mat_data\' animal '_task.mat' ])==2
-        load([Path 'mat_data\' animal '_task.mat' ])
+    if     exist ([Path 'mat_data\task\' animal '_task.mat' ])==2
+        load([Path 'mat_data\task\' animal '_task.mat' ])
+        load([Path 'mat_data\task\' animal '_task_single_trial.mat' ])
 
         %查看目前文件的长度以及如果存在没有alignment的情况下要去除
         n_buffer= find(~all(img_size== [450, 426],2), 1);
@@ -69,20 +67,24 @@ for curr_animal_idx=1:length(animals)
             problem=1;
         end
     else
-        wf_px_task = cell(size(recordings));
-        wf_px_task_kernels = cell(size(recordings));
-        all_groups_name = cell(size(recordings))';
-        workflow_type= nan(length(recordings),1);
+        wf_px_task = cell(size(recordings2));
+        wf_px_task_kernels = cell(size(recordings2));
+        all_groups_name = cell(size(recordings2))';
         file_length=1;
         problem=0;
-        img_size = nan(length(recordings),2);
+        img_size = nan(length(recordings2),2);
 
+                workflow_type=zeros(length(recordings2),1);
 
-        wf_px_task_all_type_id= cell(size(recordings));
-        wf_px_task_all_reward_id= cell(size(recordings));
-        wf_px_task_all= cell(size(recordings));
-        wf_px_task_all_timepoint=cell(size(recordings));
-        tasktype=cell(size(recordings));
+        wf_px_task_all_type_id= cell(size(recordings2));
+        wf_px_task_all_reward_id= cell(size(recordings2));
+        wf_px_task_all= cell(size(recordings2));
+        wf_px_task_all_timepoint=cell(size(recordings2));
+        tasktype=cell(size(recordings2));
+
+        rxn_med = nan(length(recordings2),1);
+        rxn_stat_p = nan(length(recordings2),1);
+        stim2move= nan(length(recordings2),1);
     end
 
 
@@ -92,20 +94,17 @@ for curr_animal_idx=1:length(animals)
     surround_sample_rate = 100;
     surround_time_points = surround_time(1):1/surround_sample_rate:surround_time(2);
 
-    n_trials_water = nan(length(recordings),2);
-    frac_move_day = nan(length(recordings),1);
-    success = nan(length(recordings),1);
-    rxn_med = nan(length(recordings),1);
-    frac_move_stimalign = nan(length(recordings),length(surround_time_points));
-    rxn_stat_p = nan(length(recordings),1);
+    n_trials_water = nan(length(recordings2),2);
+    frac_move_day = nan(length(recordings2),1);
+    success = nan(length(recordings2),1);
+
+    frac_move_stimalign = nan(length(recordings2),length(surround_time_points));
 
 
+    if ~(file_length==length(recordings2)&problem==0)
+        for curr_recording =file_length:length(recordings2)
 
-    if ~(file_length==length(recordings)&problem==0)
-        % for curr_recording =file_length:length(recordings)
-        for curr_recording =11:length(recordings)
-
-            fprintf('The number of files is %d This file is: %d\n', length(recordings),curr_recording);
+            fprintf('The number of files is %d This file is: %d\n', length(recordings2),curr_recording);
 
             % Grab pre-load vars
             preload_vars = who;
@@ -146,19 +145,30 @@ for curr_animal_idx=1:length(animals)
 
             verbose=true;
 
+
             load_parts = struct;
             load_parts.behavior = true;
             load_parts.widefield_master = true;
-
             load_parts.widefield = true;
             ap.load_recording;
 
+
+
+            % process behavioral data 
+
             stim2move(curr_recording)=median(stim_to_move);
+
+
+
+
+
+
+
+
 
             % Get total trials/water
             n_trials_water(curr_recording,:) = [length(trial_events.timestamps), ...
                 sum(([trial_events.values.Outcome] == 1)*6)];
-
 
             % Get task type
             if workflow_type(curr_recording)==3
@@ -178,10 +188,7 @@ for curr_animal_idx=1:length(animals)
             % Align wheel movement to stim onset
             align_times = stimOn_times;
             pull_times = align_times + surround_time_points;
-
             success(curr_recording)=sum(cat(1,trial_events.values.Outcome))/n_trials;
-
-
             frac_move_day(curr_recording) = nanmean(wheel_move);
 
             event_aligned_wheel_vel = interp1(timelite.timestamps, ...
@@ -191,11 +198,24 @@ for curr_animal_idx=1:length(animals)
 
             frac_move_stimalign(curr_recording,:) = nanmean(event_aligned_wheel_move,1);
 
-
-
             % Get association stat
             rxn_stat_p(curr_recording) = AP_stimwheel_association_pvalue( ...
                 stimOn_times,trial_events,stim_to_move);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -206,7 +226,7 @@ for curr_animal_idx=1:length(animals)
             %     align_times = [ ...
             %         stimOn_times(use_trials); ...
             %         stim_move_time(use_trials); ...
-            %         reward_times_task(use_trials)];
+                    % reward_times_task(use_trials)];
             align_times_3 = [ ...
                 stimOn_times(use_trials); ...
                 stim_move_time(use_trials); ...
@@ -323,76 +343,12 @@ for curr_animal_idx=1:length(animals)
         end
 
         learned_day = rxn_stat_p < 0.05 & rxn_med < 2;
-        save([Path 'mat_data\' animal '_task.mat' ],'workflow_type','learned_day','rxn_med','rxn_stat_p','wf_px_task','wf_px_task_kernels','img_size','wf_px_task_all','wf_px_task_all_type_id','wf_px_task_all_reward_id','wf_px_task_all_timepoint','tasktype','workflow_day', '-v7.3')
 
     end
-    % save([Path 'mat_data\' animal '_task.mat' ],'workflow_type','learned_day','wf_px_task','img_size','wf_px_task_all','wf_px_task_all_type_id','wf_px_task_all_reward_id','wf_px_task_all_timepoint','tasktype','workflow_day', '-v7.3')
-
-    master_U_fn = fullfile(plab.locations.server_path,'Lab', ...
-        'widefield_alignment','U_master.mat');
-    load(master_U_fn);
-    % wf_px_pro_all= cellfun(@(x) plab.wf.svd2px(U_master,x), wf_px_task_all, 'UniformOutput', false);
+    save([Path 'mat_data\task\' animal '_task.mat' ],'workflow_type','learned_day','rxn_med','rxn_stat_p','wf_px_task','wf_px_task_kernels','img_size','tasktype','workflow_day','stim2move', '-v7.3')
+    save([Path 'mat_data\task\' animal '_task_single_trial.mat' ],'wf_px_task_all','wf_px_task_all_type_id','wf_px_task_all_reward_id','wf_px_task_all_timepoint', '-v7.3')
 
 
-
-    load('C:\Users\dsong\Documents\MATLAB\Da_Song\DS_scripts_ptereslab\General_information\roi.mat')
-
-
-
-    figure_preload_vars = who;
-    figure;
-    nexttile;
-    buffer= cat(3,wf_px_task_kernels{:});
-    wf_px_buffer=plab.wf.svd2px(U_master, buffer);
-    redata=reshape(wf_px_buffer,size(wf_px_buffer,1)*size(wf_px_buffer,2),size(wf_px_buffer,3),size(wf_px_buffer,4));
-    roi_data_peri_av=permute(mean(redata(roi1(1).data.mask(:),:,:),1),[2,3,1]);
-    % imagesc(t_task,[], roi_data_peri_av(:,idx)');hold on
-    imagesc(t_kernels,[], roi_data_peri_av');hold on
-    % clim(0.001*[-1,1]);colormap(ap.colormap('KWG'));
-    clim(0.8*abs(max(roi_data_peri_av,[],'all'))*[-1,1]);colormap(ap.colormap('KWG'));
-    % title(
-    xlabel('Time from stim')
-    if any(workflow_type==1)
-        plot(-0.05,find(workflow_type==1),'|b')
-    end
-    if any(workflow_type==2)
-        plot(-0.05,find(workflow_type==2),'|r')
-    end
-    if any( workflow_type==3)
-        plot(-0.05,find(workflow_type==3),'|black')
-    end
-    title('task kernels')
-    colorbar
-    nexttile;
-    buffer2= cat(4,wf_px_task{:});
-    buffer2=permute(buffer2(:,:,1,:),[1,2,4,3]);
-    wf_px_buffer=plab.wf.svd2px(U_master, buffer2);
-
-    redata=reshape(wf_px_buffer,size(wf_px_buffer,1)*size(wf_px_buffer,2),size(wf_px_buffer,3),size(wf_px_buffer,4));
-    roi_data_peri_av=permute(mean(redata(roi1(1).data.mask(:),:,:),1),[2,3,1]);
-    % imagesc(t_task,[], roi_data_peri_av(:,idx)');hold on
-    imagesc(t_kernels,[], roi_data_peri_av');hold on
-    % clim(0.001*[-1,1]);colormap(ap.colormap('KWG'));
-    clim(0.8*abs(max(roi_data_peri_av,[],'all'))*[-1,1]);colormap(ap.colormap('KWG'));
-    % title(
-    xlabel('Time from stim')
-    if any(workflow_type==1)
-        plot(-0.05,find(workflow_type==1),'|b')
-    end
-    if any(workflow_type==2)
-        plot(-0.05,find(workflow_type==2),'|r')
-    end
-    if any( workflow_type==3)
-        plot(-0.05,find(workflow_type==3),'|black')
-    end
-    title('task')
-    colorbar
-    drawnow
-
-    sgtitle(animal)
-    saveas(gcf,[Path 'figures\imaging_in_mPFC_kernels' animal], 'jpg');
-    close all
-    clearvars('-except',figure_preload_vars{:});
 
 
 end

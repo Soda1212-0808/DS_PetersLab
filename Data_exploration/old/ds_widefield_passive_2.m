@@ -1,50 +1,37 @@
 
 %% TESTING BATCH PASSIVE WIDEFIELD
 clear all
-Path = 'C:\Users\dsong\Documents\MATLAB\Da_Song\Data_analysis\mice\process\processed_data_v2\';
+Path = 'C:\Users\dsong\Documents\MATLAB\Da_Song\Data_analysis\mice\process\processed_data_v2\mat_data\new\';
 surround_window = [-0.5,1];
 surround_samplerate = 35;
 t = surround_window(1):1/surround_samplerate:surround_window(2);
-period=find(t>0&t<0.2);
+t_kernels=[-5:30]/surround_samplerate;
+period=find(t_kernels>0&t_kernels<0.2);
 load('C:\Users\dsong\Documents\MATLAB\Da_Song\DS_scripts_ptereslab\General_information\roi.mat')
 master_U_fn = fullfile(plab.locations.server_path,'Lab', ...
     'widefield_alignment','U_master.mat');
 
 
-for x=1:2
+for x=2
     if x==1
-        animals = {};type_seq=1;
-        % animals = {'AP020','AP022','AP019','AP021'};type_seq=1;
-
-    else animals = {'DS016'};type_seq=2;
-            % else animals = {'DS016'};type_seq=2;
+        animals = {'DS001','DS007','DS010','DS011','AP018','AP019','AP020','AP021','AP022'};type_seq=1; %v-a
+        % else animals = {'DS000','DS003','DS004','DS006','DS013','DS014','DS015','DS016'};type_seq=2; %a-v
+    else animals = {'DS015','DS016'};type_seq=2; %a-v
 
     end
-    % animals = {'AP016','AP017'};type_seq=1;
-    % animals = {'DS005'};type_seq=2;
-    % animals={'AP018'};
-    % 1为 v-a  2为a-v
-
-
-    % figure('Position', [50, 50, 1800, 600]);
-    % tt = tiledlayout(1,length(animals),'TileSpacing','tight');
 
     for curr_animal_idx=1:length(animals)
         animal=animals{curr_animal_idx};
         fprintf('%s\n', ['start  ' animal ]);
 
-
         for ss=1:2
             main_preload_vars = who;
             if ss==1
                 passive_workflow = 'hml_passive_audio';
-
             elseif ss==2  passive_workflow = 'lcr_passive';
-
             end
 
             fprintf('%s\n', ['start saving ' passive_workflow ' files...']);
-
             % use_workflow = {'stim_wheel_right_stage2_mixed_VA$|stim_wheel_right_frequency_stage2_mixed_VA$'};
             training_workflow = 'stim_wheel_right_stage1_audio_frequency$|stim_wheel_right_stage1_audio_volume$|stim_wheel_right_stage1$|stim_wheel_right_stage2*$|stim_wheel_right_frequency_stage2_mixed_VA$';
 
@@ -66,8 +53,8 @@ for x=1:2
 
 
             %%是否存在保存过之前的数据的文件
-            if     exist ([Path 'mat_data\' animal '_' passive_workflow '.mat' ])==2
-                load([Path 'mat_data\' animal '_' passive_workflow '.mat' ])
+            if     exist ([Path  animal '_' passive_workflow '.mat' ])==2
+                load([Path  animal '_' passive_workflow '.mat' ])
 
                 %查看目前文件的长度以及如果存在没有alignment的情况下要去除
                 n_buffer= find(~all(img_size== [450, 426],2), 1);
@@ -79,6 +66,7 @@ for x=1:2
                 end
             else
                 wf_px_baseline = cell(1,3);
+                wf_px_baseline_kernels = cell(1,3);
                 wf_px = cell(size(recordings));
                 wf_px_kernels=cell(size(recordings));
 
@@ -109,15 +97,15 @@ for x=1:2
             rxn_stat_p = nan(length(recordings),1);
 
             %%仅在第一次分析的时候跑该数据
-            if ~ (exist ([Path 'mat_data\' animal '_' passive_workflow '.mat' ])==2)
-                for durr_baseline=1:3
+            if ~ (exist ([Path  animal '_' passive_workflow '.mat' ])==2)
+                for curr_baseline=1:3
 
                     % Grab pre-load vars
                     preload_vars = who;
                     % Load data
-                    rec_day = recordings_passive(durr_baseline).day;
-                    rec_time = recordings_passive(durr_baseline).recording{end};
-                    if ~recordings_passive(durr_baseline).widefield(end)
+                    rec_day = recordings_passive(curr_baseline).day;
+                    rec_time = recordings_passive(curr_baseline).recording{end};
+                    if ~recordings_passive(curr_baseline).widefield(end)
                         continue
                     end
 
@@ -132,10 +120,10 @@ for x=1:2
                         continue
                     end
                     % Get quiescent trials and stim onsets/ids
-                    stim_window = [0,0.5];
+                    stim_window1 = [0,0.1];
                     quiescent_trials = arrayfun(@(x) ~any(wheel_move(...
-                        timelite.timestamps >= stimOn_times(x)+stim_window(1) & ...
-                        timelite.timestamps <= stimOn_times(x)+stim_window(2))), ...
+                        timelite.timestamps >= stimOn_times(x)+stim_window1(1) & ...
+                        timelite.timestamps <= stimOn_times(x)+stim_window1(2))), ...
                         1:length(stimOn_times))';
 
                     align_times = stimOn_times(quiescent_trials);
@@ -161,7 +149,7 @@ for x=1:2
                     % 确定 align_id 中的唯一值
                     unique_values = unique(align_id);
 
-                    all_groups_name_baseline{durr_baseline}=unique(align_category);
+                    all_groups_name_baseline{curr_baseline}=unique(align_category);
 
                     % 初始化一个空的结果数组
                     aligned_v_avg1 = zeros( numel(unique_values),size(aligned_v, 2), size(aligned_v, 3));
@@ -187,16 +175,58 @@ for x=1:2
 
                     % Convert to pixels and package
                     % aligned_px_avg = plab.wf.svd2px(wf_U,aligned_v_avg_baselined);
-                    wf_px_baseline{durr_baseline} =aligned_v_avg_baselined;
+                    wf_px_baseline{curr_baseline} =aligned_v_avg_baselined;
+
+                    wf_regressor_bins = [wf_t;wf_t(end)+1/wf_framerate];
+                    % Create regressors in the passive task
+                    stim_window2 = [0.1,0.8];
+
+                    non_quiescent_trials = arrayfun(@(x) any(wheel_move(...
+                        timelite.timestamps >= stimOn_times(x)+stim_window1(1) & ...
+                        timelite.timestamps <= stimOn_times(x)+stim_window1(2))), ...
+                        1:length(stimOn_times))';
+
+                    stim_drive_trials = arrayfun(@(x) any(wheel_move(...
+                        timelite.timestamps > stimOn_times(x)+stim_window2(1) & ...
+                        timelite.timestamps <= stimOn_times(x)+stim_window2(2)))& ...
+                        ~any(wheel_move(...
+                        timelite.timestamps >= stimOn_times(x)+stim_window1(1) & ...
+                        timelite.timestamps <= stimOn_times(x)+stim_window1(2))), ...
+                        1:length(stimOn_times));
+
+                    if strcmp(bonsai_workflow,'lcr_passive')
+                        align_category_all = vertcat(trial_events.values.TrialStimX);
+                        stim_regressor(1,:) =  histcounts(stimOn_times(align_category_all == -90 ),wf_regressor_bins);
+                        stim_regressor(2,:) =  histcounts(stimOn_times(align_category_all == 0 ),wf_regressor_bins);
+                        stim_regressor(3,:) =  histcounts(stimOn_times(align_category_all == 90),wf_regressor_bins);
+                    elseif strcmp(bonsai_workflow,'hml_passive_audio')
+                        align_category_all = vertcat(trial_events.values.StimFrequence);
+                        stim_regressor(1,:) =  histcounts(stimOn_times(align_category_all == 4000 ),wf_regressor_bins);
+                        stim_regressor(2,:) =  histcounts(stimOn_times(align_category_all == 8000 ),wf_regressor_bins);
+                        stim_regressor(3,:) =  histcounts(stimOn_times(align_category_all == 12000),wf_regressor_bins);
+                    end
+                    move_regressor_random = histcounts(stimOn_times(non_quiescent_trials ),wf_regressor_bins);
+                    stim_drive_time=arrayfun(@(x) timelite.timestamps(find(wheel_move(find(timelite.timestamps > x, 1):end) == 1, 1) + find(timelite.timestamps > x, 1) - 1),stimOn_times(stim_drive_trials));
+                    % stim_drive_time=arrayfun(@(x) timelite.timestamps(find(wheel_move(find(timelite.timestamps > x, 1):end) == 1, 1) + find(timelite.timestamps > x, 1) - 1),stimOn_times);
+                    move_regressor_stim_drive = histcounts(stim_drive_time,wf_regressor_bins);
+                    regressors={stim_regressor;move_regressor_random;move_regressor_stim_drive};
+                    t_shifts = {[-5:30];[-30:30];[-30:30]};
+                    % Set cross validation (not necessary if just looking at kernels)
+                    cvfold = 5;
+                    % Do regression
+                    [kernels,predicted_signals,explained_var,predicted_signals_reduced] = ...
+                        ap.regresskernel(regressors,wf_V,t_shifts,[],[],cvfold);
+
+                    % % Convert kernels V to pixels
+                    wf_px_baseline_kernels{curr_baseline} = cellfun(@(x) permute(x,[3,2,1]),kernels,'uni',false);
 
 
                     % Prep for next loop
-                    ap.print_progress_fraction(durr_baseline,3);
+                    ap.print_progress_fraction(curr_baseline,3);
                     clearvars('-except',preload_vars{:});
 
 
                 end
-
 
             end
 
@@ -215,7 +245,7 @@ for x=1:2
                     end
 
                     try
-                        load_parts.mousecam = false;
+                        load_parts.mousecam = true;
                         load_parts.widefield = true;
                         load_parts.widefield_master = true;
                         ap.load_recording;
@@ -225,13 +255,15 @@ for x=1:2
                         continue
                     end
                     % Get quiescent trials and stim onsets/ids
-                    stim_window = [0,0.5];
+                    %得到不动的trial
+                    stim_window1 = [0,0.1];
                     quiescent_trials = arrayfun(@(x) ~any(wheel_move(...
-                        timelite.timestamps >= stimOn_times(x)+stim_window(1) & ...
-                        timelite.timestamps <= stimOn_times(x)+stim_window(2))), ...
+                        timelite.timestamps >= stimOn_times(x)+stim_window1(1) & ...
+                        timelite.timestamps <= stimOn_times(x)+stim_window1(2))), ...
                         1:length(stimOn_times))';
 
                     align_times = stimOn_times(quiescent_trials);
+
                     if strcmp(passive_workflow,'lcr_passive')
                         align_category_all = vertcat(trial_events.values.TrialStimX);
                     elseif strcmp(passive_workflow,'hml_passive_audio')
@@ -253,12 +285,9 @@ for x=1:2
 
                     % 确定 align_id 中的唯一值
                     unique_values = unique(align_id);
-
                     all_groups_name{curr_recording}=unique(align_category);
-
                     % 初始化一个空的结果数组
                     aligned_v_avg1 = zeros( numel(unique_values),size(aligned_v, 2), size(aligned_v, 3));
-
                     % 遍历每个唯一的值，对每个值进行处理
                     for i = 1:numel(unique_values)
                         idx = align_id == unique_values(i);
@@ -277,40 +306,65 @@ for x=1:2
 
                     % aligned_v_avg = permute(splitapply(@nanmean,aligned_v,align_id),[3,2,1]);
                     aligned_v_avg_baselined = aligned_v_avg - nanmean(aligned_v_avg(:,t_passive < 0,:),2);
-
+                    
                     %%all_trials
                     peri_event_t_all= reshape(stimOn_times,[],1) + reshape(t_passive,1,[]);
                     aligned_v_all = permute((reshape(interp1(wf_t,wf_V',peri_event_t_all,'previous'), length(stimOn_times),length(t_passive),[])), [3, 2, 1]);
                     aligned_v_all_baslined = aligned_v_all-nanmean(aligned_v_all(:,t_passive < 0,:),2);
+                    
                     wf_px_all{curr_recording}=aligned_v_all_baslined;
                     trial_state{curr_recording}=quiescent_trials;
                     trial_type{curr_recording}=align_category_all;
-
 
                     % Convert to pixels and package
                     % aligned_px_avg = plab.wf.svd2px(wf_U,aligned_v_avg_baselined);
                     wf_px{curr_recording} =aligned_v_avg_baselined;
                     img_size(curr_recording,:)=size(wf_avg);
 
+
                     % % passive regressor 线性回归的数据
-                    % wf_regressor_bins = [wf_t;wf_t(end)+1/wf_framerate];
-                    % stim_regressor_90 = histcounts(stimOn_times(align_category_all==90),wf_regressor_bins);
-                    % stim_regressor_n90 = histcounts(stimOn_times(align_category_all==-90),wf_regressor_bins);
-                    % stim_regressor_0 = histcounts(stimOn_times(align_category_all==0),wf_regressor_bins);
-                    % 
-                    % move_regressor = histcounts((timelite.timestamps(find([diff(wheel_move); 0]==1))),wf_regressor_bins);
-                    % regressors = {stim_regressor_90;stim_regressor_0;stim_regressor_n90;move_regressor};
-                    % % Set time shifts for regressors
-                    % t_shifts = {[-5:30];[-5:30];[-5:30];[-30:30]};
-                    % % Set cross validation (not necessary if just looking at kernels)
-                    % cvfold = 5;
-                    % % Do regression
-                    % [kernels,predicted_signals,explained_var,predicted_signals_reduced] = ...
-                    %     ap.regresskernel(regressors,wf_V,t_shifts,[],[],cvfold);
-                    % wf_px_kernels{curr_recording}=permute(cat(4,kernels{1:3}),[3,2,4,1]);
-                    % 
+                    wf_regressor_bins = [wf_t;wf_t(end)+1/wf_framerate];
+                    % Create regressors in the passive task
+                    stim_window2 = [0.1,0.8];
 
+                    non_quiescent_trials = arrayfun(@(x) any(wheel_move(...
+                        timelite.timestamps >= stimOn_times(x)+stim_window1(1) & ...
+                        timelite.timestamps <= stimOn_times(x)+stim_window1(2))), ...
+                        1:length(stimOn_times))';
 
+                    stim_drive_trials = arrayfun(@(x) any(wheel_move(...
+                        timelite.timestamps > stimOn_times(x)+stim_window2(1) & ...
+                        timelite.timestamps <= stimOn_times(x)+stim_window2(2)))& ...
+                        ~any(wheel_move(...
+                        timelite.timestamps >= stimOn_times(x)+stim_window1(1) & ...
+                        timelite.timestamps <= stimOn_times(x)+stim_window1(2))), ...
+                        1:length(stimOn_times));
+
+                    if strcmp(bonsai_workflow,'lcr_passive')
+                        align_category_all = vertcat(trial_events.values.TrialStimX);
+                        stim_regressor(1,:) =  histcounts(stimOn_times(align_category_all == -90 ),wf_regressor_bins);
+                        stim_regressor(2,:) =  histcounts(stimOn_times(align_category_all == 0 ),wf_regressor_bins);
+                        stim_regressor(3,:) =  histcounts(stimOn_times(align_category_all == 90),wf_regressor_bins);
+                    elseif strcmp(bonsai_workflow,'hml_passive_audio')
+                        align_category_all = vertcat(trial_events.values.StimFrequence);
+                        stim_regressor(1,:) =  histcounts(stimOn_times(align_category_all == 4000 ),wf_regressor_bins);
+                        stim_regressor(2,:) =  histcounts(stimOn_times(align_category_all == 8000 ),wf_regressor_bins);
+                        stim_regressor(3,:) =  histcounts(stimOn_times(align_category_all == 12000),wf_regressor_bins);
+                    end
+                    move_regressor_random = histcounts(stimOn_times(non_quiescent_trials ),wf_regressor_bins);
+                    stim_drive_time=arrayfun(@(x) timelite.timestamps(find(wheel_move(find(timelite.timestamps > x, 1):end) == 1, 1) + find(timelite.timestamps > x, 1) - 1),stimOn_times(stim_drive_trials));
+                    % stim_drive_time=arrayfun(@(x) timelite.timestamps(find(wheel_move(find(timelite.timestamps > x, 1):end) == 1, 1) + find(timelite.timestamps > x, 1) - 1),stimOn_times);
+                    move_regressor_stim_drive = histcounts(stim_drive_time,wf_regressor_bins);
+                    regressors={stim_regressor;move_regressor_random;move_regressor_stim_drive};
+                    t_shifts = {[-5:30];[-30:30];[-30:30]};
+                    % Set cross validation (not necessary if just looking at kernels)
+                    cvfold = 5;
+                    % Do regression
+                    [kernels,predicted_signals,explained_var,predicted_signals_reduced] = ...
+                        ap.regresskernel(regressors,wf_V,t_shifts,[],[],cvfold);
+
+                    % % Convert kernels V to pixels
+                    wf_px_kernels{curr_recording} = cellfun(@(x) permute(x,[3,2,1]),kernels,'uni',false);
 
 
 
@@ -319,12 +373,12 @@ for x=1:2
                     clearvars('-except',preload_vars{:});
 
 
+
+
                     % Grab pre-load vars
                     preload_vars = who;
-
                     % Load data
                     rec_day = recordings2(curr_recording).day;
-
                     clear time
                     if length(recordings2(curr_recording).index)>1
                         for mm=1:length(recordings2(curr_recording).index)
@@ -452,14 +506,17 @@ for x=1:2
 
 
 
-                save([Path 'mat_data\' animal '_' passive_workflow '.mat' ],'workflow_type','learned_day','wf_px','wf_px_baseline','all_groups_name_baseline','all_groups_name','img_size','workflow_day','wf_px_all','trial_type','trial_state','-v7.3')
 
             end
 
+            save([Path  animal '_' passive_workflow '.mat' ],'workflow_type','learned_day','wf_px','wf_px_kernels','wf_px_baseline','wf_px_baseline_kernels','all_groups_name_baseline','all_groups_name','img_size','workflow_day','wf_px_all','trial_type','trial_state','-v7.3')
 
             load(master_U_fn);
             wf_px_pro= cellfun(@(x) plab.wf.svd2px(U_master,x), wf_px, 'UniformOutput', false);
             wf_px_baseline_pro= cellfun(@(x) plab.wf.svd2px(U_master,x), wf_px_baseline, 'UniformOutput', false);
+            wf_px_kernels_pro = cellfun(@(x) plab.wf.svd2px(U_master,x{1}), wf_px_kernels, 'UniformOutput', false);
+            wf_px_baseline_kernels_pro = cellfun(@(x) plab.wf.svd2px(U_master,x{1}), wf_px_baseline_kernels, 'UniformOutput', false);
+
 
 
             %% draw picture of averaged date in single mouse:
@@ -473,14 +530,43 @@ for x=1:2
             selected_images = cellfun( @(element_A, index_B) element_A(:,:,:,index_B), wf_px_pro', cellfun(@(element) find(element == element_type), all_groups_name, 'UniformOutput', false), 'UniformOutput', false);
             selected_images=selected_images(indx);
 
+            selected_images_kernels = cellfun( @(element_A, index_B) element_A(:,:,:,index_B), wf_px_kernels_pro', cellfun(@(element) find(element == element_type), all_groups_name, 'UniformOutput', false), 'UniformOutput', false);
+            selected_images_kernels=selected_images_kernels(indx);
+
+
+
             indx_base= find(~cellfun('isempty', (cellfun(@(element) find(element ==element_type), all_groups_name_baseline, 'UniformOutput', false))));
             selected_images_baseline = cellfun( @(element_A, index_B) element_A(:,:,:,index_B), wf_px_baseline_pro', cellfun(@(element) find(element == element_type), all_groups_name_baseline, 'UniformOutput', false), 'UniformOutput', false);
             selected_images_baseline=selected_images_baseline(indx_base);
 
+            selected_images_baseline_kernels = cellfun( @(element_A, index_B) element_A(:,:,:,index_B), wf_px_baseline_kernels_pro', cellfun(@(element) find(element == element_type), all_groups_name_baseline, 'UniformOutput', false), 'UniformOutput', false);
+            selected_images_baseline_kernels=selected_images_baseline_kernels(indx_base);
 
-            for curr_trial=1:length(selected_images)
-                redata=reshape(selected_images{curr_trial},size(selected_images{curr_trial},1)*size(selected_images{curr_trial},2),size(selected_images{curr_trial},3));
+            merged_data=[selected_images_baseline_kernels; selected_images_kernels];
+            image_Data=cat(4,merged_data{:});
+            ap.imscroll(image_Data,[-5 :30]./35)
+            axis image;ap.wf_draw('ccf');
+            clim(max(abs(clim)).*[-1,1]);
+            % clim(0.01.*[-1,1]);
+            colormap(ap.colormap('PWG',[],1.5));
+            savefig(gcf,[Path 'figures\'   passive_workflow '_widefiled_kernels_movie_' animal]);
+
+            merged_data=[selected_images_baseline; selected_images];
+            image_Data=cat(4,merged_data{:});
+            ap.imscroll(image_Data,t)
+            axis image;ap.wf_draw('ccf');
+            clim(max(abs(clim)).*[-1,1]);
+            % clim(0.01.*[-1,1]);
+            colormap(ap.colormap('PWG',[],1.5));
+            savefig(gcf,[Path 'figures\'   passive_workflow '_widefiled_movie_' animal]);
+
+
+
+            for curr_trial=1:length(selected_images_kernels)
+                redata=reshape(selected_images_kernels{curr_trial},size(selected_images_kernels{curr_trial},1)*size(selected_images_kernels{curr_trial},2),size(selected_images_kernels{curr_trial},3));
                 roi_data_peri_av(curr_trial,:)=mean(redata(roi1(1).data.mask(:),:,:),1);
+
+
             end
 
             for curr_trial=1:length(selected_images_baseline)
@@ -496,7 +582,7 @@ for x=1:2
             figure('Position',[50 50 200 600]);
             nexttile
             index_1_2=find(workflow_type_index==1|workflow_type_index==2|workflow_type_index==3);
-            imagesc(t,[], roi_data_peri_av(index_1_2,:));hold on
+            imagesc(t_kernels,[], roi_data_peri_av(index_1_2,:));hold on
             clim(0.003*[0,1]);colormap(ap.colormap('WG'));
             xlabel('Time from stim')
             colorbar
@@ -525,13 +611,13 @@ for x=1:2
             end
             plot(find(learned_day_index(index_1_2)),0.5*scale1*ones(length(find(learned_day_index(index_1_2))),1),'.g')
             % drawnow;
-            saveas(gcf,[Path 'figures\mPFC_across_day_'  passive_workflow '_' animal  ], 'jpg');
+            saveas(gcf,[Path 'figures\mPFC_across_day_'  passive_workflow '_kernels_' animal  ], 'jpg');
 
 
-            all_basline=cat(4,selected_images_baseline{:});
+            all_basline=cat(4,selected_images_baseline_kernels{:});
             img_basline= mean( max(all_basline(:,:,period,:),[],3),4);
 
-            all_img=cat(4,selected_images{:});
+            all_img=cat(4,selected_images_kernels{:});
             img_v_nl= mean( max(all_img(:,:,period,find(workflow_type_index(:)==1 &learned_day_index(:)==0)),[],3),4);
             img_v_l= mean( max(all_img(:,:,period,find(workflow_type_index(:)==1 &learned_day_index(:)==1)),[],3),4);
             img_a_nl = mean( max(all_img(:,:,period,find(workflow_type_index(:)==2 &learned_day_index(:)==0)),[],3),4);
@@ -573,49 +659,11 @@ for x=1:2
             ap.wf_draw('ccf','black');
             clim(0.008.*[-1,1]); colormap(ap.colormap('PWG'));
             title('auditory learned');
-            sgtitle([animal ' ' passive_workflow], 'Interpreter', 'none');
-            saveas(gcf,[Path 'figures\'   passive_workflow '_' animal], 'jpg');
+            sgtitle([animal ' ' passive_workflow ' kernels'], 'Interpreter', 'none');
+            saveas(gcf,[Path 'figures\'   passive_workflow '_kernels_' animal], 'jpg');
             close all
 
 
-            % draw figures of single trial in single mouse
-            load(master_U_fn);
-           
-            figure('Position',[50 50 1800 900]);
-            for curr_trial=1:length(wf_px_all)
-                wf_px_all_pro=plab.wf.svd2px(U_master, wf_px_all{curr_trial});
-                redata=reshape(wf_px_all_pro,size(wf_px_all_pro,1)*size(wf_px_all_pro,2),size(wf_px_all_pro,3),size(wf_px_all_pro,4));
-                roi_data_peri_av=permute(mean(redata(roi1(2).data.mask(:),:,:),1),[2,3,1]);
-                nexttile
-                [curr_trial_type, indx_passive]=sort(trial_type{curr_trial});
-                % find(trial_state{curr_trial}(indx_passive)==1)
-                roi_buffer=roi_data_peri_av(:,indx_passive);
-
-                imagesc(t,[],roi_buffer(:,( find(trial_state{curr_trial}(indx_passive)==1)))');hold on
-                % clim(0.01*[-1,1]);colormap(ap.colormap('PWG'));
-                clim(0.5*max(abs(roi_data_peri_av),[],'all')*[0,1]);colormap(ap.colormap('WG'));
-
-                % plot((trial_state{curr_trial}(indx_passive)-1),1:length(trial_state{curr_trial}),'o', 'MarkerSize', 0.5,'Color','blue')
-                if ~isempty(find(curr_trial_type( find(trial_state{curr_trial}(indx_passive)==1))==element_type))
-                    plot(-0.2,find(curr_trial_type( find(trial_state{curr_trial}(indx_passive)==1))==element_type),'|', 'MarkerSize', 0.5,'Color','red')
-                end
-                xlabel('Time from stim')
-                if workflow_type(curr_trial)==1
-                    title(['visual task day ' mat2str(curr_trial-find(workflow_type==1,1)+1)])
-                elseif workflow_type(curr_trial)==2
-                    title(['auditory task day ' mat2str(curr_trial-find(workflow_type==2,1)+1)])
-                elseif workflow_type(curr_trial)==3
-                    title(['mixed task day ' mat2str(curr_trial-find(workflow_type==3,1)+1)])
-                else title(['other tasks '])
-
-                end
-
-                drawnow
-            end
-            sgtitle([animal ' ' passive_workflow], 'Interpreter', 'none');
-
-            saveas(gcf,[Path 'figures\'   passive_workflow '_single trial_no_move_' animal], 'jpg');
-            close all
 
 
 

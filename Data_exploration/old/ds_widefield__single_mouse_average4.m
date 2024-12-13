@@ -5,11 +5,8 @@ Path = 'C:\Users\dsong\Documents\MATLAB\Da_Song\Data_analysis\mice\process\proce
 
 
 animals = {'DS007','DS010','AP019','AP021','DS011','AP022','DS001','AP018','AP020', 'DS003','DS006','DS013','DS000','DS004','DS014','DS015','DS016'};
-animals_group=[ 1 1 5 5 1 1 5 2 2 3 3 3 4 4 4 4 4];
-% animals_group=[ 1 1 1 1 1 1 5 2 2 3 3 3 4 4 4 4 4];
-
-% animals = {'DS014'};
-% animals_group=1;
+ animals_group=[ 1 1 5 5 1 1 5 2 2 3 3 3 4 4 4 4 4];
+animals_group=[ 1 1 1 1 1 1 1 2 2 3 3 3 4 4 4 4 4];
 
 master_U_fn = fullfile(plab.locations.server_path,'Lab', ...
     'widefield_alignment','U_master.mat');
@@ -22,11 +19,10 @@ surround_window_task = [-0.2,1];
 t_passive = surround_window_passive(1):1/surround_samplerate:surround_window_passive(2);
 t_task = surround_window_task(1):1/surround_samplerate:surround_window_task(2);
 t_kernels=1/surround_samplerate*[-5:30];
-passive_boundary=0.1;
+passive_boundary=0.2;
 period_passive=find(t_passive>0&t_passive<passive_boundary);
 period_task=find(t_task>0&t_task<0.2);
 period_kernels=find(t_kernels>0&t_kernels<0.1);
-
 
 
 for curr_animal=1:length(animals)
@@ -57,7 +53,6 @@ for curr_animal=1:length(animals)
         buffer.data_V_task_s2m{curr_animal}{curr_idx}=raw_data_task.stim2move(indx_V(curr_idx));
         buffer.data_V_task_learned{curr_animal}{curr_idx}=raw_data_task.learned_day(indx_V(curr_idx));
         buffer.data_V_task_react_index{curr_animal}{curr_idx}=raw_data_task.react_index(indx_V(curr_idx));
-
         buffer.data_V_task_kernels{curr_animal}{curr_idx}=plab.wf.svd2px(U_master,raw_data_task.wf_px_task_kernels{indx_V(curr_idx)}(:,:,1));
 
 
@@ -120,7 +115,6 @@ for curr_animal=1:length(animals)
 
 
 end
-
 
 %%
 suffixes = {'V_90','V_8k', 'V_task_kernels', 'A_90','A_8k', 'A_task_kernels','M_90','M_8k','M_task_kernels'};
@@ -187,7 +181,6 @@ for i = 1:length(suffixes)
 
 end
 
-
 %%
 suffixes3 = {'basline_lcr','basline_hml'};
 
@@ -204,9 +197,6 @@ for i = 1:length(suffixes3)
 
 
 end
-
-
-
 
 %%
 save([Path 'mat_data\'  'all_mice_data.mat' ],'buffer','-v7.3')
@@ -276,11 +266,11 @@ end
 sgtitle('audio passive baseline')
 saveas(gcf,[Path 'figures\image in baseline audio passive of each mice'], 'jpg');
 
-%% wide imaging of whole brain of averaged mice
+
 %% wide imaging of whole brain of averaged mice
 
-animals_group = [1 1 1 1 1 1 1 2 2 3 3 3 4 4 4 4 4];
-selected_group = 3;
+% animals_group = [1 1 1 1 1 1 1 2 2 3 3 3 4 4 4 4 4];
+selected_group = 1;
 scale_all = 0.003;
 figure('Position', [50 50 1500 900]);
 
@@ -1017,6 +1007,9 @@ saveas(gcf,[Path 'figures\behavior reaction time of single mice'], 'jpg');
 % saveas(gcf,[Path 'figures\behaviors_plot_reaction time_VA'], 'jpg');
 
 %% 行为学比较  A-V & only V
+animals = {'DS007','DS010','AP019','AP021','DS011','AP022','DS001','AP018','AP020', 'DS003','DS006','DS013','DS000','DS004','DS014','DS015','DS016'};
+ animals_group=[ 1 1 1 1 1 1 5 2 2 3 3 3 4 4 4 4 4];
+% animals_group=[ 1 1 1 1 1 1 1 2 2 3 3 3 4 4 4 4 4];
 
 
 figure('Position',[50 50 800 1400]);
@@ -1038,8 +1031,12 @@ for u=1:2
     % 创建一个示例的4x5的cell矩阵A
     % 对矩阵进行操作
     V_data = cellfun(@(x) cell2mat(x), V_data_0, 'UniformOutput', false);
-    V_reindx=  cellfun(@(A) [zeros(1, find(cell2mat( A )> 0, 1)-1), ones(1, numel(A) - find(cell2mat( A) > 0, 1) + 1)],V_reindx, 'UniformOutput', false);
-     V_data= cellfun(@(x,y) x(y==1),V_data,V_reindx,'UniformOutput',false);
+
+    V_reindx1=cellfun(@(x) ones(1, length(x)), V_reindx,'UniformOutput',false)
+    V_reindx1_indx=cellfun(@(x) ~isempty(find(cell2mat(x) < 0, 1, 'last')),V_reindx,'UniformOutput',true)
+    V_reindx1(V_reindx1_indx)=cellfun(@(x) [zeros(1,find(cell2mat(x) < 0, 1, 'last')) ones(1, length(x)-find(cell2mat(x) < 0, 1, 'last'))], V_reindx(V_reindx1_indx), 'UniformOutput', false);
+    
+    V_data= cellfun(@(x,y) x(y==1),V_data,V_reindx1,'UniformOutput',false);
     
     % 1. 获取最长向量的长度
     max_len_V = max(cellfun(@numel, V_data));
@@ -1097,9 +1094,9 @@ for u=1:2
     
     ax = gca;
     ylim1 = ax.YLim;
-    bg1 =rectangle('Position', [0, ylim1(1), find(any(~isnan(A_only_plot), 2), 1)-find(any(~isnan(VA_plot), 2), 1)+0.5, diff(ylim1)], 'FaceColor', '#FFB2B2', 'EdgeColor', 'none');
+    bg1 =rectangle('Position', [0, ylim1(1), find(any(~isnan(A_only_plot), 2), 1)-find(any(~isnan(VA_plot), 2), 1)+0.5, diff(ylim1)], 'FaceColor', '#DAE3F3', 'EdgeColor', 'none');
     uistack(bg1, 'bottom');
-    bg2 =rectangle('Position', [find(any(~isnan(A_only_plot), 2), 1)-find(any(~isnan(VA_plot), 2), 1)+0.5, ylim1(1), find(any(~isnan(A_only_plot), 2), 1, 'last')-find(any(~isnan(A_only_plot), 2), 1)+1, diff(ylim1)], 'FaceColor','#DAE3F3' , 'EdgeColor', 'none');
+    bg2 =rectangle('Position', [find(any(~isnan(A_only_plot), 2), 1)-find(any(~isnan(VA_plot), 2), 1)+0.5, ylim1(1), find(any(~isnan(A_only_plot), 2), 1, 'last')-find(any(~isnan(A_only_plot), 2), 1)+1, diff(ylim1)], 'FaceColor','#FFB2B2' , 'EdgeColor', 'none');
     uistack(bg2, 'bottom');
 
 % find(isnan(A_only(:,find(animals_group==4))))
@@ -1116,10 +1113,10 @@ for u=1:2
 
 
     hold on
-     plot(AV_plot_p,'Color', [0.8 0.8 1]);
-    h1= plot(nanmean(AV_plot_p,2),'Color', [0 0 1],'LineWidth',2);
-    plot(V_only_plot_p,'Color', [1 0.8 0.8]);
-   h2= plot(nanmean(V_only_plot_p,2),'Color', [1 0 0],'LineWidth',2);
+     plot(AV_plot_p,'Color', [1 0.8 0.8]);
+    h1= plot(nanmean(AV_plot_p,2),'Color', [1 0 0],'LineWidth',2);
+    plot(V_only_plot_p,'Color', [0.8 0.8 1]);
+   h2= plot(nanmean(V_only_plot_p,2),'Color', [0 0 1],'LineWidth',2);
 
     % xline(max_len_V,'LineWidth',1,'Color', [0.5 0.5 0.5], 'LineStyle', '--')
     legend([h1, h2],{['A-V, n=' num2str(sum(animals_group==4)) ],['only V, n=' num2str(sum(animals_group==1)) ]});
@@ -1180,6 +1177,7 @@ for i=1:length(animals)
     plot(plt{i})
 end
 
+saveas(gcf,[Path 'figures\ mPFC across day in single mice during auditory'], 'jpg');
 
 %% peak mPFC in hml passive plot across day.
 scale_all=0.002;
@@ -1209,6 +1207,7 @@ for i=1:length(animals)
     hold on
     plot(plt_hml{i})
 end
+saveas(gcf,[Path 'figures\ mPFC across day in single mice during auditory'], 'jpg');
 
 
 %% 平均 小鼠mPFC在cross day中 mPFC 的 meatmap和plot

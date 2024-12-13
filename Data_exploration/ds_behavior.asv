@@ -4,11 +4,12 @@ Path = 'C:\Users\dsong\Documents\MATLAB\Da_Song\Data_analysis\mice\process\proce
 
 % animals = {'DS007','DS010','AP019','AP021','DS011','AP022','DS001','AP018','AP020', 'DS003','DS006','DS013','DS000','DS004','DS014','DS015','DS016'};
 % animals = {'DS005'}
- % animals = {'AP027','AP028','AP029'}
-  animals = {'HA000','HA001','HA002'}
+ animals = {'AP027','AP028','AP029'}
+  % animals = {'HA000','HA001','HA002'}
   % animals = {'HA003','HA004'}
 
 reaction_time=2;
+
 % Create master tiled layout
 
 figure('Position',[50 100 length(animals)*300 900]);
@@ -30,12 +31,12 @@ for curr_animal_idx = 1:length(animals)
     animal = animals{curr_animal_idx};
      % use_workflow = 'stim_wheel_right_stage1_audio_frequency$|stim_wheel_right_stage1_audio_volume$|stim_wheel_right_stage1$|stim_wheel_right_stage2$|stim_wheel_right_stage2_audio_volume$';
    
-     % use_workflow = 'stim_wheel_right_stage1_opacity$|stim_wheel_right_stage2_opacity$|stim_wheel_right_stage1_audio_frequency$|stim_wheel_right_stage1_audio_volume$|stim_wheel_right_stage1$|stim_wheel_right_stage2$|stim_wheel_right_stage2_audio_volume$';
+     use_workflow = 'stim_wheel_right_stage1_opacity$|stim_wheel_right_stage2_opacity$|stim_wheel_right_stage1_audio_frequency$|stim_wheel_right_stage1_audio_volume$|stim_wheel_right_stage1$|stim_wheel_right_stage2$|stim_wheel_right_stage2_audio_volume$';
 
     % use_workflow = {'stim_wheel_right_stage1$|stim_wheel_right_stage1_audio_volume$|stim_wheel_right_stage1_audio_frequency$|stim_wheel_right_stage2$|stim_wheel_right_stage2_audio_volume$|stim_wheel_right_stage2_audio_frequency$'};
       % use_workflow = {'stim_wheel_right_stage*'};  
 
-          use_workflow = {'stim_lick_right_stage*'};  
+          % use_workflow = {'stim_lick_right_stage*'};  
 
 
     recordings = plab.find_recordings(animal,[],use_workflow);

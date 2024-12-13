@@ -1,7 +1,8 @@
 clear all
 animal='DS004';
 recordings_all_training=plab.find_recordings(animal,[],'stim_wheel_right_stage2_mixed_VA');
-recordings_all_passive=plab.find_recordings(animal,[],'lcr_passive');
+% recordings_all_passive=plab.find_recordings(animal,[],'lcr_passive');
+recordings_all_passive=plab.find_recordings(animal,[],'hml_passive_audio');
 
 
 recordings_passive = recordings_all_passive( ...
@@ -11,14 +12,15 @@ recordings_training = recordings_all_training( ...
                 cellfun(@any,{recordings_all_training.ephys}) & ...
                 ismember({recordings_all_training.day},{recordings_all_passive.day}));
 
-curr_day=5;
+curr_day=1;
+% rec_day=recordings_passive(curr_day).day;
+% rec_time=recordings_passive(curr_day).recording{1};
 rec_day=recordings_training(curr_day).day;
 rec_time=recordings_training(curr_day).recording{1};
 verbose = true;
 ap.load_recording;
 
-% 
-% 
+ 
 % % Using Bonsai events, we get the X (azimuth) stimulus positions:
 % stim_x = vertcat(trial_events.values.TrialStimX);
 % 
@@ -48,8 +50,8 @@ ap.load_recording;
 %         histcounts(use_unit_spikes,stim_bins(curr_trial,:))/bin_size;
 % end
 % 
-% 
-% % all_counts = cell2mat(arrayfun(@(x) histcounts(use_unit_spikes, stim_bins(x,:)), (1:length(right_stim_times))', 'UniformOutput', false));
+
+% all_counts = cell2mat(arrayfun(@(x) histcounts(use_unit_spikes, stim_bins(x,:)), (1:length(right_stim_times))', 'UniformOutput', false));
 
 %% PSTH - units
 
