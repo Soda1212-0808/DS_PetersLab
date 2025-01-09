@@ -2,18 +2,14 @@
 clear all
 Path = 'C:\Users\dsong\Documents\MATLAB\Da_Song\Data_analysis\mice\process\processed_data_v2\';
 
-% animals = {'DS007','DS010','AP019','AP021','DS011','AP022','DS001','AP018','AP020', 'DS003','DS006','DS013','DS000','DS004','DS014','DS015','DS016'};
-% animals = {'DS005'}
- animals = {'AP027','AP028','AP029'}
-  % animals = {'HA000','HA001','HA002'}
-  % animals = {'HA003','HA004'}
+ % animals = {'DS007','DS010','AP019','AP021','DS011','AP022','DS001','AP018','AP020'};transfer_type='v_position_to_a_volumne';
+ %animals = {'DS003','DS006','DS013','DS000','DS004','DS014','DS015','DS016'};transfer_type='a_volumne_to_v_position';
+% % animals = {'DS005'} ;transfer_type='a_frequency_to_v_position';
+ % animals = {'AP027','AP028','AP029'}; transfer_type='v_opacity_to_v_position';
+  animals = {'HA003','HA004'};  transfer_type='v_size_up_to_v_position';
 
 reaction_time=2;
 
-% Create master tiled layout
-
-figure('Position',[50 100 length(animals)*300 900]);
-tt = tiledlayout(1,length(animals),'TileSpacing','tight');
 
 % Grab learning day for each mouse
 learned_day_all = nan(size(animals));
@@ -25,19 +21,29 @@ all_animal_workflow_name=cell(length(animals),1);
 all_animal_rxn_med=cell(length(animals),1);
 all_animal_stim2move_med=cell(length(animals),1);
 
+figure('Position',[50 100 length(animals)*300 900]);
+tt = tiledlayout(1,length(animals),'TileSpacing','tight');
 
 for curr_animal_idx = 1:length(animals)
 
     animal = animals{curr_animal_idx};
      % use_workflow = 'stim_wheel_right_stage1_audio_frequency$|stim_wheel_right_stage1_audio_volume$|stim_wheel_right_stage1$|stim_wheel_right_stage2$|stim_wheel_right_stage2_audio_volume$';
    
-     use_workflow = 'stim_wheel_right_stage1_opacity$|stim_wheel_right_stage2_opacity$|stim_wheel_right_stage1_audio_frequency$|stim_wheel_right_stage1_audio_volume$|stim_wheel_right_stage1$|stim_wheel_right_stage2$|stim_wheel_right_stage2_audio_volume$';
-
-    % use_workflow = {'stim_wheel_right_stage1$|stim_wheel_right_stage1_audio_volume$|stim_wheel_right_stage1_audio_frequency$|stim_wheel_right_stage2$|stim_wheel_right_stage2_audio_volume$|stim_wheel_right_stage2_audio_frequency$'};
-      % use_workflow = {'stim_wheel_right_stage*'};  
-
-          % use_workflow = {'stim_lick_right_stage*'};  
-
+      % use_workflow = 'stim_wheel_right_stage1_opacity$|stim_wheel_right_stage2_opacity$|stim_wheel_right_stage1_audio_frequency$|stim_wheel_right_stage1_audio_volume$|stim_wheel_right_stage1$|stim_wheel_right_stage2$|stim_wheel_right_stage2_audio_volume$';
+ use_workflow =...
+                ['stim_wheel_right_stage1$|' ...
+                'stim_wheel_right_stage2$|' ...
+                'stim_wheel_right_stage1_opacity$|' ...
+                'stim_wheel_right_stage2_opacity$|' ...
+                'stim_wheel_right_stage1_size_up$|' ...
+                'stim_wheel_right_stage2_size_up$|' ...
+                'stim_wheel_right_stage1_audio_volume$|'...
+                'stim_wheel_right_stage2_audio_volume$|' ...
+                'stim_wheel_right_stage1_audio_frequency$|' ...
+                'stim_wheel_right_stage2_audio_frequency$|' ...
+                'stim_wheel_right_frequency_stage2_mixed_VA$|' ...
+                'stim_wheel_right_stage2_mixed_VA$'];
+   
 
     recordings = plab.find_recordings(animal,[],use_workflow);
 
@@ -58,7 +64,7 @@ for curr_animal_idx = 1:length(animals)
     frac_move_stimalign = nan(length(recordings),length(surround_time_points));
     frac_velocity_stimalign= nan(length(recordings),length(surround_time_points));
     rxn_stat_p = nan(length(recordings),1);
-    workflow_name= nan(length(recordings),1);
+    workflow_name= cell(length(recordings),1);
 
     for curr_recording =1: length(recordings)
 
@@ -89,11 +95,23 @@ for curr_animal_idx = 1:length(animals)
 
         if strcmp(recordings(curr_recording).workflow{index_real},'stim_wheel_right_stage1_audio_volume')...
                 ||strcmp(recordings(curr_recording).workflow{index_real},'stim_wheel_right_stage2_audio_volume')
-            workflow_name(curr_recording)=2;
+            workflow_name{curr_recording}='audio volume';
         elseif strcmp(recordings(curr_recording).workflow{index_real},'stim_wheel_right_stage1')...
                 ||strcmp(recordings(curr_recording).workflow{index_real},'stim_wheel_right_stage2')
-            workflow_name(curr_recording)=1;
-        else  workflow_name(curr_recording)=0;
+            workflow_name{curr_recording}='visual position';
+        elseif strcmp(recordings(curr_recording).workflow{index_real},'stim_wheel_right_stage1_size_up')...
+                ||strcmp(recordings(curr_recording).workflow{index_real},'stim_wheel_right_stage2_size_up')
+            workflow_name{curr_recording}='visual size up';
+        elseif strcmp(recordings(curr_recording).workflow{index_real},'stim_wheel_right_stage1_opacity')...
+                ||strcmp(recordings(curr_recording).workflow{index_real},'stim_wheel_right_stage2_opacity')
+            workflow_name{curr_recording}='visual opacity';
+        elseif strcmp(recordings(curr_recording).workflow{index_real},'stim_wheel_right_stage1_audio_frequency')...
+                ||strcmp(recordings(curr_recording).workflow{index_real},'stim_wheel_right_stage2_audio_frequency')
+            workflow_name{curr_recording}='audio volume';
+        elseif strcmp(recordings(curr_recording).workflow{index_real},'stim_wheel_right_stage2_mixed_VA')...
+                ||strcmp(recordings(curr_recording).workflow{index_real},'stim_wheel_right_frequency_stage2_mixed_VA')
+            workflow_name{curr_recording}='mixed VA';
+        else  workflow_name{curr_recording}='none';
         end
 
         load_parts = struct;
@@ -108,10 +126,13 @@ for curr_animal_idx = 1:length(animals)
             sum(([trial_events.values.Outcome] == 1)*6)];
 
         % Get median stim-outcome time
-        n_trials = length([trial_events.timestamps.Outcome]);
-        rxn_med(curr_recording) = median(seconds([trial_events.timestamps(1:n_trials).Outcome] - ...
-            cellfun(@(x) x(1),{trial_events.timestamps(1:n_trials).StimOn})));
-        % Get median stim-move time
+        n_trials = length([trial_events.timestamps.Outcome])-1;
+        rxn_med(curr_recording) = median(stimOff_times(1:n_trials) - ...
+          stimOn_times(1:n_trials)  );
+
+        % rxn_med(curr_recording) = median(seconds([trial_events.timestamps(1:n_trials).Outcome] - ...
+        %     cellfun(@(x) x(1),{trial_events.timestamps(1:n_trials).StimOn})));
+        % % Get median stim-move time
         stim2move_med(curr_recording)=median(stim_to_move);
 
 
@@ -135,7 +156,7 @@ for curr_animal_idx = 1:length(animals)
 
         % Get association stat
         rxn_stat_p(curr_recording) = AP_stimwheel_association_pvalue( ...
-            stimOn_times,trial_events,stim_to_move);
+            stimOn_times,trial_events,stim_to_move,'mean');
 
         % Clear vars except pre-load for next loop
         clearvars('-except',preload_vars{:});
@@ -150,14 +171,13 @@ for curr_animal_idx = 1:length(animals)
     nonrecorded_day = setdiff(1:length(recordings),relative_day);
 
 
-    day_worflow=arrayfun(@(idx) recordings(idx).workflow{1},1:length(recordings),  'UniformOutput', false)';
-    visual_day=relative_day(find(strcmp(day_worflow,'stim_wheel_right_stage2')));
-    audio_day=relative_day(find(strcmp(day_worflow,'stim_wheel_right_stage2_audio_volume')|strcmp(day_worflow,'stim_wheel_right_stage2_audio_frequency')));
+    % workflow_name_2=arrayfun(@(idx) recordings(idx).workflow{1},1:length(recordings),  'UniformOutput', false)';
+    
+    matches = unique(workflow_name, 'stable');
 
-
-
-
-
+    different_day= cellfun(@(x) relative_day(find(strcmp(workflow_name,x))),matches,'UniformOutput',false);
+    
+  
     % Draw in tiled layout nested in master
     t_animal = tiledlayout(tt,7,1);
     t_animal.Layout.Tile = curr_animal_idx;
@@ -167,6 +187,7 @@ for curr_animal_idx = 1:length(animals)
     % range_t1= relative_day(find(learned_day == 1, 1, 'first'))-3;
     range_t1=1;
 
+    % figure 1
     nexttile(t_animal);
     yyaxis left; plot(relative_day,n_trials_water(:,1));
     ylabel('# trials');
@@ -182,35 +203,42 @@ for curr_animal_idx = 1:length(animals)
     xlim([range_t1,relative_day(end)])
 
 
-
+   % figure 2
     nexttile(t_animal);
-    yyaxis left
-    % plot(relative_day,rxn_med,'LineWidth',1)
-    plot(relative_day,stim2move_med,'LineWidth',1)
+    
 
-    set(gca,'YScale','log');
+    hold on;
+    yyaxis left
+    plot(relative_day, rxn_med, 'LineWidth', 1);
+    % plot(relative_day, stim2move_med, 'LineWidth', 1);
+    set(gca, 'YScale', 'log');
     ylabel('Med. rxn');
     xlabel('Day');
-    %
+
     ax = gca;
     ylim1 = ax.YLim;
     % 将对数坐标轴范围转换为线性坐标轴范围
     ylim_linear = log10(ylim1);
     ylim_linear = 10 .^ ylim_linear;
-    if ~visual_day==0
-        bg1 =rectangle('Position', [visual_day(1)-0.5, ylim_linear(1), visual_day(end)-visual_day(1)+1, diff(ylim_linear)], 'FaceColor', '#DAE3F3', 'EdgeColor', 'none');
-        uistack(bg1, 'bottom');
+
+    colorMap = lines(length(different_day)); % 使用 colormap 自动生成不同颜色
+  
+    % 遍历 relative_day 填充背景
+    for curr_day = relative_day
+        % 遍历 different_day 中的每一组
+        for groupIdx = 1:length(different_day)
+            if any(different_day{groupIdx} == curr_day)
+                % 获取当前组的颜色
+                color = colorMap(groupIdx, :);
+                % 填充背景颜色
+                fill([curr_day-0.5, curr_day+0.5, curr_day+0.5, curr_day-0.5], ...
+                    [ylim_linear(1), ylim_linear(1), ylim_linear(2), ylim_linear(2)], ...
+                    color, 'EdgeColor', 'none', 'FaceAlpha', 0.3); % 添加透明度
+                break; % 当前 `i` 只属于一个组，跳出内循环
+            end
+        end
     end
-    if~ audio_day==0
-        bg2 =rectangle('Position', [audio_day(1)-0.5, ylim_linear(1), audio_day(end)-audio_day(1)+1, diff(ylim_linear)], 'FaceColor', '#FFB2B2', 'EdgeColor', 'none');
-        uistack(bg2, 'bottom');
-    end
-    if any(nonrecorded_day)
-        xline(nonrecorded_day,'--k');
-    end
-    if any(learned_day)
-        xline(relative_day(learned_day),'g');
-    end
+    
 
     yyaxis right
     prestim_max = max(frac_move_stimalign(:,surround_time_points < 0),[],2);
@@ -220,9 +248,30 @@ for curr_animal_idx = 1:length(animals)
     ylabel('pre/post move idx');
     xlabel('Day');
     xlim([range_t1,relative_day(end)]);
+    if any(nonrecorded_day)
+        xline(nonrecorded_day,'--k');
+    end
+    if any(learned_day)
+        xline(relative_day(learned_day),'g');
+    end
+    xlim([range_t1,relative_day(end)])
 
     react_index2=(poststim_max-prestim_max)./(poststim_max+prestim_max);
 
+    % % 为图例添加虚拟对象，仅显示背景颜色
+    % legendHandles = gobjects(length(different_day), 1); % 预分配图例句柄数组
+    % for groupIdx = 1:length(different_day)
+    %     % 创建不可见的填充对象用于图例
+    %     legendHandles(groupIdx) = fill(NaN, NaN, colorMap(groupIdx, :), ...
+    %         'EdgeColor', 'none', 'FaceAlpha', 0.3);
+    % end
+    % 
+    % % 添加图例，仅显示虚拟对象
+    % legend(legendHandles, matches, 'Location', 'northoutside', 'Orientation', 'horizontal');
+
+
+
+   % figure3
     nexttile(t_animal);
     plot(relative_day,success)
     ylabel('success');
@@ -242,13 +291,10 @@ for curr_animal_idx = 1:length(animals)
     if any(learned_day)
         plot(0,find(learned_day),'.g')
     end
-    if any(workflow_name==2)
-        plot(-0.5,find(workflow_name==2),'|r')
-    end
-    if any(workflow_name==1)
-        plot(-0.5,find(workflow_name==1),'|b')
 
-
+    for curr_type=1:length(different_day)
+        
+        plot(-0.5,different_day{curr_type},'Marker', '|', 'MarkerEdgeColor',colorMap(curr_type,:))
     end
     ylim([(range_t1-0.5),(0.5+length(learned_day))])
 
@@ -298,13 +344,9 @@ for curr_animal_idx = 1:length(animals)
     if any(learned_day)
         plot(-0.2,find(learned_day),'.g')
     end
-    if any(workflow_name==2)
-        plot(-0.5,find(workflow_name==2),'|r')
-    end
-    if any(workflow_name==1)
-        plot(-0.5,find(workflow_name==1),'|b')
-
-
+    for curr_type=1:length(different_day)
+        
+        plot(-0.5,different_day{curr_type},'Marker', '|', 'MarkerEdgeColor',colorMap(curr_type,:))
     end
 
     ylim([(range_t1-0.5),(0.5+length(learned_day))])
@@ -323,15 +365,71 @@ for curr_animal_idx = 1:length(animals)
 end
 
 
-saveas(gcf,[Path 'figures\summary\behavior_' strjoin(animals, '_')], 'jpg');
+saveas(gcf,[Path 'figures\summary\behavior in ' transfer_type], 'jpg');
 
-save([Path 'mat_data\summary_data\behavior in V or A task.mat' ],'animals','all_animal_learned_day', 'all_animal_workflow_name','all_animal_react_index','all_animal_rxn_med','all_animal_stim2move_med','-v7.3');
+save([Path 'mat_data\summary_data\behavior in ' transfer_type '.mat' ],'animals','all_animal_learned_day', 'all_animal_workflow_name','all_animal_react_index','all_animal_rxn_med','all_animal_stim2move_med','-v7.3');
 
 
 
+%%
+data1=load([Path 'mat_data\summary_data\behavior in ' transfer_type '.mat' ]);
+matches=unique(data1.all_animal_workflow_name{1}, 'stable')
+
+% index_group=[0 0 0 1 1 1 1 1];
+index_group=[1 1 1 1 1 1 0 0 0];
+
+n1_data = cellfun(@(x,y) x(strcmp(y,matches{1})),data1.all_animal_stim2move_med,data1.all_animal_workflow_name,'UniformOutput',false);
+n2_data = cellfun(@(x,y) x(strcmp(y,matches{2})),data1.all_animal_stim2move_med,data1.all_animal_workflow_name,'UniformOutput',false);
+
+% 对n1操作
+n1_reindx1=cellfun(@(x) ones(1, length(x)), n1_data,'UniformOutput',false);
+n1_reindx1_indx=cellfun(@(x) ~isempty(find(x < 0, 1, 'last')),n1_reindx,'UniformOutput',true);
+n1_reindx1(n1_reindx1_indx)=cellfun(@(x) [zeros(1,find(x < 0, 1, 'last')) ones(1, length(x)-find(x < 0, 1, 'last'))], n1_reindx(n1_reindx1_indx), 'UniformOutput', false);
+n1_data= cellfun(@(x,y) x(y==1),n1_data,n1_reindx1,'UniformOutput',false);
+% 1. 获取最长向量的长度
+max_len_n1 = max(cellfun(@numel, n1_data));
+% 2. 使用 NaN 填充较短的向量
+n1_filled_pre = cellfun(@(x) padarray(x', [0 max_len_n1-numel(x)], NaN, 'pre'), n1_data, 'UniformOutput', false);
+n1_filled_post = cellfun(@(x) padarray(x', [0 max_len_n1-numel(x)], NaN, 'post'), n1_data, 'UniformOutput', false);
+
+
+% 对n2操作
+n2_reindx=  cellfun(@(A) [zeros(1, find( A > 0, 1)-1), ones(1, numel(A) - find( A > 0, 1) + 1)],n2_data, 'UniformOutput', false);
+n2_data= cellfun(@(x,y) x(y==1),n2_data,n2_reindx,'UniformOutput',false);
+% 1. 获取最长向量的长度
+max_len_n2 = max(cellfun(@numel, n2_data));
+% 2. 使用 NaN 填充较短的向量
+n2_filled_post = cellfun(@(x) padarray(x', [0 max_len_n2-numel(x)], NaN, 'post'), n2_data, 'UniformOutput', false);
+n2_filled_pre = cellfun(@(x) padarray(x', [0 max_len_n2-numel(x)], NaN, 'pre'), n2_data, 'UniformOutput', false);
+
+n1_n2=[cell2mat(n1_filled_pre)  cell2mat(n2_filled_post)]';
+
+figure
+hold on
+plot(n1_n2(:,find(index_group)),'Color', [0.8 0.8 1]);
+h1= plot(nanmean(n1_n2(:,find(index_group)),2),'Color', [0 0 1],'LineWidth',2);
+yline(0.1)
+% xline(max_len_V,'LineWidth',1,'Color', [0.5 0.5 0.5], 'LineStyle', '--')
+% legend([h1, h2],{['V-A, n=' num2str(sum(animals_group==1)) ],['only A, n=' num2str(sum(animals_group==4)) ]});
+ylabel('stim to move (s)')
+xlabel('training days ')
+ylim([0 0.7])
+xlim([0 size(n1_n2,1)])
+length(n1_filled_pre{1})
+ax = gca;
+ylim1 = ax.YLim;
+bg1 =rectangle('Position', [0, ylim1(1), length(n1_filled_pre{1})-4.5, diff(ylim1)], 'FaceColor', [0.8 0.8 0.8], 'EdgeColor', 'none');
+uistack(bg1, 'bottom');
+bg2 =rectangle('Position', [length(n1_filled_pre{1})-4.5, ylim1(1), 5, diff(ylim1)], 'FaceColor', '#DAE3F3', 'EdgeColor', 'none');
+uistack(bg2, 'bottom');
+bg3 =rectangle('Position', [length(n1_filled_pre{1})+0.5, ylim1(1), length(n2_filled_pre{1})-0.5, diff(ylim1)], 'FaceColor','#FFB2B2' , 'EdgeColor', 'none');
+uistack(bg3, 'bottom');
+title([matches{1} ' to ' matches{2}])
+saveas(gcf,[Path 'figures\summary\reaction time in ' transfer_type], 'jpg');
 
 %% 行为学比较  A-V & only V
 animals = {'DS007','DS010','AP019','AP021','DS011','AP022','DS001','AP018','AP020', 'DS003','DS006','DS013','DS000','DS004','DS014','DS015','DS016'};
+
 data1=load([Path 'mat_data\summary_data\behavior in V or A task.mat' ]);
 
 data2=load([Path 'mat_data\summary_data\behavior in mixed task.mat' ]);
@@ -345,10 +443,17 @@ V_data = cellfun(@(x,y) x(y==1),data1.all_animal_stim2move_med,all_animal_workfl
 V_reindx=cellfun(@(x,y) x(y==1),data1.all_animal_react_index,all_animal_workflow_name,'UniformOutput',false);
 A_data = cellfun(@(x,y) x(y==2),data1.all_animal_stim2move_med,all_animal_workflow_name,'UniformOutput',false);
 A_reindx=cellfun(@(x,y) x(y==2),data1.all_animal_react_index,all_animal_workflow_name,'UniformOutput',false);
+
+V_data=V_data([1:14,16,17])
+V_reindx=V_reindx([1:14,16,17])
+A_data=A_data([1:14,16,17])
+A_reindx=A_reindx([1:14,16,17])
+
+
 % 创建一个示例的4x5的cell矩阵A
 % 对矩阵进行操作
 V_reindx1=cellfun(@(x) ones(1, length(x)), V_reindx,'UniformOutput',false);
-V_reindx1_indx=cellfun(@(x) ~isempty(find(x < 0, 1, 'last')),V_reindx,'UniformOutput',true)
+V_reindx1_indx=cellfun(@(x) ~isempty(find(x < 0, 1, 'last')),V_reindx,'UniformOutput',true);
 V_reindx1(V_reindx1_indx)=cellfun(@(x) [zeros(1,find(x < 0, 1, 'last')) ones(1, length(x)-find(x < 0, 1, 'last'))], V_reindx(V_reindx1_indx), 'UniformOutput', false);
 V_data= cellfun(@(x,y) x(y==1),V_data,V_reindx1,'UniformOutput',false);
 
@@ -357,6 +462,8 @@ max_len_V = max(cellfun(@numel, V_data));
 % 2. 使用 NaN 填充较短的向量
 V_filled_pre = cellfun(@(x) padarray(x', [0 max_len_V-numel(x)], NaN, 'pre'), V_data, 'UniformOutput', false);
 V_filled_post = cellfun(@(x) padarray(x', [0 max_len_V-numel(x)], NaN, 'post'), V_data, 'UniformOutput', false);
+
+
 
 % 对矩阵进行操作
 A_reindx=  cellfun(@(A) [zeros(1, find( A > 0, 1)-1), ones(1, numel(A) - find( A > 0, 1) + 1)],A_reindx, 'UniformOutput', false);
@@ -375,12 +482,6 @@ V_only=[nan(length(A_data),max_len_A) cell2mat(V_filled_post)]';
 V_A=[cell2mat(V_filled_pre)  cell2mat(A_filled_post)]';
 A_V=[ cell2mat(A_filled_pre)  cell2mat(V_filled_post)]';
 %
-
-
-
-
-
-
 
 
 

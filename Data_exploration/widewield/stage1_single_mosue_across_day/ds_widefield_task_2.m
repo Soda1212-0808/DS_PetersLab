@@ -21,24 +21,34 @@ t_kernels=1/surround_samplerate*[-5:30];
 
 
 
-animals = {'DS007','DS010','AP019','AP021','DS011','AP022','DS001','AP018','AP020', 'DS003','DS006','DS013','DS000','DS004','DS014','DS015','DS016'};
+% animals = {'DS007','DS010','AP019','AP021','DS011','AP022','DS001','AP018','AP020', 'DS003','DS006','DS013','DS000','DS004','DS014','DS015','DS016'};
 
-% animals = {'DS014'，'DS015'}
+ animals = {'AP027','AP028','AP029'}
 
 
-for curr_animal_idx=15 :length(animals)
+for curr_animal_idx=1 :length(animals)
     animal=animals{curr_animal_idx};
     fprintf('%s\n', ['start  ' animal ]);
     fprintf('%s\n', ['start saving tasks files...']);
 
     passive_workflow = 'lcr_passive';
     recordings_passive = plab.find_recordings(animal,[],passive_workflow);
-    % training_workflow = {'stim_wheel_right_stage2$|stim_wheel_right_stage2_audio_volume$'};
-    % training_workflow = 'stim_wheel_right_stage1_audio_frequency$|stim_wheel_right_stage1_audio_volume$|stim_wheel_right_stage1$|stim_wheel_right_stage2*$|stim_wheel_right_frequency_stage2_mixed_VA$';
-    training_workflow = 'stim_wheel_right_stage1_audio_frequency$|stim_wheel_right_stage1_audio_volume$|stim_wheel_right_stage1$|stim_wheel_right_stage2$|stim_wheel_right_stage2_audio_volume$|stim_wheel_right_frequency_stage2_mixed_VA$|stim_wheel_right_stage2_mixed_VA$';
+ 
+   training_workflow =...
+      ['stim_wheel_right_stage1$|' ...
+       'stim_wheel_right_stage2$|' ...
+       'stim_wheel_right_stage1_opacity$|' ...
+       'stim_wheel_right_stage2_opacity$|' ...
+       'stim_wheel_right_stage1_size_up$|' ...
+       'stim_wheel_right_stage2_size_up$|' ...
+       'stim_wheel_right_stage1_audio_volume$|'...
+       'stim_wheel_right_stage2_audio_volume$|' ...
+       'stim_wheel_right_stage1_audio_frequency$|' ...
+       'stim_wheel_right_stage2_audio_frequency$|' ...
+       'stim_wheel_right_frequency_stage2_mixed_VA$|' ...
+       'stim_wheel_right_stage2_mixed_VA$'];
 
-    % training_workflow = 'visual_conditioning*';
-    recordings_training = plab.find_recordings(animal,[],training_workflow);
+   recordings_training = plab.find_recordings(animal,[],training_workflow);
 
     recordings = recordings_passive( ...
         cellfun(@any,{recordings_passive.widefield}) & ...
@@ -74,6 +84,7 @@ for curr_animal_idx=15 :length(animals)
         img_size = nan(length(recordings2),2);
 
         workflow_type=zeros(length(recordings2),1);
+        workflow_type_name=cell(length(recordings2),1);
 
         wf_px_task_all_type_id= cell(size(recordings2));
         wf_px_task_all_reward_id= cell(size(recordings2));
@@ -89,6 +100,8 @@ for curr_animal_idx=15 :length(animals)
         
         rxn_med = cell(length(recordings2),1);
         stim2move_med= cell(length(recordings2),1);
+        frac_move_stimalign = nan(length(recordings2),length(surround_time_points));
+
     end
 
 
@@ -102,14 +115,13 @@ for curr_animal_idx=15 :length(animals)
     frac_move_day = nan(length(recordings2),1);
     success = nan(length(recordings2),1);
 
-    frac_move_stimalign = nan(length(recordings2),length(surround_time_points));
     frac_move_stimalign_V = nan(length(recordings2),length(surround_time_points));
     frac_move_stimalign_A = nan(length(recordings2),length(surround_time_points));
 
 
     if ~(file_length==length(recordings2)&problem==0)
-         % for curr_recording =file_length:length(recordings2)
-            for curr_recording =1:length(recordings2)
+          for curr_recording =file_length:length(recordings2)
+            % for curr_recording =1:length(recordings2)
             fprintf('The number of files is %d This file is: %d\n', length(recordings2),curr_recording);
 
             % Grab pre-load vars
@@ -135,14 +147,21 @@ for curr_animal_idx=15 :length(animals)
 
 
             rec_time = recordings2(curr_recording).recording{index_real};
+ 
+            
+            workflow_type_name{curr_recording}=recordings2(curr_recording).workflow{index_real};
 
-            if strcmp(recordings2(curr_recording).workflow{index_real},'stim_wheel_right_stage2_audio_volume')...
-                    || strcmp(recordings2(curr_recording).workflow{index_real},'stim_wheel_right_stage2_audio_frequency')...
+            if strcmp(recordings2(curr_recording).workflow{index_real},'stim_wheel_right_stage1_audio_volume')...
+                    || strcmp(recordings2(curr_recording).workflow{index_real},'stim_wheel_right_stage2_audio_volume')...
                     || strcmp(recordings2(curr_recording).workflow{index_real},'stim_wheel_right_stage1_audio_frequency')...
-                    || strcmp(recordings2(curr_recording).workflow{index_real},'stim_wheel_right_stage1_audio_volume')
+                    || strcmp(recordings2(curr_recording).workflow{index_real},'stim_wheel_right_stage2_audio_frequency')
                 workflow_type(curr_recording)=2;
-            elseif  strcmp(recordings2(curr_recording).workflow{index_real},'stim_wheel_right_stage2')...
-                    ||strcmp(recordings2(curr_recording).workflow{index_real},'stim_wheel_right_stage1')
+            elseif  strcmp(recordings2(curr_recording).workflow{index_real},'stim_wheel_right_stage1')...
+                    ||strcmp(recordings2(curr_recording).workflow{index_real},'stim_wheel_right_stage2')...
+                    ||strcmp(recordings2(curr_recording).workflow{index_real},'stim_wheel_right_stage1_opacity')...
+                    ||strcmp(recordings2(curr_recording).workflow{index_real},'stim_wheel_right_stage2_opacity')...
+                    ||strcmp(recordings2(curr_recording).workflow{index_real},'stim_wheel_right_stage1_size_up')...
+                    ||strcmp(recordings2(curr_recording).workflow{index_real},'stim_wheel_right_stage2_size_up')
                 workflow_type(curr_recording)=1;
             elseif  strcmp(recordings2(curr_recording).workflow{index_real},'stim_wheel_right_stage2_mixed_VA')...
                     || strcmp(recordings2(curr_recording).workflow{index_real},'stim_wheel_right_frequency_stage2_mixed_VA')
@@ -182,8 +201,12 @@ for curr_animal_idx=15 :length(animals)
 
                 % Get median stim-outcome time
                 % n_trials = length([trial_events.timestamps.Outcome]);
-                rxn_med{curr_recording} = median(seconds([trial_events.timestamps(1:n_trials).Outcome] - ...
-                    cellfun(@(x) x(1),{trial_events.timestamps(1:n_trials).StimOn})))';
+                % rxn_med{curr_recording} = median(seconds([trial_events.timestamps(1:n_trials).Outcome] - ...
+                %     cellfun(@(x) x(1),{trial_events.timestamps(1:n_trials).StimOn})))';
+
+                rxn_med{curr_recording}  = median(stimOff_times(1:n_trials) - ...
+          stimOn_times(1:n_trials)  );
+
                 rxn{curr_recording} = seconds([trial_events.timestamps(1:n_trials).Outcome] - ...
                     cellfun(@(x) x(1),{trial_events.timestamps(1:n_trials).StimOn}))';
 
@@ -399,7 +422,8 @@ for curr_animal_idx=15 :length(animals)
 
 
     end
-    save([Path 'mat_data\task\' animal '_task.mat' ],'workflow_type','wf_px_task','wf_px_task_kernels','img_size','workflow_day','react_index','react_index_VA','rxn_stat_p','rxn_med','stim2move_med', '-v7.3')
+    save([Path 'mat_data\task\' animal '_task.mat' ],'workflow_type','workflow_type_name','frac_move_stimalign','wf_px_task','wf_px_task_kernels','img_size','workflow_day','react_index','react_index_VA','rxn_stat_p','rxn_med','stim2move_med', '-v7.3')
+    
     save([Path 'mat_data\task\' animal '_task_single_trial.mat' ],'wf_px_task_all','wf_px_task_kernels_all','wf_px_task_all_type_id','wf_px_task_all_reward_id','wf_px_task_all_timepoint','tasktype','rxn','stim2move', '-v7.3')
 
 

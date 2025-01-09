@@ -10,6 +10,9 @@ animals_type=[1 1 1 1 1 1 1 1 1 2 2 2 2 2 2 2 2];
 
 animals_group = [1 1 1 1 1 1 1 2 2 3 3 3 4 4 4 4 4];
 
+
+
+
 master_U_fn = fullfile(plab.locations.server_path,'Lab', ...
     'widefield_alignment','U_master.mat');
 load(master_U_fn);
@@ -40,16 +43,16 @@ all_animal_single_day_mix=cell(length(animals),1);
 used_data=2;  %  raw data:1; kernels:2;
 used_data_name={'raw data','kernels'};
 
-used_timepoint=1;  % stim:1; movement:2  
+used_timepoint=1;  % stim:1; movement:2
 used_timepoint_name={'stim','movement'};
 
-if used_data==1 
-use_t=t_task;
+if used_data==1
+    use_t=t_task;
 elseif used_data==2
     if used_timepoint==1
-    use_t=t_kernels_stim;
+        use_t=t_kernels_stim;
     elseif used_timepoint==2
-         use_t=t_kernels_move;
+        use_t=t_kernels_move;
     end
 end
 
@@ -89,9 +92,9 @@ for curr_animal_idx=1:length(animals)
     end
 
     task_all_imaging_single_day=cell(1,2);
-        task_all_imaging_single_day_mix=cell(1,1);
+    task_all_imaging_single_day_mix=cell(1,1);
 
-  
+
     % 处理两类分析，第一类是task kernels的分析
     idxx=0;
     for curr_order=order
@@ -115,39 +118,39 @@ for curr_animal_idx=1:length(animals)
             end
         end
 
-     
+
 
 
         learned_mva=cell2mat( raw_data_task.learned_day(find(raw_data_task.workflow_type==curr_order ) )');
 
-      
+
         %如果是visual or auditory task
         if curr_order==1|curr_order==2
             numbers=5;
             % kernels
-         
-                if ~isempty(find(learned_mva==learned)) % if mice learned the task
-                    use_imaging=use_imaging_0(find(learned_mva==learned,numbers,"last"));
-                else
-                    use_imaging=use_imaging_0(max(1,end-numbers+1):end);
-                end
+
+            if ~isempty(find(learned_mva==learned)) % if mice learned the task
+                use_imaging=use_imaging_0(find(learned_mva==learned,numbers,"last"));
+            else
+                use_imaging=use_imaging_0(max(1,end-numbers+1):end);
+            end
 
 
-                task_all_imaging_single_day{1,idxx}=use_imaging;
-
-           
+            task_all_imaging_single_day{1,idxx}=use_imaging;
 
 
-        
+
+
+
 
         elseif curr_order==3
-           %  imaging_task_kernels_visual=repmat({[]}, 1, 3);
-           % imaging_task_kernels_audio=repmat({[]}, 1, 3);
+            %  imaging_task_kernels_visual=repmat({[]}, 1, 3);
+            % imaging_task_kernels_audio=repmat({[]}, 1, 3);
 
-            
+
             numbers=3;
 
-          if ~isempty(learned_mva) 
+            if ~isempty(learned_mva)
                 if ~isempty(find(learned_mva(:,1)==learned)) % if mice learned the task
                     imaging_task_kernels_visual=cellfun(@(x) x(:,:,1),use_imaging_0(find(learned_mva(:,1)==learned,numbers,"last")),'UniformOutput',false);
                     imaging_task_kernels_audio=cellfun(@(x) x(:,:,2),use_imaging_0(find(learned_mva(:,2)==learned,numbers,"last")),'UniformOutput',false);
@@ -157,18 +160,18 @@ for curr_animal_idx=1:length(animals)
                 else
                     imaging_task_kernels_visual=cellfun(@(x) x(:,:,1),use_imaging_0(end-numbers:end),'UniformOutput',false);
                     imaging_task_kernels_audio=cellfun(@(x) x(:,:,2),use_imaging_0(end-numbers:end),'UniformOutput',false);
-                        
+
                 end
 
                 use_imaging={imaging_task_kernels_visual,imaging_task_kernels_audio};
 
                 task_all_imaging_single_day_mix=use_imaging;
 
-          else
-               task_all_imaging_single_day_mix=repmat({repmat({single([])}, 1, 3)}, 1, 2);
+            else
+                task_all_imaging_single_day_mix=repmat({repmat({single([])}, 1, 3)}, 1, 2);
 
-           
-          end
+
+            end
         end
 
 
@@ -266,265 +269,268 @@ end
 
 %% select group
 animals_group = [1 1 1 1 1 1 2 2 2 3 3 3 4 4 4 4 4];
+% animals_group = [1 1 ];
+
 for curr_group=1:2
-if curr_group==1
-selected_group=1;
-else selected_group=4;
-end
+    if curr_group==1
+        selected_group=1;
+    else selected_group=4;
+    end
 
-group_names={'V-A','A-V'};
-colors={[0 0 1],[1 0 0]};
-if selected_group == 1
-    stage_type={'visual','auditory','mixed visual','mixed auditory'};
-    group_name=group_names{1};
-    curr_color=colors{1};
-elseif selected_group == 4
-    stage_type={'auditory','visual','mixed auditory','mixed visual'};
-    group_name=group_names{2};
-    curr_color=colors{2};
+    group_names={'V-A','A-V'};
+    colors={[0 0 1],[1 0 0]};
+    if selected_group == 1
+        stage_type={'visual','auditory','mixed visual','mixed auditory'};
+        group_name=group_names{1};
+        curr_color=colors{1};
+    elseif selected_group == 4
+        stage_type={'auditory','visual','mixed auditory','mixed visual'};
+        group_name=group_names{2};
+        curr_color=colors{2};
 
-else
-    error('Unsupported value for variable. Must be 1 or 2.');
-end
+    else
+        error('Unsupported value for variable. Must be 1 or 2.');
+    end
 
 
-% 平均的image
-% imaging figure
-scale_all=[0.01 0.003];
-% title_all={'task','task: left-right'};
-title_all={'Left mPFC','lmPFC-rmPFC'};
+    % 平均的image
+    % imaging figure
+    scale_all=[0.01 0.003];
+    % title_all={'task','task: left-right'};
+    title_all={'Left mPFC','lmPFC-rmPFC'};
 
-for curr_state=1:2
+    for curr_state=1:2
 
-    figure('Position',[50 50 600 600]);
+        figure('Position',[50 50 600 600]);
 
-    if curr_state==1
+        if curr_state==1
             passive_boundary=0.1;
-    else      passive_boundary=0.3;
-    end
+        else      passive_boundary=0.3;
+        end
 
-use_period=find(use_t>0&use_t<passive_boundary);
+        use_period=find(use_t>0&use_t<passive_boundary);
 
- 
- % visual auditory day
-    all_animas_mean_images_VA= cellfun(@(bb) cellfun(@(x) mean(cat(3,x{:}),3),bb,'UniformOutput',false), all_animal_single_day(animals_group==selected_group),'UniformOutput',false);
-    all_animas_mean_images_VA_2 = vertcat(all_animas_mean_images_VA{:}); % 将 17x1 cell 阵列展开为 17x8 cell 矩阵
-    nonZeroMask_all = cellfun(@(x) ~all(x(:)==0),all_animas_mean_images_VA_2,'UniformOutput',true);
-    all_animas_mean_images_VA_3 = arrayfun(@(col) ...
-        mean(cat(4, all_animas_mean_images_VA_2{nonZeroMask_all(:, col), col}), 4), ...
-        1:size(all_animas_mean_images_VA_2, 2), 'UniformOutput', false);
 
-   all_animas_mean_images_VA_4=cellfun(@(x) plab.wf.svd2px(U_master,x),all_animas_mean_images_VA_3,'UniformOutput',false);
+        % visual auditory day
+        all_animas_mean_images_VA= cellfun(@(bb) cellfun(@(x) mean(cat(3,x{:}),3),bb,'UniformOutput',false), all_animal_single_day(animals_group==selected_group),'UniformOutput',false);
+        all_animas_mean_images_VA_2 = vertcat(all_animas_mean_images_VA{:}); % 将 17x1 cell 阵列展开为 17x8 cell 矩阵
+        nonZeroMask_all = cellfun(@(x) ~all(x(:)==0),all_animas_mean_images_VA_2,'UniformOutput',true);
+        all_animas_mean_images_VA_3 = arrayfun(@(col) ...
+            mean(cat(4, all_animas_mean_images_VA_2{nonZeroMask_all(:, col), col}), 4), ...
+            1:size(all_animas_mean_images_VA_2, 2), 'UniformOutput', false);
+        indx_n=cellfun(@(x) ~isempty(x),all_animas_mean_images_VA_3)
+        all_animas_mean_images_VA_4=cellfun(@(x) plab.wf.svd2px(U_master,x),all_animas_mean_images_VA_3(indx_n),'UniformOutput',false);
 
-   % mixed task day
-    nonNan_idx=cellfun(@(bb) cellfun(@(x) ~isempty(x), bb,'UniformOutput',false),all_animal_single_day_mix(animals_group==selected_group),'UniformOutput',false);
-    
-    all_animas_mean_images_mix= cellfun(@(aa,bb) cellfun(@(x) mean(cat(3,x{:}),3),aa(cell2mat(bb)),'UniformOutput',false), all_animal_single_day_mix(animals_group==selected_group),nonNan_idx,'UniformOutput',false);
-    all_animas_mean_images_mix_2 = vertcat(all_animas_mean_images_mix{:}); % 将 17x1 cell 阵列展开为 17x8 cell 矩阵
-    nonZeroMask_all = cellfun(@(x) ~all(x(:)==0),all_animas_mean_images_mix_2,'UniformOutput',true);
-    all_animas_mean_images_mix_3 = arrayfun(@(col) ...
-        mean(cat(4, all_animas_mean_images_mix_2{nonZeroMask_all(:, col), col}), 4), ...
-        1:size(all_animas_mean_images_mix_2, 2), 'UniformOutput', false);
-    all_animas_mean_images_mix_4=cellfun(@(x) plab.wf.svd2px(U_master,x),all_animas_mean_images_mix_3,'UniformOutput',false);
+        % mixed task day
+        nonNan_idx=cellfun(@(bb) cellfun(@(x) ~isempty(x), bb,'UniformOutput',false),all_animal_single_day_mix(animals_group==selected_group),'UniformOutput',false);
 
-if selected_group==4
-       all_animas_mean_images_mix_4=flip(all_animas_mean_images_mix_4, 2);
-   end
+        all_animas_mean_images_mix= cellfun(@(aa,bb) cellfun(@(x) mean(cat(3,x{:}),3),aa(cell2mat(bb)),'UniformOutput',false), all_animal_single_day_mix(animals_group==selected_group),nonNan_idx,'UniformOutput',false);
+        all_animas_mean_images_mix_2 = vertcat(all_animas_mean_images_mix{:}); % 将 17x1 cell 阵列展开为 17x8 cell 矩阵
+        nonZeroMask_all = cellfun(@(x) ~all(x(:)==0),all_animas_mean_images_mix_2,'UniformOutput',true);
+        all_animas_mean_images_mix_3 = arrayfun(@(col) ...
+            mean(cat(4, all_animas_mean_images_mix_2{nonZeroMask_all(:, col), col}), 4), ...
+            1:size(all_animas_mean_images_mix_2, 2), 'UniformOutput', false);
+        all_animas_mean_images_mix_4=cellfun(@(x) plab.wf.svd2px(U_master,x),all_animas_mean_images_mix_3,'UniformOutput',false);
 
-    if curr_state==1
-        all_animals_mean=cellfun(@(x) max(x(:,:,use_period),[],3),all_animas_mean_images_VA_4,'UniformOutput',false);
-        all_animals_mean_mix=cellfun(@(x) max(x(:,:,use_period),[],3),all_animas_mean_images_mix_4,'UniformOutput',false);
+        if selected_group==4
+            all_animas_mean_images_mix_4=flip(all_animas_mean_images_mix_4, 2);
+        end
 
-    else
-        all_animals_mean=cellfun(@(x) max(x(:,:,use_period)-fliplr(x(:,:,use_period)),[],3),all_animas_mean_images_VA_4,'UniformOutput',false);
+        if curr_state==1
+            all_animals_mean=cellfun(@(x) max(x(:,:,use_period),[],3),all_animas_mean_images_VA_4,'UniformOutput',false);
+            all_animals_mean_mix=cellfun(@(x) max(x(:,:,use_period),[],3),all_animas_mean_images_mix_4,'UniformOutput',false);
+
+        else
+            all_animals_mean=cellfun(@(x) max(x(:,:,use_period)-fliplr(x(:,:,use_period)),[],3),all_animas_mean_images_VA_4,'UniformOutput',false);
             all_animals_mean_mix=cellfun(@(x) max(x(:,:,use_period)-fliplr(x(:,:,use_period)),[],3),all_animas_mean_images_mix_4,'UniformOutput',false);
-    end
-
-
-
-    for ss=1:2
-        a=nexttile;
-        % subplot(1, 2, ss);
-
-        h=imagesc(all_animals_mean{ss});
-
-        % imagesc(all_animals_mean{ss}-all_animals_mean{1});
-
-
-        title(stage_type{ss})
-
-
-        axis image off;
-        ap.wf_draw('ccf', 'black');
-
-        colormap(a, ap.colormap('PWG'));
-        if curr_state==2
-        xlim([0 213])
         end
-        clim(scale_all(curr_state) .* [-1, 1]);
-        % if ss==2
-        %     colorbar('eastoutside')
-        % end
-    end
-    for ss=1:2
-        a=nexttile;
-        % subplot(1, 2, ss);
-
-        h=imagesc(all_animals_mean_mix{ss});
-
-        % imagesc(all_animals_mean{ss}-all_animals_mean{1});
 
 
-        title(stage_type{ss+2})
+
+        for ss=1:2
+
+            a=nexttile;
+            % subplot(1, 2, ss);
+
+            h=imagesc(all_animals_mean{ss});
+
+            % imagesc(all_animals_mean{ss}-all_animals_mean{1});
 
 
-        axis image off;
-        ap.wf_draw('ccf', 'black');
+            title(stage_type{ss})
 
-        colormap(a, ap.colormap('PWG'));
-         if curr_state==2
-        xlim([0 213])
+
+            axis image off;
+            ap.wf_draw('ccf', 'black');
+
+            colormap(a, ap.colormap('PWG'));
+            if curr_state==2
+                xlim([0 213])
+            end
+            clim(scale_all(curr_state) .* [-1, 1]);
+            % if ss==2
+            %     colorbar('eastoutside')
+            % end
         end
-        clim(scale_all(curr_state) .* [-1, 1]);
-        if ss==2
-            colorbar('eastoutside')
-        end
-    end
+        for ss=1:2
+            a=nexttile;
+            % subplot(1, 2, ss);
 
-    sgtitle([group_name ' 0-' num2str(passive_boundary) 's'])
-  
+            h=imagesc(all_animals_mean_mix{ss});
 
-  
-    % ROI across day
-    load('C:\Users\dsong\Documents\MATLAB\Da_Song\DS_scripts_ptereslab\General_information\roi.mat')
-    flip_roi=fliplr(roi1(1).data.mask);
-   
-    buf0= cellfun(@(x) cellfun(@(y) cellfun(@(z)  plab.wf.svd2px(U_master,z),y,'UniformOutput',false),x,'UniformOutput',false) , all_animal_single_day(animals_group==selected_group), 'UniformOutput', false);
-    buf1= cellfun(@(x) cellfun(@(y) cellfun(@(z) reshape(z,size(z,1)*size(z,2),size(z,3),size(z,4)),y,'UniformOutput',false),x,'UniformOutput',false) , buf0, 'UniformOutput', false);
-
-    idx_nan=cellfun(@(x) cellfun(@(y) cellfun(@(z) ~isempty(z),y,'UniformOutput',false),x,'UniformOutput',false) , all_animal_single_day_mix(animals_group==selected_group), 'UniformOutput', false);
-    buf_mix0= cellfun(@(x,x1) cellfun(@(y,y1) cellfun(@(z)  plab.wf.svd2px(U_master,z),y(cell2mat(y1)),'UniformOutput',false),x,x1,'UniformOutput',false) , all_animal_single_day_mix(animals_group==selected_group),idx_nan, 'UniformOutput', false);
-   
-    if selected_group==4
-       buf_mix0=cellfun(@(x) flip(x, 2), buf_mix0, 'UniformOutput', false);
-   end
-
-buf_mix1= cellfun(@(x) cellfun(@(y) cellfun(@(z) reshape(z,size(z,1)*size(z,2),size(z,3),size(z,4)),y,'UniformOutput',false),x,'UniformOutput',false) , buf_mix0, 'UniformOutput', false);
+            % imagesc(all_animals_mean{ss}-all_animals_mean{1});
 
 
-    if curr_state==1
-        buf2= cellfun(@(x) cellfun(@(y) cellfun(@(z) permute(mean(z(roi1(1).data.mask(:),:,:),1),[2,3,1]),y,'UniformOutput',false),x,'UniformOutput',false) , buf1, 'UniformOutput', false);
-        buf_mix2= cellfun(@(x) cellfun(@(y) cellfun(@(z) permute(mean(z(roi1(1).data.mask(:),:,:),1),[2,3,1]),y,'UniformOutput',false),x,'UniformOutput',false) , buf_mix1, 'UniformOutput', false);
+            title(stage_type{ss+2})
 
-    else
-        buf2= cellfun(@(x) cellfun(@(y) cellfun(@(z) permute(mean(z(roi1(1).data.mask(:),:,:),1),[2,3,1])- permute(mean(z(flip_roi(:),:,:),1),[2,3,1]),y,'UniformOutput',false),x,'UniformOutput',false) , buf1, 'UniformOutput', false);
-        buf_mix2= cellfun(@(x) cellfun(@(y) cellfun(@(z) permute(mean(z(roi1(1).data.mask(:),:,:),1),[2,3,1])- permute(mean(z(flip_roi(:),:,:),1),[2,3,1]),y,'UniformOutput',false),x,'UniformOutput',false) , buf_mix1, 'UniformOutput', false);
 
-    end
+            axis image off;
+            ap.wf_draw('ccf', 'black');
 
-    % buf2= cellfun(@(x) cellfun(@(y) cell2mat(cellfun(@(z) size(z,1)==191700 ,y,'UniformOutput',false)),x,'UniformOutput',false) , buf1, 'UniformOutput', false);
-
-    % 假设 A 是一个 6x1 的 cell 数组，其中每个元素是 2x4 的 cell 矩阵
-    % 每个 A{i}{j, k} 是一个 50xN 的矩阵;
-    A=buf2; example=[ 5 5];
-     B=cell(1,length(A));
-    for curr_order=1:length(A)
-        AA=A{curr_order};
-        colSizes =  cellfun(@(y) size(y, 2),  AA, 'UniformOutput', true);
-        for s=1:length(AA)
-            if length(AA{s})<example(s)
-                AA{s}(length(AA{s})+1:example(s))=repmat({single(nan(length(use_t), 1))}, 1, (example(s)-length(AA{s})));
+            colormap(a, ap.colormap('PWG'));
+            if curr_state==2
+                xlim([0 213])
+            end
+            clim(scale_all(curr_state) .* [-1, 1]);
+            if ss==2
+                colorbar('eastoutside')
             end
         end
-        B{curr_order}=AA;
-    end
 
-    BB_task_kernels=cellfun(@(x) cell2mat(cellfun(@(y) cell2mat(cellfun(@(z) z,y,'UniformOutput',false)),x,'UniformOutput',false)),B,'UniformOutput',false);
+        sgtitle([group_name ' 0-' num2str(passive_boundary) 's'])
 
 
-A_mix=buf_mix2 ; example=[ 3 3]; 
- B_mix=cell(1,length(A_mix));
-  for curr_order=1:length(A_mix)
-        AA_mix=A_mix{curr_order};
-        colSizes =  cellfun(@(y) size(y, 2),  AA_mix, 'UniformOutput', true);
-        for s=1:length(AA_mix)
-            if length(AA_mix{s})<example(s)
-                AA_mix{s}(length(AA_mix{s})+1:example(s))=repmat({single(nan(length(use_t), 1))}, 1, (example(s)-length(AA_mix{s})));
-            end
+
+        % ROI across day
+        load('C:\Users\dsong\Documents\MATLAB\Da_Song\DS_scripts_ptereslab\General_information\roi.mat')
+        flip_roi=fliplr(roi1(1).data.mask);
+
+        buf0= cellfun(@(x) cellfun(@(y) cellfun(@(z)  plab.wf.svd2px(U_master,z),y,'UniformOutput',false),x,'UniformOutput',false) , all_animal_single_day(animals_group==selected_group), 'UniformOutput', false);
+        buf1= cellfun(@(x) cellfun(@(y) cellfun(@(z) reshape(z,size(z,1)*size(z,2),size(z,3),size(z,4)),y,'UniformOutput',false),x,'UniformOutput',false) , buf0, 'UniformOutput', false);
+
+        idx_nan=cellfun(@(x) cellfun(@(y) cellfun(@(z) ~isempty(z),y,'UniformOutput',false),x,'UniformOutput',false) , all_animal_single_day_mix(animals_group==selected_group), 'UniformOutput', false);
+        buf_mix0= cellfun(@(x,x1) cellfun(@(y,y1) cellfun(@(z)  plab.wf.svd2px(U_master,z),y(cell2mat(y1)),'UniformOutput',false),x,x1,'UniformOutput',false) , all_animal_single_day_mix(animals_group==selected_group),idx_nan, 'UniformOutput', false);
+
+        if selected_group==4
+            buf_mix0=cellfun(@(x) flip(x, 2), buf_mix0, 'UniformOutput', false);
         end
-        B_mix{curr_order}=AA_mix;
+
+        buf_mix1= cellfun(@(x) cellfun(@(y) cellfun(@(z) reshape(z,size(z,1)*size(z,2),size(z,3),size(z,4)),y,'UniformOutput',false),x,'UniformOutput',false) , buf_mix0, 'UniformOutput', false);
+
+
+        if curr_state==1
+            buf2= cellfun(@(x) cellfun(@(y) cellfun(@(z) permute(mean(z(roi1(1).data.mask(:),:,:),1),[2,3,1]),y,'UniformOutput',false),x,'UniformOutput',false) , buf1, 'UniformOutput', false);
+            buf_mix2= cellfun(@(x) cellfun(@(y) cellfun(@(z) permute(mean(z(roi1(1).data.mask(:),:,:),1),[2,3,1]),y,'UniformOutput',false),x,'UniformOutput',false) , buf_mix1, 'UniformOutput', false);
+
+        else
+            buf2= cellfun(@(x) cellfun(@(y) cellfun(@(z) permute(mean(z(roi1(1).data.mask(:),:,:),1),[2,3,1])- permute(mean(z(flip_roi(:),:,:),1),[2,3,1]),y,'UniformOutput',false),x,'UniformOutput',false) , buf1, 'UniformOutput', false);
+            buf_mix2= cellfun(@(x) cellfun(@(y) cellfun(@(z) permute(mean(z(roi1(1).data.mask(:),:,:),1),[2,3,1])- permute(mean(z(flip_roi(:),:,:),1),[2,3,1]),y,'UniformOutput',false),x,'UniformOutput',false) , buf_mix1, 'UniformOutput', false);
+
+        end
+
+        % buf2= cellfun(@(x) cellfun(@(y) cell2mat(cellfun(@(z) size(z,1)==191700 ,y,'UniformOutput',false)),x,'UniformOutput',false) , buf1, 'UniformOutput', false);
+
+        % 假设 A 是一个 6x1 的 cell 数组，其中每个元素是 2x4 的 cell 矩阵
+        % 每个 A{i}{j, k} 是一个 50xN 的矩阵;
+        A=buf2; example=[ 5 5];
+        B=cell(1,length(A));
+        for curr_order=1:length(A)
+            AA=A{curr_order};
+            colSizes =  cellfun(@(y) size(y, 2),  AA, 'UniformOutput', true);
+            for s=1:length(AA)
+                if length(AA{s})<example(s)
+                    AA{s}(length(AA{s})+1:example(s))=repmat({single(nan(length(use_t), 1))}, 1, (example(s)-length(AA{s})));
+                end
+            end
+            B{curr_order}=AA;
+        end
+
+        BB_task_kernels=cellfun(@(x) cell2mat(cellfun(@(y) cell2mat(cellfun(@(z) z,y,'UniformOutput',false)),x,'UniformOutput',false)),B,'UniformOutput',false);
+
+
+        A_mix=buf_mix2 ; example=[ 3 3];
+        B_mix=cell(1,length(A_mix));
+        for curr_order=1:length(A_mix)
+            AA_mix=A_mix{curr_order};
+            colSizes =  cellfun(@(y) size(y, 2),  AA_mix, 'UniformOutput', true);
+            for s=1:length(AA_mix)
+                if length(AA_mix{s})<example(s)
+                    AA_mix{s}(length(AA_mix{s})+1:example(s))=repmat({single(nan(length(use_t), 1))}, 1, (example(s)-length(AA_mix{s})));
+                end
+            end
+            B_mix{curr_order}=AA_mix;
+        end
+        BB_task_mix_kernels=cellfun(@(x) cell2mat(cellfun(@(y) cell2mat(cellfun(@(z) z,y,'UniformOutput',false)),x,'UniformOutput',false)),B_mix,'UniformOutput',false);
+
+
+        % figure('Position',[50 50 600 200]);
+        a3=nexttile;
+        % subplot(2,2,1)
+        task_across_time=mean(cat(3,BB_task_kernels{:}),3,'omitnan')';
+        task_across_time_mix=mean(cat(3,BB_task_mix_kernels{:}),3,'omitnan')';
+
+        imagesc(use_t,[],[task_across_time; task_across_time_mix])
+        clim(scale_all(curr_state).*[-1,1]); colormap(a3,ap.colormap('PWG'));
+        hold on;
+        xline(0,'Color',[1 0.5 0.5]);xline(passive_boundary,'Color',[1 0.5 0.5]);
+        yline(5.5);yline(10.5); yline(13.5);
+        % title('task kernels')
+        title(title_all{curr_state})
+
+        xlabel('time(s)')
+        yticks([3, 8,12, 15]); % 设置 y 轴的刻度位置（2代表naive stage中间位置，8代表stage1中间位置）
+        yticklabels(stage_type); % 设置对应的标签
+        colorbar('eastoutside')
+
+        % nexttile
+        % plot(t_kernels,task_across_time(1:5,:),'Color',[0 0 1])
+        % hold on; xline(0); xline(0.1)
+        % ylim(0.001*[-1 8])
+        %
+        % hold on
+        % plot(t_kernels,task_across_time(6:10,:),'Color',[1 0 0])
+        % hold on; xline(0); xline(0.1)
+        % ylim(0.001*[-1 8])
+
+        % plot mPFC activity across day
+        nexttile
+        % subplot(2,2,3)
+        task_all=[cell2mat(cellfun(@(x) max(x(use_period,:),[],1),BB_task_kernels,'UniformOutput',false)')...
+            cell2mat(cellfun(@(x) max(x(use_period,:),[],1),BB_task_mix_kernels,'UniformOutput',false)')];
+
+        task_average{curr_group}{curr_state}=task_all;
+
+        task_mean_line=mean(task_all,1,'omitnan');
+        task_sem_line=std(task_all,'omitnan')/sqrt(size(task_all,1));
+        hold on
+        ap.errorfill(1:5,task_mean_line(1:5), task_sem_line(1:5),curr_color,0.1,0.5);
+        ap.errorfill(6:10,task_mean_line(6:10), task_sem_line(6:10),curr_color,0.1,0.5);
+        ap.errorfill(11:13,task_mean_line(11:13), task_sem_line(11:13),curr_color,0.1,0.5);
+        ap.errorfill(14:16,task_mean_line(14:16), task_sem_line(14:16),curr_color,0.1,0.5);
+
+        ylim(scale_all(curr_state)*[-0.1 1])
+        xticks([3, 8,12,15]); % 设置 y 轴的刻度位置（2代表naive stage中间位置，8代表stage1中间位置）
+        xticklabels(stage_type); % 设置对应的标签
+        ylabel('df/f')
+
+
+
+
+
+        sgtitle([used_data_name{used_data} ' of group ' group_name ' aligned to ' used_timepoint_name{used_timepoint} ' in 0-' num2str(passive_boundary) 's time windows'])
+
+        if used_data==1& curr_state==1
+            saveas(gcf,[Path 'figures\summary\task_raw\heatmap and plot lmPFC activity in task ' used_data_name{used_data} ' of group ' group_name ' aligned to ' used_timepoint_name{used_timepoint}  ], 'jpg');
+        elseif used_data==1& curr_state==2
+            saveas(gcf,[Path 'figures\summary\task_raw\hemispheric asymmetry of heatmap and plot mPFC activity in task ' used_data_name{used_data} ' of group ' group_name ' aligned to ' used_timepoint_name{used_timepoint}  ], 'jpg');
+        elseif used_data==2& curr_state==1
+            saveas(gcf,[Path 'figures\summary\task_kernels\heatmap and plot lmPFC activity in task ' used_data_name{used_data} ' of group ' group_name ' aligned to ' used_timepoint_name{used_timepoint}  ], 'jpg');
+        elseif used_data==2& curr_state==2
+            saveas(gcf,[Path 'figures\summary\task_kernels\hemispheric asymmetry of heatmap and plot mPFC activity in task ' used_data_name{used_data} ' of group ' group_name ' aligned to ' used_timepoint_name{used_timepoint}  ], 'jpg');
+
+        end
+
     end
-    BB_task_mix_kernels=cellfun(@(x) cell2mat(cellfun(@(y) cell2mat(cellfun(@(z) z,y,'UniformOutput',false)),x,'UniformOutput',false)),B_mix,'UniformOutput',false);
-       
-
-    % figure('Position',[50 50 600 200]);
-    a3=nexttile;
-    % subplot(2,2,1)
-    task_across_time=mean(cat(3,BB_task_kernels{:}),3,'omitnan')';
-    task_across_time_mix=mean(cat(3,BB_task_mix_kernels{:}),3,'omitnan')';
-
-    imagesc(use_t,[],[task_across_time; task_across_time_mix])
-    clim(scale_all(curr_state).*[-1,1]); colormap(a3,ap.colormap('PWG'));
-    hold on;
-    xline(0,'Color',[1 0.5 0.5]);xline(passive_boundary,'Color',[1 0.5 0.5]);
-    yline(5.5);yline(10.5); yline(13.5);
-    % title('task kernels')
-    title(title_all{curr_state})
-
-    xlabel('time(s)')
-    yticks([3, 8,12, 15]); % 设置 y 轴的刻度位置（2代表naive stage中间位置，8代表stage1中间位置）
-    yticklabels(stage_type); % 设置对应的标签
-    colorbar('eastoutside')
-
-    % nexttile
-    % plot(t_kernels,task_across_time(1:5,:),'Color',[0 0 1])
-    % hold on; xline(0); xline(0.1)
-    % ylim(0.001*[-1 8])
-    %
-    % hold on
-    % plot(t_kernels,task_across_time(6:10,:),'Color',[1 0 0])
-    % hold on; xline(0); xline(0.1)
-    % ylim(0.001*[-1 8])
-
-    % plot mPFC activity across day
-    nexttile
-    % subplot(2,2,3)
-    task_all=[cell2mat(cellfun(@(x) max(x(use_period,:),[],1),BB_task_kernels,'UniformOutput',false)')...
-        cell2mat(cellfun(@(x) max(x(use_period,:),[],1),BB_task_mix_kernels,'UniformOutput',false)')];
-    
-    task_average{curr_group}{curr_state}=task_all;
-
-    task_mean_line=mean(task_all,1,'omitnan');
-    task_sem_line=std(task_all,'omitnan')/sqrt(size(task_all,1));
-    hold on
-    ap.errorfill(1:5,task_mean_line(1:5), task_sem_line(1:5),curr_color,0.1,0.5);
-    ap.errorfill(6:10,task_mean_line(6:10), task_sem_line(6:10),curr_color,0.1,0.5);
-     ap.errorfill(11:13,task_mean_line(11:13), task_sem_line(11:13),curr_color,0.1,0.5);
-     ap.errorfill(14:16,task_mean_line(14:16), task_sem_line(14:16),curr_color,0.1,0.5);
-
-    ylim(scale_all(curr_state)*[-0.1 1])
-    xticks([3, 8,12,15]); % 设置 y 轴的刻度位置（2代表naive stage中间位置，8代表stage1中间位置）
-    xticklabels(stage_type); % 设置对应的标签
-    ylabel('df/f')
-
-
-
-
-
-    sgtitle([used_data_name{used_data} ' of group ' group_name ' aligned to ' used_timepoint_name{used_timepoint} ' in 0-' num2str(passive_boundary) 's time windows'])
-    
-    if used_data==1& curr_state==1
-        saveas(gcf,[Path 'figures\summary\task_raw\heatmap and plot lmPFC activity in task ' used_data_name{used_data} ' of group ' group_name ' aligned to ' used_timepoint_name{used_timepoint}  ], 'jpg');
-    elseif used_data==1& curr_state==2
-        saveas(gcf,[Path 'figures\summary\task_raw\hemispheric asymmetry of heatmap and plot mPFC activity in task ' used_data_name{used_data} ' of group ' group_name ' aligned to ' used_timepoint_name{used_timepoint}  ], 'jpg');
-    elseif used_data==2& curr_state==1
-        saveas(gcf,[Path 'figures\summary\task_kernels\heatmap and plot lmPFC activity in task ' used_data_name{used_data} ' of group ' group_name ' aligned to ' used_timepoint_name{used_timepoint}  ], 'jpg');
-    elseif used_data==2& curr_state==2
-        saveas(gcf,[Path 'figures\summary\task_kernels\hemispheric asymmetry of heatmap and plot mPFC activity in task ' used_data_name{used_data} ' of group ' group_name ' aligned to ' used_timepoint_name{used_timepoint}  ], 'jpg');
-
-    end
-
-end
 
 end
 % saveas(gcf,[Path 'figures\summary\heatmap and plot mPFC activity in task across day ' group_name ], 'jpg');
@@ -538,48 +544,48 @@ task_std=cellfun(@(x) cellfun(@(y) std(y,'omitnan')/sqrt(size(y,1)),x,'UniformOu
 
 figure('Position',[200 200 700 300])
 nexttile
-   hold on
-   ap.errorfill(1:5, task_mean{1}{1}(1:5),  task_std{1}{1}(1:5),colors{1},0.1,0.5);
-   ap.errorfill(6:10, task_mean{1}{1}(6:10),  task_std{1}{1}(6:10),colors{1},0.1,0.5);
-   ap.errorfill(11:13, task_mean{1}{1}(11:13),  task_std{1}{1}(11:13),colors{1},0.1,0.5);
-   ap.errorfill(14:16, task_mean{1}{1}(14:16),  task_std{1}{1}(14:16),colors{1},0.1,0.5);
+hold on
+ap.errorfill(1:5, task_mean{1}{1}(1:5),  task_std{1}{1}(1:5),colors{1},0.1,0.5);
+ap.errorfill(6:10, task_mean{1}{1}(6:10),  task_std{1}{1}(6:10),colors{1},0.1,0.5);
+ap.errorfill(11:13, task_mean{1}{1}(11:13),  task_std{1}{1}(11:13),colors{1},0.1,0.5);
+ap.errorfill(14:16, task_mean{1}{1}(14:16),  task_std{1}{1}(14:16),colors{1},0.1,0.5);
 
-   ap.errorfill(6:10, task_mean{2}{1}(1:5),  task_std{2}{1}(1:5),colors{2},0.1,0.5);
-   ap.errorfill(1:5, task_mean{2}{1}(6:10),  task_std{2}{1}(6:10),colors{2},0.1,0.5);
-   ap.errorfill(14:16, task_mean{2}{1}(11:13),  task_std{2}{1}(11:13),colors{2},0.1,0.5);
-   ap.errorfill(11:13, task_mean{2}{1}(14:16),  task_std{2}{1}(14:16),colors{2},0.1,0.5);
-  ylim(scale_all(curr_state)*[-0.1 2.5])
-    xticks([3, 8,12,15]); % 设置 y 轴的刻度位置（2代表naive stage中间位置，8代表stage1中间位置）
-    xticklabels({'visual','auditory','mixed visual','mixed auditory'}); % 设置对应的标签
-    ylabel('df/f')
+ap.errorfill(6:10, task_mean{2}{1}(1:5),  task_std{2}{1}(1:5),colors{2},0.1,0.5);
+ap.errorfill(1:5, task_mean{2}{1}(6:10),  task_std{2}{1}(6:10),colors{2},0.1,0.5);
+ap.errorfill(14:16, task_mean{2}{1}(11:13),  task_std{2}{1}(11:13),colors{2},0.1,0.5);
+ap.errorfill(11:13, task_mean{2}{1}(14:16),  task_std{2}{1}(14:16),colors{2},0.1,0.5);
+ylim(scale_all(curr_state)*[-0.1 2.5])
+xticks([3, 8,12,15]); % 设置 y 轴的刻度位置（2代表naive stage中间位置，8代表stage1中间位置）
+xticklabels({'visual','auditory','mixed visual','mixed auditory'}); % 设置对应的标签
+ylabel('df/f')
 title ('lmPFC')
-    nexttile
-   hold on
-   % plot(1:5, task_mean{1}{2}(1:5),'Color',[0 0 1])
-   %    plot(1:5, task_mean{2}{2}(1:5),'Color',[1 0 0])
+nexttile
+hold on
+% plot(1:5, task_mean{1}{2}(1:5),'Color',[0 0 1])
+%    plot(1:5, task_mean{2}{2}(1:5),'Color',[1 0 0])
 
-   ap.errorfill(1:5, task_mean{1}{2}(1:5),  task_std{1}{2}(1:5),colors{1},0.1,0.5);
-   ap.errorfill(6:10, task_mean{2}{2}(1:5),  task_std{2}{2}(1:5),colors{2},0.1,0.5);
+ap.errorfill(1:5, task_mean{1}{2}(1:5),  task_std{1}{2}(1:5),colors{1},0.1,0.5);
+ap.errorfill(6:10, task_mean{2}{2}(1:5),  task_std{2}{2}(1:5),colors{2},0.1,0.5);
 
-   ap.errorfill(6:10, task_mean{1}{2}(6:10),  task_std{1}{2}(6:10),colors{1},0.1,0.5);
-   ap.errorfill(11:13, task_mean{1}{2}(11:13),  task_std{1}{2}(11:13),colors{1},0.1,0.5);
-   ap.errorfill(14:16, task_mean{1}{2}(14:16),  task_std{1}{2}(14:16),colors{1},0.1,0.5);
+ap.errorfill(6:10, task_mean{1}{2}(6:10),  task_std{1}{2}(6:10),colors{1},0.1,0.5);
+ap.errorfill(11:13, task_mean{1}{2}(11:13),  task_std{1}{2}(11:13),colors{1},0.1,0.5);
+ap.errorfill(14:16, task_mean{1}{2}(14:16),  task_std{1}{2}(14:16),colors{1},0.1,0.5);
 
-   % ap.errorfill(6:10, task_mean{2}{2}(1:5),  task_std{2}{2}(1:5),colors{2},0.1,0.5);
-   ap.errorfill(1:5, task_mean{2}{2}(6:10),  task_std{2}{2}(6:10),colors{2},0.1,0.5);
-   ap.errorfill(14:16, task_mean{2}{2}(11:13),  task_std{2}{2}(11:13),colors{2},0.1,0.5);
-   ap.errorfill(11:13, task_mean{2}{2}(14:16),  task_std{2}{2}(14:16),colors{2},0.1,0.5);
-  ylim(scale_all(curr_state)*[-0.1 1.5])
-    xticks([3, 8,12,15]); % 设置 y 轴的刻度位置（2代表naive stage中间位置，8代表stage1中间位置）
-    xticklabels({'visual','auditory','mixed visual','mixed auditory'}); % 设置对应的标签
-    ylabel('df/f')
-    title ('lmPFC-rmPFC')
+% ap.errorfill(6:10, task_mean{2}{2}(1:5),  task_std{2}{2}(1:5),colors{2},0.1,0.5);
+ap.errorfill(1:5, task_mean{2}{2}(6:10),  task_std{2}{2}(6:10),colors{2},0.1,0.5);
+ap.errorfill(14:16, task_mean{2}{2}(11:13),  task_std{2}{2}(11:13),colors{2},0.1,0.5);
+ap.errorfill(11:13, task_mean{2}{2}(14:16),  task_std{2}{2}(14:16),colors{2},0.1,0.5);
+ylim(scale_all(curr_state)*[-0.1 1.5])
+xticks([3, 8,12,15]); % 设置 y 轴的刻度位置（2代表naive stage中间位置，8代表stage1中间位置）
+xticklabels({'visual','auditory','mixed visual','mixed auditory'}); % 设置对应的标签
+ylabel('df/f')
+title ('lmPFC-rmPFC')
 sgtitle(used_data_name{used_data})
-legend('','V-A group','','A-V group','Location','northeastoutside','Box','off'); 
+legend('','V-A group','','A-V group','Location','northeastoutside','Box','off');
 if used_data==1
- saveas(gcf,[Path 'figures\summary\task_raw\VA_AV_compare via ' used_data_name{used_data}  ], 'jpg');
+    saveas(gcf,[Path 'figures\summary\task_raw\VA_AV_compare via ' used_data_name{used_data}  ], 'jpg');
 elseif used_data==2
-     saveas(gcf,[Path 'figures\summary\task_kernels\VA_AV_compare via ' used_data_name{used_data}  ], 'jpg');
+    saveas(gcf,[Path 'figures\summary\task_kernels\VA_AV_compare via ' used_data_name{used_data}  ], 'jpg');
 
 end
 
@@ -625,9 +631,9 @@ sgtitle(used_data_name{used_data})
 legend('V-A group','A-V group','Location','northeastoutside','Box','off');
 
 if used_data==1
- saveas(gcf,[Path 'figures\summary\task_raw\Bar VA_AV_compare via ' used_data_name{used_data}  ], 'jpg');
+    saveas(gcf,[Path 'figures\summary\task_raw\Bar VA_AV_compare via ' used_data_name{used_data}  ], 'jpg');
 elseif used_data==2
- saveas(gcf,[Path 'figures\summary\task_kernels\Bar VA_AV_compare via ' used_data_name{used_data}  ], 'jpg');
+    saveas(gcf,[Path 'figures\summary\task_kernels\Bar VA_AV_compare via ' used_data_name{used_data}  ], 'jpg');
 
 end
 

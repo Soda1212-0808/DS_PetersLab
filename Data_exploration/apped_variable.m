@@ -15,23 +15,42 @@ t_kernels=1/surround_samplerate*[-5:30];
 
 
 
-animals = {'DS007','DS010','AP019','AP021','DS011','AP022','DS001','AP018','AP020', 'DS003','DS006','DS013','DS000','DS004','DS014','DS015','DS016'};
+animals = {'DS007','DS010','AP019','AP021','DS011','AP022','DS001','AP018','AP020',...
+    'DS003','DS006','DS013','DS000','DS004','DS014','DS015','DS016','AP027','AP028','AP029','HA003','HA004'};
 
-
+passive_workflow='lcr_passive';
+passive_workflow='hml_passive_aduio';
+% passive_workflow='task';
 
 
 for curr_animal_idx=1:length(animals)
                 preload_vars_main = who;
 
+
     animal=animals{curr_animal_idx};
     fprintf('%s\n', ['start  ' animal ]);
     fprintf('%s\n', ['start saving tasks files...']);
+       
+    
+    data_load=load([Path '\' passive_workflow '\' animal '_' passive_workflow '.mat' ]);
 
     passive_workflow = 'lcr_passive';
     recordings_passive = plab.find_recordings(animal,[],passive_workflow);
-    % training_workflow = {'stim_wheel_right_stage2$|stim_wheel_right_stage2_audio_volume$'};
-    training_workflow = 'stim_wheel_right_stage1_audio_frequency$|stim_wheel_right_stage1_audio_volume$|stim_wheel_right_stage1$|stim_wheel_right_stage2*$|stim_wheel_right_frequency_stage2_mixed_VA$';
-    % training_workflow = 'visual_conditioning*';
+
+   training_workflow =...
+      ['stim_wheel_right_stage1$|' ...
+       'stim_wheel_right_stage2$|' ...
+       'stim_wheel_right_stage1_opacity$|' ...
+       'stim_wheel_right_stage2_opacity$|' ...
+       'stim_wheel_right_stage1_size_up$|' ...
+       'stim_wheel_right_stage2_size_up$|' ...
+       'stim_wheel_right_stage1_audio_volume$|'...
+       'stim_wheel_right_stage2_audio_volume$|' ...
+       'stim_wheel_right_stage1_audio_frequency$|' ...
+       'stim_wheel_right_stage2_audio_frequency$|' ...
+       'stim_wheel_right_frequency_stage2_mixed_VA$|' ...
+       'stim_wheel_right_stage2_mixed_VA$'];
+
     recordings_training = plab.find_recordings(animal,[],training_workflow);
 
     recordings = recordings_passive( ...
@@ -48,12 +67,14 @@ for curr_animal_idx=1:length(animals)
     surround_sample_rate = 100;
     surround_time_points = surround_time(1):1/surround_sample_rate:surround_time(2);
 
-    frac_move_stimalign = nan(length(recordings),length(surround_time_points));
+    frac_move_stimalign = nan(length(recordings2),length(surround_time_points));
+    rxn_med=cell(length(recordings2),1);
+            rxn_stat_p = nan(length(recordings),1);
+        workflow_type_name=cell(length(recordings2),1);
 
+        for curr_recording =1:length(recordings2)
 
-        for curr_recording =1:length(recordings)
-
-            fprintf('The number of files is %d This file is: %d\n', length(recordings),curr_recording);
+            fprintf('The number of files is %d This file is: %d\n', length(recordings2),curr_recording);
 
             % Grab pre-load vars
             preload_vars = who;
@@ -75,6 +96,7 @@ for curr_animal_idx=1:length(animals)
                 [~,index_real]=max(time);
             else index_real=1;
             end
+            workflow_type_name{curr_recording}=recordings2(curr_recording).workflow{index_real};
 
 
             rec_time = recordings2(curr_recording).recording{index_real};
@@ -93,9 +115,11 @@ for curr_animal_idx=1:length(animals)
 
         % Get median stim-outcome time
         n_trials = length([trial_events.timestamps.Outcome]);
-        rxn_med(curr_recording) = median(seconds([trial_events.timestamps(1:n_trials).Outcome] - ...
-            cellfun(@(x) x(1),{trial_events.timestamps(1:n_trials).StimOn})));
-
+        % rxn_med(curr_recording) = median(seconds([trial_events.timestamps(1:n_trials).Outcome] - ...
+        %     cellfun(@(x) x(1),{trial_events.timestamps(1:n_trials).StimOn})));
+        % 
+        rxn_med{curr_recording}  = median(stimOff_times(1:n_trials) - ...
+          stimOn_times(1:n_trials)  );
 
         % Align wheel movement to stim onset
         align_times = stimOn_times;
@@ -112,7 +136,9 @@ for curr_animal_idx=1:length(animals)
             +wheel_move,pull_times,'previous');
 
         frac_move_stimalign(curr_recording,:) = nanmean(event_aligned_wheel_move,1);
-       
+          rxn_stat_p(curr_recording) = AP_stimwheel_association_pvalue( ...
+                            stimOn_times,trial_events,stim_to_move);
+
           
             % Clear vars except pre-load for next loop
             clearvars('-except',preload_vars{:});
@@ -122,12 +148,16 @@ for curr_animal_idx=1:length(animals)
         end
        
         pre_time=max(frac_move_stimalign(:,surround_time_points>-2&surround_time_points<-1),[],2);
-    post_time=max(frac_move_stimalign(:,surround_time_points>0&surround_time_points<1),[],2);
-    react_index=(post_time-pre_time)./(post_time+pre_time);
+        post_time=max(frac_move_stimalign(:,surround_time_points>0&surround_time_points<1),[],2);
+        react_index=(post_time-pre_time)./(post_time+pre_time);
+
+        buffer_learn= rxn_stat_p < 0.05 & cell2mat(rxn_med) < 2;
+        learned_day=buffer_learn';
 
 
         % load([Path 'mat_data\' animal '_task.mat' ])
-        save([Path 'mat_data\' animal '_task.mat' ],'react_index','-append')
+         save([Path 'mat_data\task\' animal '_task.mat' ],'frac_move_stimalign','-append')
+        % save([Path 'mat_data\lcr_passive\' animal '_lcr_passive.mat' ],'rxn_med','-append')
 
        clearvars('-except',preload_vars_main{:});
 
