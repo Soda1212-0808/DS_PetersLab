@@ -3,16 +3,12 @@ clear all
 Path = 'C:\Users\dsong\Documents\MATLAB\Da_Song\Data_analysis\mice\process\processed_data_v2\';
 
 
-% animals = {'AP019','AP020','AP021','AP022'};
-% animals = {'DS000','DS001','AP018','AP019','AP020','AP021','AP022'};
-% animals = {'AP018','AP022','DS001' ,'AP021','DS000'};
- % animals = {'DS013'};
- % animals = {'DS000','DS004','DS003','DS005','DS006'};
-animals = {'DS007','DS010','AP021','DS011','AP022','DS001','AP018','DS003','DS006','DS013','DS000','DS004','DS014','DS015','DS016'};
- 
- animals = {'DS013'};
- animals_group_mixed=[ 1 1 1 1 1 5 2 3 3 3 4 4 4 4 4];
 
+ animals = {'DS007','DS010','AP021','DS011','DS001','AP018','AP022'};n1_name='visual position';n2_name='audio volume'; index_group=[1  1 1 1 0 0 0  ]';
+% animals = {'DS003','DS006','DS013','DS000','DS004','DS014','DS015','DS016'};n1_name='audio volume';n2_name='visual position';index_group=[0 0 0 1 1 1 1 1 ];
+% animals = {'DS020','DS019','DS021'};n1_name='visual position';n2_name='audio frequency'; index_group=[1  1 1 1 0 0 0  ]';
+
+p_para='mean';
 
 
  learned_day_all = nan(size(animals));
@@ -20,6 +16,10 @@ animals = {'DS007','DS010','AP021','DS011','AP022','DS001','AP018','DS003','DS00
  all_animal_learned_day=cell(length(animals),1);
  all_animal_rxn_med=cell(length(animals),1);
  all_animal_stim2move_med=cell(length(animals),1);
+ all_animal_stim2move_mad=cell(length(animals),1);
+ all_animal_stim2move_mean=cell(length(animals),1);
+all_animal_frac_move_V=cell(length(animals),1);
+all_animal_frac_move_A=cell(length(animals),1);
 
 
 figure('Position',[50 50 length(animals)*300 900]);
@@ -28,11 +28,13 @@ for curr_animal_idx = 1:length(animals)
     animal = animals{curr_animal_idx};
 
     % use_workflow = {'stim_wheel_right_stage2_mixed_VA'};
-          use_workflow = {'stim_wheel_right_stage2_mixed_VA$|stim_wheel_right_frequency_stage2_mixed_VA$'};
+     use_workflow = {'stim_wheel_right_stage2_mixed_VA$|stim_wheel_right_frequency_stage2_mixed_VA$'};
 
     recordings = plab.find_recordings(animal,[],use_workflow);
     % only ephys data
-    recordings(find([recordings.widefield])) = [];
+     recordings(find([recordings.widefield])) = [];
+
+    % recordings(find([recordings.ephys])) = [];
 
     surround_time = [-5,5];
     surround_sample_rate = 100;
@@ -47,14 +49,16 @@ for curr_animal_idx = 1:length(animals)
     success_V = nan(length(recordings),1);
     success_A = nan(length(recordings),1);
     rxn_med = nan(length(recordings),2);
-    stim2move_med = nan(length(recordings),2);
+    stim2move_med = nan(length(recordings),3);
+    stim2move_mean = nan(length(recordings),3);
+    stim2move_mad = nan(length(recordings),3);
 
 
     frac_move_stimalign = nan(length(recordings),length(surround_time_points));
     frac_move_stimalign_V = nan(length(recordings),length(surround_time_points));
     frac_move_stimalign_A = nan(length(recordings),length(surround_time_points));
 
-    rxn_stat_p = nan(length(recordings),3);
+    rxn_stat_p_mean = nan(length(recordings),3);
     workflow_name= nan(length(recordings),1);
 
     for curr_recording =1: length(recordings)
@@ -106,8 +110,8 @@ for curr_animal_idx = 1:length(animals)
         n_trials_water_V(curr_recording)=length(visual_time);
         n_trials_water_A(curr_recording)=length(audio_time);
 
-        stim2move_med(curr_recording,1) = median(stim_to_move(find(tasktype(1:n_trials)==0)));
-        stim2move_med(curr_recording,2) = median(stim_to_move(find(tasktype(1:n_trials)==1)));
+        % stim2move_med(curr_recording,1) = median(stim_to_move(find(tasktype(1:n_trials)==0)));
+        % stim2move_med(curr_recording,2) = median(stim_to_move(find(tasktype(1:n_trials)==1)));
 
         rxn_med(curr_recording,1) = median(visual_time);
         rxn_med(curr_recording,2) = median(audio_time);
@@ -130,8 +134,18 @@ for curr_animal_idx = 1:length(animals)
         frac_move_stimalign_V(curr_recording,:)= nanmean(event_aligned_wheel_move(tasktype(1:n_trials)==0,:),1);
         frac_move_stimalign_A(curr_recording,:)= nanmean(event_aligned_wheel_move(tasktype(1:n_trials)==1,:),1);
         % Get association stat
-        rxn_stat_p(curr_recording,:) = AP_stimwheel_association_pvalue2( ...
-            stimOn_times,trial_events,stim_to_move,tasktype);
+        % rxn_stat_p_mean(curr_recording,:) = AP_stimwheel_association_pvalue2( ...
+        %     stimOn_times,trial_events,stim_to_move,tasktype,p_para);
+        %
+        [rxn_stat_p_mean(curr_recording,:), stim2move_mean(curr_recording,:),stim2move_mean_null(curr_recording,:)]= AP_stimwheel_association_pvalue2( ...
+            stimOn_times,trial_events,stim_to_move,tasktype,'mean');
+
+        [useless_p, stim2move_mad(curr_recording,:),stim2move_mad_null(curr_recording,:)] = AP_stimwheel_association_pvalue2( ...
+            stimOn_times,trial_events,stim_to_move,tasktype,'mad');
+
+        [useless_p, stim2move_med(curr_recording,:),stim2move_med_null(curr_recording,:)] = AP_stimwheel_association_pvalue2( ...
+            stimOn_times,trial_events,stim_to_move,tasktype,'median');
+
 
         %  % Get association stat
         % rxn_stat_p(curr_recording,:) = AP_stimwheel_association_pvalue( ...
@@ -145,7 +159,7 @@ for curr_animal_idx = 1:length(animals)
     end
 
     % Define learned day from reaction stat p-value and reaction time
-    learned_day = rxn_stat_p(:,2:3) < 0.05 & rxn_med < 2;
+    learned_day = rxn_stat_p_mean(:,2:3) < 0.05 & rxn_med < 2;
 
 
     relative_day = days(datetime({recordings.day}) - datetime({recordings(1).day}))+1;
@@ -289,33 +303,50 @@ for curr_animal_idx = 1:length(animals)
  all_animal_learned_day{curr_animal_idx}=learned_day;
  all_animal_rxn_med{curr_animal_idx}=rxn_med;
  all_animal_stim2move_med{curr_animal_idx}=stim2move_med;
+ all_animal_stim2move_mean{curr_animal_idx}=stim2move_mean;
+ all_animal_stim2move_mad{curr_animal_idx}=stim2move_mad;
+ all_animal_frac_move_V{curr_animal_idx}=frac_move_stimalign_V;
+ all_animal_frac_move_A{curr_animal_idx}=frac_move_stimalign_A;
 
 end
 
- saveas(gcf,[Path 'figures\mixed_behavior_' strjoin(animals, '_')], 'jpg');
+ saveas(gcf,[Path 'figures\ephys_mixed_behavior_' strjoin(animals, '_')], 'jpg');
  % saveas(gcf,[Path 'mixed_behavior_' strjoin(animals, '_') '.eps' ], 'epsc');
-save ([Path 'mat_data\summary_data\behavior in mixed task.mat' ],'animals','all_animal_learned_day', 'all_animal_react_index','all_animal_rxn_med','all_animal_stim2move_med','-v7.3');
+save ([Path 'mat_data\summary_data\behavior in mixed task in ' n1_name '_to_' n2_name '.mat' ],...
+    'animals','all_animal_learned_day', 'all_animal_react_index','all_animal_rxn_med','all_animal_stim2move_med',...
+    'all_animal_stim2move_mean','all_animal_stim2move_mad','all_animal_frac_move_V','all_animal_frac_move_A','-v7.3');
 
 %%
- animals_group_mixed=[ 1 1 1 1 1 5 2 3 3 3 4 4 4 4 4];
-select_group=4
+clear all
+Path = 'C:\Users\dsong\Documents\MATLAB\Da_Song\Data_analysis\mice\process\processed_data_v2\';
 
-s2m_v=cellfun(@(x,y) x(y(:,1)==1,1),all_animal_stim2move_med(animals_group_mixed==select_group),all_animal_learned_day(animals_group_mixed==select_group),'UniformOutput',false )
-s2m_a=cellfun(@(x,y) x(y(:,2)==1,2),all_animal_stim2move_med(animals_group_mixed==select_group),all_animal_learned_day(animals_group_mixed==select_group),'UniformOutput',false )
-s2m_v1=cellfun(@(x) x(1:5),s2m_v,'UniformOutput',false)
-s2m_a1=cellfun(@(x) x(1:5),s2m_a,'UniformOutput',false)
+data1=load([Path 'mat_data\summary_data\behavior in mixed task.mat' ]);
+
+animals = {'DS003','DS006','DS013','DS000','DS004','DS014','DS015','DS016'};n1_name='audio volume';n2_name='visual position';index_group=[0 0 0 1 1 1 1 1 ];
 
 
-mean_s2m_v=mean(cat(2,s2m_v1{:}),2)
-sem_s2m_v=std(cat(2,s2m_v1{:}),0,2)/sqrt(length(all_animal_stim2move_med(animals_group_mixed==1)))
 
-mean_s2m_a=mean(cat(2,s2m_a1{:}),2)
-sem_s2m_a=std(cat(2,s2m_a1{:}),0,2)/sqrt(length(all_animal_stim2move_med(animals_group_mixed==1)))
 
-figure;
-ap.errorfill(1:5,mean_s2m_v, sem_s2m_v,[0 0 1],0.1,0.5);
-ap.errorfill(1:5,mean_s2m_a, sem_s2m_a,[1 0 0],0.1,0.5);
-ylim([0 0.7])
+
+s2m_v=cellfun(@(x,y) x(1:3,1),data1.all_animal_stim2move_med(index_group==1'),'UniformOutput',false )
+s2m_a=cellfun(@(x,y) x(1:3,2),data1.all_animal_stim2move_med(index_group==1'),'UniformOutput',false )
+
+
+
+mean_s2m_v=-log(mean(cat(2,s2m_v{:}),2))
+sem_s2m_v=std(cat(2,s2m_v{:}),0,2)/sqrt(length(data1.all_animal_stim2move_med(index_group==1)))
+
+mean_s2m_a=-log(mean(cat(2,s2m_a{:}),2))
+sem_s2m_a=std(cat(2,s2m_a{:}),0,2)/sqrt(length(data1.all_animal_stim2move_med(index_group==1)))
+
+figure('Position',[50 50 200 400]);
+ap.errorfill(1:3,mean_s2m_v, sem_s2m_v,[0 0 1],0.1,0.5);
+ap.errorfill(1:3,mean_s2m_a, sem_s2m_a,[1 0 0],0.1,0.5);
+ % ylim([0 0.7])
+  ylim([0 3])
+
 xlabel('training days')
 ylabel('stim to move (s)')
-saveas(gcf,[Path 'figures\summary\behavior of s2m in mixed task across day in group' num2str(select_group) ], 'jpg');
+title([n1_name ' to ' n2_name])
+
+saveas(gcf,[Path 'figures\summary\behavior\mixed reaction time in ' n1_name '_to_' n2_name], 'jpg');

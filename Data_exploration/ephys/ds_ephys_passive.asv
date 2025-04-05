@@ -1,0 +1,766 @@
+clear all
+Path = 'C:\Users\dsong\Documents\MATLAB\Da_Song\Data_analysis\mice\process\processed_data_v2\ephys\';
+
+% animals={'DS010','AP021','DS011','AP022','DS001','AP018','DS003','DS004','DS000','DS006','DS013'}
+% animals={'DS007','DS010','DS011','AP021','AP022'}
+% animals={'DS007','DS014','DS015','DS016'}
+animals= { 'DS007','DS010','AP021','DS011','AP022','DS001','AP018','DS003','DS006','DS013','DS000','DS004','DS014','DS015','DS016'};
+
+anterior_idx={[2 4],  [2 4],    2,    [2 4],  [2 4],  [2 4],    2,     2,     [2 4],  [2 4],  [2 4],  [2 4],  [2 4],  [2 4],  [2 4]};
+anterior_learned_idx={[2 4],  [2 4],    2,    [2 4],  [2 4],  [   ],    [],    [],    [   ],  [   ],  [2 4],  [  4],  [2 4],  [2 4],  [2 4]};
+anterior_learned_idx_VA={[2 4],  [2 4],    2,    [2 4],  [2 4],  [   ],    [],    [],    [   ],  [   ],  [   ],  [   ],  [   ],  [   ],  [   ]};
+anterior_learn_idx_VA_nA={[   ],  [   ],   [4],    [   ],  [   ],  [2 4],    [],    [],    [   ],  [   ],  [   ],  [   ],  [   ],  [   ],  [   ]};
+anterior_learn_idx_VnA_nA={[   ],  [   ],   [],    [   ],  [   ], [  ],   [2],    [],    [   ],  [   ],  [   ],  [   ],  [   ],  [   ],  [   ]};
+
+anterior_learned_idx_AV={[ ],    [   ],    [],    [ ],    [ ],   [   ],    [],    [],    [   ],  [   ],  [2 4],  [  4],  [2 4],  [2 4],  [2 4]};
+anterior_learn_idx_AV_nA={[ ],    [   ],    [],    [ ],    [ ],   [   ],    [],    [],    [   ],  [ 4 ],  [  ],  [  2],  [   ],  [   ],  [  ]};
+
+anterior_learn_idx_AnV_nV={[ ],    [   ],    [],    [ ],    [ ],   [   ],    [],    [],    [2 4],  [ 2 ],  [  ],  [   ],  [   ],  [   ],  [  ]};
+
+% Set times for PSTH
+raster_window = [-0.5,1];
+psth_bin_size = 0.001;
+t_bins = raster_window(1):psth_bin_size:raster_window(2);
+t_centers = conv2(t_bins,[1,1]/2,'valid');
+
+baseline_t = [-0.2,0];
+response_t = [0,0.2];
+psth_use_t = t_centers >= response_t(1) & t_centers <= response_t(2);
+
+
+
+
+
+animals_all_cell_position_sorted=cell(length(animals),1);
+animals_all_event_response=cell(length(animals),1);
+animals_probe_positions=cell(length(animals),1);
+animals_all_event_plot=cell(length(animals),1);
+animals_all_event_single_plot=cell(length(animals),1);
+for curr_animal=1:length(animals)
+
+    animal=animals{curr_animal};
+    recordings_all_training=plab.find_recordings(animal,[],'stim_wheel_right_stage2_mixed_VA');
+    recordings_all_passive_visual=plab.find_recordings(animal,[],'lcr_passive');
+    recordings_all_passive_audio=plab.find_recordings(animal,[],'hml_passive_audio');
+
+
+    recordings_passive_visual = recordings_all_passive_visual( ...
+        cellfun(@any,{recordings_all_passive_visual.ephys}) & ...
+        ismember({recordings_all_passive_visual.day},{recordings_all_training.day}));
+
+    recordings_passive_audio = recordings_all_passive_audio( ...
+        cellfun(@any,{recordings_all_passive_audio.ephys}) & ...
+        ismember({recordings_all_passive_audio.day},{recordings_all_training.day}));
+
+    recordings_training = recordings_all_training( ...
+        cellfun(@any,{recordings_all_training.ephys}) & ...
+        ismember({recordings_all_training.day},{recordings_all_passive_audio.day}));
+
+    probe_positions=cell(4,1);
+    all_cell_position=cell(4,1);
+    all_cell_position_sorted=cell(4,1);
+    all_event_response_idx=cell(2,1);
+    all_event_response_plot=cell(2,1);
+    all_event_response_signle_neuron=cell(2,1);
+    for curr_day=1:4
+        day_probe={'post str','ant str','post str','ant str'};
+
+        if length(recordings_training)<curr_day
+            continue
+        end
+
+        for curr_task=1:2
+            if  curr_task==1
+                rec_day=recordings_passive_visual(curr_day).day;
+                rec_time=recordings_passive_visual(curr_day).recording{1};
+            else
+                rec_day=recordings_passive_audio(curr_day).day;
+                rec_time=recordings_passive_audio(curr_day).recording{1};
+            end
+
+            verbose = true;
+            ap.load_recording;
+
+            %% PSTH - units
+            idx = find(strcmp(probe_areas{1, 1}  .safe_name, 'Caudoputamen'));
+            depth=probe_areas{1}.probe_depth(idx,:);
+            % Plot responsive units by depth
+            template_sort=find(any(template_depths>depth(:,1)'&template_depths<depth(:,2)',2));
+
+            all_cell_position{curr_day}=template_depths;
+
+            % depth of each neuron
+            unit_depths_sorted=template_depths(template_sort);
+            all_cell_position_sorted{curr_day}=unit_depths_sorted;
+
+
+            % Get responsive units
+
+            % Set event to get response
+            % (get quiescent trials)
+            stim_window = [0,0.5];
+            quiescent_trials = arrayfun(@(x) ~any(wheel_move(...
+                timelite.timestamps >= stimOn_times(x)+stim_window(1) & ...
+                timelite.timestamps <= stimOn_times(x)+stim_window(2))), ...
+                (1:length(stimOn_times))');
+
+            if contains(bonsai_workflow,'lcr')
+                % (vis passive)
+                stim_type = vertcat(trial_events.values.TrialStimX);
+                stim_values = unique(stim_type);
+                use_align = arrayfun(@(x) {stimOn_times(stim_type(1:length(stimOn_times)) == x & quiescent_trials)}, stim_values, 'UniformOutput', false);
+            elseif contains(bonsai_workflow,'hml')
+                % (aud passive)
+                stim_type = vertcat(trial_events.values.StimFrequence);
+                stim_values = unique(stim_type);
+                use_align = arrayfun(@(x) {stimOn_times(stim_type(1:length(stimOn_times)) == x & quiescent_trials)}, stim_values, 'UniformOutput', false);
+
+            elseif contains(bonsai_workflow,'stim_wheel')
+                % (task)
+                % use_align = stimOn_times(stim_to_move > 0.15);
+                use_align{1} = stimOn_times(TaskType_idx==0 & stim_to_move > 0.15);
+                use_align{2} = stimOn_times(TaskType_idx==1 & stim_to_move > 0.15);
+
+            end
+            %%
+            all_unit_psth_smooth_norm=...
+                cellfun(@(x) ap.psth(spike_times_timelite,x,spike_templates,'smoothing',100,'norm_window',[-0.5,0],'softnorm',1),use_align','UniformOutput',false);
+            % [A,B,C]=ap.psth(spike_times_timelite,use_align,spike_templates,'smoothing',100);
+
+            % figure;
+            % for i=1:3
+            % nexttile
+            %  imagesc(all_unit_psth_smooth_norm{i})
+            % end
+
+            %%
+            unit_psth_smooth_norm{curr_task} = cellfun(@(x)    x(template_sort,:),all_unit_psth_smooth_norm,'UniformOutput',false);
+
+
+            for i=1:3
+                baseline_bins = use_align{i}{1} + baseline_t;
+                response_bins = use_align{i}{1} + response_t;
+
+                event_bins = [baseline_bins,response_bins];
+                spikes_binned_continuous = histcounts2(spike_times_timelite,spike_templates, ...
+                    reshape([baseline_bins,response_bins]',[],1),1:size(templates,1)+1);
+
+                event_spikes = permute(reshape(spikes_binned_continuous(1:2:end,:),2, ...
+                    size(event_bins,1),[]),[2,1,3]);
+
+                event_response = squeeze(mean(diff(event_spikes,[],2),1));
+
+                n_shuff = 1000;
+                event_response_shuff = cell2mat(arrayfun(@(shuff) ...
+                    squeeze(mean(diff(ap.shake(event_spikes,2),[],2),1)), ...
+                    1:n_shuff,'uni',false));
+
+                event_response_rank = tiedrank(horzcat(event_response,event_response_shuff)')';
+                event_response_p_all=event_response_rank(:,1)./(n_shuff+1);
+
+                event_response_p{curr_task}{i} =event_response_p_all(template_sort);
+
+                % responsive_units{curr_task}{i} = find(event_response_p{curr_task}{i} < 0.05 | event_response_p{curr_task}{i} > 0.95);
+                responsive_units{curr_task}{i} = find( event_response_p{curr_task}{i} > 0.95);
+            end
+
+        end
+
+        probe_positions{curr_day}=probe_nte.probe_positions_ccf{1};
+
+        % unit_dots = ap.plot_unit_depthrate(spike_templates(ismember(spike_templates, template_sort)),template_depths,probe_areas);
+        % unit_dots = ap.plot_unit_depthrate(spike_templates,template_depths,probe_areas);
+
+        % unit_dots.CData = +([0,0,1].*(event_response_p{1} > 0.95)) + ([0.5,0.5,1].*(event_response_p{1} < 0.05))...
+        %      +([1,0,0].*(event_response_p{2} > 0.95))+([1,0.5,0.5].*(event_response_p{2} <0.05))...
+        %       +([0,1,0].*((event_response_p{2} > 0.95)& (event_response_p{1} > 0.95)))+([0.5,1,0.5].*((event_response_p{1} <0.05)&(event_response_p{2} <0.05)));
+
+        % unit_dots.CData = +([0,0,1].*(event_response_p{1} > 0.95)) + ...
+        %      +([1,0,0].*(event_response_p{2} > 0.95))+...
+        %       +([0,1,0].*((event_response_p{2} > 0.95)& (event_response_p{1} > 0.95)));
+
+        saveas(gcf,[Path 'figures\summary\probe of ' animal ' in day ' num2str(curr_day)], 'jpg');
+
+        % % (sort by max time in single alignment)
+        % sort_align = 1;
+        % [~,max_t] = max(unit_psth_smooth_norm(responsive_units,:,sort_align),[],2);
+        % [~,sort_idx] = sort(max_t);
+
+        %
+        % figure('Position',[50 50 600 800],'Name',[animal ' in day ' num2str(curr_day) ' of ' day_probe{curr_day}])
+        % t = tiledlayout(5, 3, 'TileSpacing', 'compact', 'Padding', 'compact');
+        %
+        % titles={'left','middle','right','4kHz','8kHz','12kHz'}
+        package_unit_psth_smooth_norm=cat(2,unit_psth_smooth_norm{:});
+        package_event_response_p=cat(2,event_response_p{:});
+
+        plot_mean=cellfun(@(x,y) nanmean(x( find( y > 0.95),:),1),package_unit_psth_smooth_norm,package_event_response_p,'UniformOutput',false  );
+        plot_sem=cellfun(@(x,y) std(x(find( y > 0.95 ),:),0,1)/sqrt(size(x(find( y>0.95 ),:),1)), package_unit_psth_smooth_norm,package_event_response_p,'UniformOutput',false  );
+
+        plot_mean_from_r=cellfun(@(x,y) nanmean(x( find( y > 0.95 & package_event_response_p{3}>0.95),:),1),package_unit_psth_smooth_norm,package_event_response_p,'UniformOutput',false  );
+        plot_sem_from_r=cellfun(@(x,y) std(x(find( y > 0.95 & package_event_response_p{3}>0.95),:),0,1)/sqrt(size(x(find( y>0.95 ),:),1)), package_unit_psth_smooth_norm,package_event_response_p,'UniformOutput',false  );
+
+        all_responsive_idx =(cell2mat(cellfun(@(x)   cell2mat(x),event_response_p,'UniformOutput',false))>0.95);
+        all_responsive = all_responsive_idx(~all(all_responsive_idx == 0, 2), :);
+
+        all_event_response_idx{curr_day}=all_responsive_idx;
+
+        all_event_response_plot{curr_day}=cat(1,plot_mean{:});
+
+
+        all_event_response_signle_neuron{curr_day}=cat(3,package_unit_psth_smooth_norm{:});
+
+
+        for curr_stim=1:6
+            nexttile
+            reponsive_data=package_unit_psth_smooth_norm{curr_stim}(find(package_event_response_p{curr_stim}>0.95),:);
+            [~,sort_idx] = sort(nanmean(reponsive_data(: ,psth_use_t),[2,3]));
+
+            imagesc(t_centers,[],reponsive_data(sort_idx,:));
+            colormap(ap.colormap('BWR'));
+            clim([-5,5]);
+            title(titles{curr_stim})
+        end
+
+        for curr_stim=1:6
+            nexttile
+            ap.errorfill([t_centers 1],plot_mean{curr_stim},plot_sem{curr_stim},[1 0 0],0.1,0.5);
+            hold on
+            ap.errorfill([t_centers 1],plot_mean_from_r{curr_stim},plot_sem_from_r{curr_stim},[0 0 0],0.1,0.5);
+
+            ylim([-1 7])
+            % ylabel('z-score')
+            xlabel('time (s)')
+
+
+        end
+
+
+        % all_responsive_idx =(cell2mat(cellfun(@(x)   cell2mat(x),event_response_p,'UniformOutput',false))>0.95)+...
+        %     -1*(cell2mat(cellfun(@(x)   cell2mat(x),event_response_p,'UniformOutput',false))<0.05);
+
+        %
+        % h1=nexttile
+        % % 按照每一列逐步排序
+        % imagesc(sortrows(all_responsive,[3 5 4  6 1 2], 'descend'));  % 按照第 col 列排序
+        % xticks([1 2 3 4 5 6])
+        % xticklabels(titles)
+        % colormap(h1,ap.colormap('WK'));
+        % sgtitle([animal ' in day ' num2str(curr_day) ' of ' day_probe{curr_day}])
+        % saveas(gcf,[Path 'figures\summary\psth of ' animal ' in ' num2str(curr_day)], 'jpg');
+        % % close all
+    end
+
+    % animals_all_cell_position_sorted{curr_animal}=all_cell_position_sorted;
+    % animals_probe_positions{curr_animal}=probe_positions;
+
+    animals_all_event_response{curr_animal}=all_event_response_idx;
+    animals_all_event_plot{curr_animal}=all_event_response_plot;
+    animals_all_event_single_plot{curr_animal}=all_event_response_signle_neuron;
+
+
+end
+
+
+
+
+
+
+save('C:\Users\dsong\Documents\MATLAB\Da_Song\Data_analysis\mice\process\processed_data_v2\ephys\mat_data\all_data.mat','animals','animals_all_event_response','animals_all_event_plot','animals_all_event_single_plot','-v7.3')
+load('C:\Users\dsong\Documents\MATLAB\Da_Song\Data_analysis\mice\process\processed_data_v2\ephys\mat_data\all_data.mat')
+
+%% fraction of populations
+
+filtered_VA=cellfun(@(x,y)  x(y),animals_all_event_response(~cellfun(@isempty, anterior_learned_idx_VA','UniformOutput',true)) ,...
+    anterior_learned_idx_VA(~cellfun(@isempty, anterior_learned_idx_VA','UniformOutput',true))','UniformOutput',false);
+
+filtered_AV=cellfun(@(x,y)  x(y),animals_all_event_response(~cellfun(@isempty, anterior_learned_idx_AV','UniformOutput',true)) ,...
+    anterior_learned_idx_AV(~cellfun(@isempty, anterior_learned_idx_AV','UniformOutput',true))','UniformOutput',false);
+
+filtered_VA_nA=cellfun(@(x,y)  x(y),animals_all_event_response(~cellfun(@isempty, anterior_learn_idx_VA_nA','UniformOutput',true)) ,...
+    anterior_learn_idx_VA_nA(~cellfun(@isempty, anterior_learn_idx_VA_nA','UniformOutput',true))','UniformOutput',false);
+
+filtered_AV_nA=cellfun(@(x,y)  x(y),animals_all_event_response(~cellfun(@isempty, anterior_learn_idx_AV_nA','UniformOutput',true)) ,...
+    anterior_learn_idx_AV_nA(~cellfun(@isempty, anterior_learn_idx_AV_nA','UniformOutput',true))','UniformOutput',false);
+
+filtered_VnA_nA=cellfun(@(x,y)  x(y),animals_all_event_response(~cellfun(@isempty, anterior_learn_idx_VnA_nA','UniformOutput',true)) ,...
+    anterior_learn_idx_VnA_nA(~cellfun(@isempty, anterior_learn_idx_VnA_nA','UniformOutput',true))','UniformOutput',false);
+
+filtered_AnV_nV=cellfun(@(x,y)  x(y),animals_all_event_response(~cellfun(@isempty, anterior_learn_idx_AnV_nV','UniformOutput',true)) ,...
+    anterior_learn_idx_AnV_nV(~cellfun(@isempty, anterior_learn_idx_AnV_nV','UniformOutput',true))','UniformOutput',false);
+
+VA_each=arrayfun(@(i) cellfun(@(x) cellfun(@(y) sum(y(:,i)==1)/size(y,1), x,'UniformOutput',true) ,filtered_VA,'UniformOutput',false ),1:6,'UniformOutput',false);
+AV_each=arrayfun(@(i) cellfun(@(x) cellfun(@(y) sum(y(:,i)==1)/size(y,1), x,'UniformOutput',true) ,filtered_AV,'UniformOutput',false ),1:6,'UniformOutput',false);
+VA_nA_each=arrayfun(@(i) cellfun(@(x) cellfun(@(y) sum(y(:,i)==1)/size(y,1), x,'UniformOutput',true) ,filtered_VA_nA,'UniformOutput',false ),1:6,'UniformOutput',false);
+AV_nA_each=arrayfun(@(i) cellfun(@(x) cellfun(@(y) sum(y(:,i)==1)/size(y,1), x,'UniformOutput',true) ,filtered_AV_nA,'UniformOutput',false ),1:6,'UniformOutput',false);
+VnA_nA_each=arrayfun(@(i) cellfun(@(x) cellfun(@(y) sum(y(:,i)==1)/size(y,1), x,'UniformOutput',true) ,filtered_VnA_nA,'UniformOutput',false ),1:6,'UniformOutput',false);
+AnV_nV_each=arrayfun(@(i) cellfun(@(x) cellfun(@(y) sum(y(:,i)==1)/size(y,1), x,'UniformOutput',true) ,filtered_AnV_nV,'UniformOutput',false ),1:6,'UniformOutput',false);
+
+VA_R=cellfun(@(x) cellfun(@(y) sum(y(:,3)==1)/size(y,1), x,'UniformOutput',true) ,filtered_VA,'UniformOutput',false );
+VA_8k=cellfun(@(x) cellfun(@(y) sum(y(:,5)==1)/size(y,1), x,'UniformOutput',true) ,filtered_VA,'UniformOutput',false );
+VA_8k_R=cellfun(@(x) cellfun(@(y) sum(y(:,3)==1&y(:,5)==1)/size(y,1), x,'UniformOutput',true) ,filtered_VA,'UniformOutput',false );
+VA_all= cellfun(@(x) cellfun(@(y) size(y,1), x,'UniformOutput',true) ,filtered_VA,'UniformOutput',false );
+
+
+
+
+AV_R=cellfun(@(x) cellfun(@(y) sum(y(:,3)==1)/size(y,1), x,'UniformOutput',true) ,filtered_AV,'UniformOutput',false );
+AV_8k=cellfun(@(x) cellfun(@(y) sum(y(:,5)==1)/size(y,1), x,'UniformOutput',true) ,filtered_AV,'UniformOutput',false );
+AV_8k_R=cellfun(@(x) cellfun(@(y) sum(y(:,3)==1&y(:,5)==1)/size(y,1), x,'UniformOutput',true) ,filtered_AV,'UniformOutput',false );
+AV_all= cellfun(@(x) cellfun(@(y) size(y,1), x,'UniformOutput',true) ,filtered_AV,'UniformOutput',false );
+
+
+
+VA_8k_audio_select=arrayfun(@(i) cellfun(@(x) cellfun(@(y) sum(y(:,i)==1&y(:,5)==1)/sum(y(:,5)==1), x,'UniformOutput',true) ,filtered_VA,'UniformOutput',false ),4:6,'UniformOutput',false);
+AV_8k_audio_select=arrayfun(@(i) cellfun(@(x) cellfun(@(y) sum(y(:,i)==1&y(:,5)==1)/sum(y(:,5)==1), x,'UniformOutput',true) ,filtered_AV,'UniformOutput',false ),4:6,'UniformOutput',false);
+
+VA_8k_visual_select=arrayfun(@(i) cellfun(@(x) cellfun(@(y) sum(y(:,i)==1&y(:,3)==1)/sum(y(:,3)==1), x,'UniformOutput',true) ,filtered_VA,'UniformOutput',false ),1:3,'UniformOutput',false);
+AV_8k_visual_select=arrayfun(@(i) cellfun(@(x) cellfun(@(y) sum(y(:,i)==1&y(:,3)==1)/sum(y(:,3)==1), x,'UniformOutput',true) ,filtered_AV,'UniformOutput',false ),1:3,'UniformOutput',false);
+
+
+Result(1).name='visual2audio';
+Result(1).data={VA_R,VA_8k,VA_8k_R,AV_R,AV_8k,AV_8k_R};
+Result(1).label_names={'VA-R', 'VA-8k','VA-R&8k','AV-R', 'AV-8k','AV-R&8k'};
+
+Result(2).name='response VA AV';
+Result(2).data=[VA_each,AV_each];
+Result(2).label_names={'VA-L', 'VA-M','VA-R','VA-4k', 'VA-8k','VA-12k','AV-L', 'AV-M','AV-R','AV-4k', 'AV-8k','AV-12k'};
+
+Result(3).name='audio selectivity';
+Result(3).data=[VA_8k_audio_select,AV_8k_audio_select];
+Result(3).label_names={'VA-4k', 'VA-8k','VA-12k','AV-4k', 'AV-8k','AV-12k'};
+
+Result(4).name='visual selectivity';
+Result(4).data=[VA_8k_visual_select,AV_8k_visual_select];
+Result(4).label_names={'VA-L', 'VA-M','VA-R','AV-L', 'AV-M','AV-R'};
+
+Result(5).name='response VA AV nA';
+Result(5).data=[ VA_nA_each,AV_nA_each];
+Result(5).label_names={'VA-L', 'VA-M','VA-R','VA-4k', 'VA-8k','VA-12k','AV-L', 'AV-M','AV-R','AV-4k', 'AV-8k','AV-12k'};
+
+Result(6).name='response VnA  nA';
+Result(6).data=[ VnA_nA_each];
+Result(6).label_names={'VA-L', 'VA-M','VA-R','VA-4k', 'VA-8k','VA-12k'};
+
+Result(7).name='response AnV  nV';
+Result(7).data=[ AnV_nV_each];
+Result(7).label_names={'VA-L', 'VA-M','VA-R','VA-4k', 'VA-8k','VA-12k'};
+
+
+
+
+%
+for curr_fig=[2 5 6 7]
+    Result2=Result(curr_fig).data;
+    % 计算均值和标准误差（SEM）
+    numGroups = length(Result2);
+    means = zeros(numGroups, 1);
+    errors = zeros(numGroups, 1);
+    all_data = cell(numGroups, 1);
+
+    for i = 1:numGroups
+        % 展平当前 cell 内所有子 cell，转为一个数值向量
+        flat_data = cell2mat(Result2{i});
+        all_data{i} = flat_data;
+        means(i) = median(flat_data);
+        errors(i) = std(flat_data) / sqrt(length(flat_data)); % 计算标准误差 SEM
+    end
+
+    barColors = [0.3 0.6 0.9; 0.9 0.3 0.3];
+    % 画柱状图
+    figure('Position',[50 50 numGroups*30 400]);
+    hold on;
+    b=bar(means, 'FaceColor', 'flat', 'EdgeColor', 'k'); % 柱状图
+    for i = 1:numGroups
+        if i<=numGroups/2
+            b.CData(i, :) = barColors(1, :); % 设置每个柱子的颜色
+        else
+            b.CData(i, :) = barColors(2, :); % 设置每个柱子的颜色
+        end
+    end
+
+    % 画误差棒
+    x = 1:numGroups;
+    errorbar(x, means, errors, 'k', 'LineStyle', 'none', 'LineWidth', 1.5, 'CapSize', 10);
+
+    % 生成不同颜色组：
+    % numSubCells = max(cellfun(@length, Result2(1:numGroups/2))); % 统计前三个 cell 最大的子 cell 数量
+    colors1 = turbo(max(cellfun(@length, Result2(1:numGroups/2)))); % 前三组用 cool 颜色
+    colors2 = hsv(max(cellfun(@length, Result2(numGroups/2+1:numGroups))));  % 后三组用 hot 颜色
+
+    % 画散点图
+    for i = 1:numGroups
+        subCells = Result2{i}; % 取出当前组的子 cell
+        numSubCells = length(subCells);
+
+        for j = 1:numSubCells
+            data_points = subCells{j}; % 取出子 cell 里的数值
+            x_jittered = i + (rand(size(data_points)) - 0.5) * 0.2; % 轻微抖动避免重叠
+
+            % 颜色选择：
+            % - 前三个 cell (1~3) 使用 colors1(j, :)
+            % - 后三个 cell (4~6) 使用 colors2(j, :)
+            % 防止颜色索引超出范围
+            if i <= numGroups/2
+                color_index = min(j, size(colors1,1));
+                scatter(x_jittered, data_points, 60, colors1(color_index, :), ...
+                    'filled', 'MarkerFaceAlpha', 0.8); % 画散点，前 3 组用 cool 颜色
+            else
+                color_index = min(j, size(colors2,1));
+                scatter(x_jittered, data_points, 60, colors2(color_index, :), ...
+                    'filled', 'MarkerFaceAlpha', 0.8); % 画散点，后 3 组用 hot 颜色
+            end
+        end
+    end
+
+    % 图像美化
+    xticks([1:numGroups]);
+
+    xticklabels(Result(curr_fig).label_names);
+
+    ylabel('proportion');
+    xlim([0.5, numGroups + 0.5]); % 限制 x 轴范围
+    grid off;
+    hold off;
+    % ylim([0 0.5])
+    title(Result(curr_fig).name)
+    saveas(gcf,[Path 'figures\summary\all_proportion_anterior striatum ' Result(curr_fig).name], 'jpg');
+    savefig (gcf,[Path 'figures\summary\all_proportion_anterior striatum ' Result(curr_fig).name]);
+
+end
+
+
+%% plot of populations
+
+plot_VA=cellfun(@(x,y)  x(y),animals_all_event_plot(~cellfun(@isempty, anterior_learned_idx_VA','UniformOutput',true)) ,...
+    anterior_learned_idx_VA(~cellfun(@isempty, anterior_learned_idx_VA','UniformOutput',true))','UniformOutput',false);
+
+plot_AV=cellfun(@(x,y)  x(y),animals_all_event_plot(~cellfun(@isempty, anterior_learned_idx_AV','UniformOutput',true)) ,...
+    anterior_learned_idx_AV(~cellfun(@isempty, anterior_learned_idx_AV','UniformOutput',true))','UniformOutput',false);
+
+plot_VA_nA=cellfun(@(x,y)  x(y),animals_all_event_plot(~cellfun(@isempty, anterior_learn_idx_VA_nA','UniformOutput',true)) ,...
+    anterior_learn_idx_VA_nA(~cellfun(@isempty, anterior_learn_idx_VA_nA','UniformOutput',true))','UniformOutput',false);
+
+plot_AV_nA=cellfun(@(x,y)  x(y),animals_all_event_plot(~cellfun(@isempty, anterior_learn_idx_AV_nA','UniformOutput',true)) ,...
+    anterior_learn_idx_AV_nA(~cellfun(@isempty, anterior_learn_idx_AV_nA','UniformOutput',true))','UniformOutput',false);
+
+plot_VnA_nA=cellfun(@(x,y)  x(y),animals_all_event_plot(~cellfun(@isempty, anterior_learn_idx_VnA_nA','UniformOutput',true)) ,...
+    anterior_learn_idx_VnA_nA(~cellfun(@isempty, anterior_learn_idx_VnA_nA','UniformOutput',true))','UniformOutput',false);
+
+plot_AnV_nV=cellfun(@(x,y)  x(y),animals_all_event_plot(~cellfun(@isempty, anterior_learn_idx_AnV_nV','UniformOutput',true)) ,...
+    anterior_learn_idx_AnV_nV(~cellfun(@isempty, anterior_learn_idx_AnV_nV','UniformOutput',true))','UniformOutput',false);
+
+VA_each=arrayfun(@(i) cellfun(@(x) cellfun(@(y)  max(y(i,501:1000)), x,'UniformOutput',true) ,plot_VA,'UniformOutput',false ),1:6,'UniformOutput',false);
+AV_each=arrayfun(@(i) cellfun(@(x) cellfun(@(y) max(y(i,501:1000)), x,'UniformOutput',true) ,plot_AV,'UniformOutput',false ),1:6,'UniformOutput',false);
+VA_nA_each=arrayfun(@(i) cellfun(@(x) cellfun(@(y) max(y(i,501:1000)), x,'UniformOutput',true) ,plot_VA_nA,'UniformOutput',false ),1:6,'UniformOutput',false);
+AV_nA_each=arrayfun(@(i) cellfun(@(x) cellfun(@(y) max(y(i,501:1000)), x,'UniformOutput',true) ,plot_AV_nA,'UniformOutput',false ),1:6,'UniformOutput',false);
+VnA_nA_each=arrayfun(@(i) cellfun(@(x) cellfun(@(y) max(y(i,501:1000)), x,'UniformOutput',true) ,plot_VnA_nA,'UniformOutput',false ),1:6,'UniformOutput',false);
+AnV_nV_each=arrayfun(@(i) cellfun(@(x) cellfun(@(y) max(y(i,501:1000)), x,'UniformOutput',true) ,plot_AnV_nV,'UniformOutput',false ),1:6,'UniformOutput',false);
+
+
+Result(1).name='response VA AV';
+Result(1).data=[VA_each,AV_each];
+Result(1).label_names={'VA-L', 'VA-M','VA-R','VA-4k', 'VA-8k','VA-12k','AV-L', 'AV-M','AV-R','AV-4k', 'AV-8k','AV-12k'};
+
+Result(2).name='response VA AV nA';
+Result(2).data=[ VA_nA_each,AV_nA_each];
+Result(2).label_names={'VA-L', 'VA-M','VA-R','VA-4k', 'VA-8k','VA-12k','AV-L', 'AV-M','AV-R','AV-4k', 'AV-8k','AV-12k'};
+
+Result(3).name='response VnA  nA';
+Result(3).data=[ VnA_nA_each];
+Result(3).label_names={'VA-L', 'VA-M','VA-R','VA-4k', 'VA-8k','VA-12k'};
+
+Result(4).name='response AnV  nV';
+Result(4).data=[ AnV_nV_each];
+Result(4).label_names={'VA-L', 'VA-M','VA-R','VA-4k', 'VA-8k','VA-12k'};
+
+%
+for curr_fig=1:4
+    Result2=Result(curr_fig).data;
+    % 计算均值和标准误差（SEM）
+    numGroups = length(Result2);
+    means = zeros(numGroups, 1);
+    errors = zeros(numGroups, 1);
+    all_data = cell(numGroups, 1);
+
+    for i = 1:numGroups
+        % 展平当前 cell 内所有子 cell，转为一个数值向量
+        flat_data = cell2mat(Result2{i});
+        all_data{i} = flat_data;
+        means(i) = mean(flat_data,'omitmissing');
+        errors(i) = std(flat_data,'omitmissing') / sqrt(length(flat_data)); % 计算标准误差 SEM
+    end
+
+    barColors = [0.3 0.6 0.9; 0.9 0.3 0.3];
+    % 画柱状图
+    figure('Position',[50 50 numGroups*30 400]);
+    hold on;
+    b=bar(means, 'FaceColor', 'flat', 'EdgeColor', 'k'); % 柱状图
+    for i = 1:numGroups
+        if i<=numGroups/2
+            b.CData(i, :) = barColors(1, :); % 设置每个柱子的颜色
+        else
+            b.CData(i, :) = barColors(2, :); % 设置每个柱子的颜色
+        end
+    end
+
+    % 画误差棒
+    x = 1:numGroups;
+    errorbar(x, means, errors, 'k', 'LineStyle', 'none', 'LineWidth', 1.5, 'CapSize', 10);
+
+    % 生成不同颜色组：
+    % numSubCells = max(cellfun(@length, Result2(1:numGroups/2))); % 统计前三个 cell 最大的子 cell 数量
+    colors1 = turbo(max(cellfun(@length, Result2(1:numGroups/2)))); % 前三组用 cool 颜色
+    colors2 = hsv(max(cellfun(@length, Result2(numGroups/2+1:numGroups))));  % 后三组用 hot 颜色
+
+    % 画散点图
+    for i = 1:numGroups
+        subCells = Result2{i}; % 取出当前组的子 cell
+        numSubCells = length(subCells);
+
+        for j = 1:numSubCells
+            data_points = subCells{j}; % 取出子 cell 里的数值
+            x_jittered = i + (rand(size(data_points)) - 0.5) * 0.2; % 轻微抖动避免重叠
+
+            % 颜色选择：
+            % - 前三个 cell (1~3) 使用 colors1(j, :)
+            % - 后三个 cell (4~6) 使用 colors2(j, :)
+            % 防止颜色索引超出范围
+            if i <= numGroups/2
+                color_index = min(j, size(colors1,1));
+                scatter(x_jittered, data_points, 60, colors1(color_index, :), ...
+                    'filled', 'MarkerFaceAlpha', 0.8); % 画散点，前 3 组用 cool 颜色
+            else
+                color_index = min(j, size(colors2,1));
+                scatter(x_jittered, data_points, 60, colors2(color_index, :), ...
+                    'filled', 'MarkerFaceAlpha', 0.8); % 画散点，后 3 组用 hot 颜色
+            end
+        end
+    end
+
+    % 图像美化
+    xticks([1:numGroups]);
+
+    xticklabels(Result(curr_fig).label_names);
+
+    ylabel('peak');
+    xlim([0.5, numGroups + 0.5]); % 限制 x 轴范围
+    grid off;
+    hold off;
+    ylim([0 5])
+    title(['peak of ' Result(curr_fig).name])
+    saveas(gcf,[Path 'figures\summary\peak_anterior striatum '  Result(curr_fig).name ], 'jpg');
+end
+
+
+%%  heat map
+
+single_plot_VA=cellfun(@(x,y)  x(y),animals_all_event_single_plot(~cellfun(@isempty, anterior_learned_idx_VA','UniformOutput',true)) ,...
+    anterior_learned_idx_VA(~cellfun(@isempty, anterior_learned_idx_VA','UniformOutput',true))','UniformOutput',false);
+
+VA_single_neuron = cellfun(@(x) cat(1,x{:}),single_plot_VA,'UniformOutput',false  );
+VA_single_neuron_2=cat(1,VA_single_neuron{:});
+VA_response= cellfun(@(x) cat(1,x{:}),filtered_VA,'UniformOutput',false  );
+VA_response_2=cat(1,VA_response{:});
+
+
+single_plot_AV=cellfun(@(x,y)  x(y),animals_all_event_single_plot(~cellfun(@isempty, anterior_learned_idx_AV','UniformOutput',true)) ,...
+    anterior_learned_idx_AV(~cellfun(@isempty, anterior_learned_idx_AV','UniformOutput',true))','UniformOutput',false);
+
+AV_single_neuron = cellfun(@(x) cat(1,x{:}),single_plot_AV,'UniformOutput',false  );
+AV_single_neuron_2=cat(1,AV_single_neuron{:});
+AV_response= cellfun(@(x) cat(1,x{:}),filtered_AV,'UniformOutput',false  );
+% AV_response= cellfun(@(x) cat(1,x{:}),filtered_AV_nA,'UniformOutput',false  );
+
+AV_response_2=cat(1,AV_response{:});
+
+[~,VA_max_idx_3]=max(VA_single_neuron_2(: ,psth_use_t,3),[],2)
+[~,VA_max_idx_5]=max(VA_single_neuron_2(: ,psth_use_t,5),[],2)
+
+[~,VA_sort_idx_3] = sortrows([VA_response_2(:,3), VA_max_idx_3],[1,2],["descend","ascend"]);
+[~,VA_sort_idx_5] = sortrows([VA_response_2(:,5), VA_max_idx_5],[1,2],["descend","ascend"]);
+
+% [~,VA_sort_idx_3] = sortrows([VA_response_2(:,3), nanmean(VA_single_neuron_2(: ,psth_use_t,3),2)],[1,2],'descend');
+% [~,VA_sort_idx_5] = sortrows([VA_response_2(:,5), nanmean(VA_single_neuron_2(: ,psth_use_t,5),2)],[1,2],'descend');
+
+VA_use_idx= VA_response_2(:,3)==1|VA_response_2(:,5)==1;
+
+
+% [~,VA_sort_idx_3] = sort(nanmean(VA_single_neuron_2(: ,psth_use_t,3),2),'descend');
+% [~,VA_sort_idx_5] = sort(nanmean(VA_single_neuron_2(: ,psth_use_t,5),2),'descend');
+
+clim_value=[-3,3];
+figure('Position',[50 50 400 400]);
+tiledlayout(2, 3); % 创建一个1行2列的布局
+titles={'L','M','R','4k','8k','12k'};
+
+used_neruons_VA_3=VA_single_neuron_2(VA_sort_idx_3,:,:);
+used_neruons_VA_3_sort=used_neruons_VA_3(VA_use_idx(VA_sort_idx_3),:,:);
+ 
+for curr_idx=[ 3 5]
+nexttile
+imagesc(t_centers,[],used_neruons_VA_3_sort(:,:,curr_idx))
+yline(sum(VA_response_2(:,3)),'Color',[0 1 0],'LineWidth',1)
+colormap(ap.colormap('BWR'));
+ clim(clim_value);
+xlabel('time (s)')
+title(titles{curr_idx})
+end
+used_neruons_VA_3_only_mean=permute(mean(used_neruons_VA_3_sort(1:sum(VA_response_2(:,3)),:,:),1,'omitmissing'),[2 3 1]);
+used_neruons_VA_3_only_error=permute(std(used_neruons_VA_3_sort(1:sum(VA_response_2(:,3)),:,:),0,1,'omitmissing')/sqrt(sum(VA_response_2(:,3))),[2 3 1]);
+nexttile
+hold on
+ap.errorfill(t_bins,used_neruons_VA_3_only_mean(:,3),used_neruons_VA_3_only_error(:,3),[0 0 1],0.1 ,0.5)
+ap.errorfill(t_bins,used_neruons_VA_3_only_mean(:,5),used_neruons_VA_3_only_error(:,5),[1 0 0],0.1 ,0.5)
+
+
+used_neruons_VA_5=VA_single_neuron_2(VA_sort_idx_5,:,:);
+used_neruons_VA_5_sort=used_neruons_VA_5(VA_use_idx(VA_sort_idx_5),:,:);
+for curr_idx=[ 3 5]
+nexttile
+imagesc(t_centers,[],used_neruons_VA_5_sort(:,:,curr_idx))
+
+colormap(ap.colormap('BWR'));
+clim(clim_value);
+xlabel('time (s)')
+yline(sum(VA_response_2(:,5)),'Color',[0 1 0],'LineWidth',1)
+end
+
+used_neruons_VA_5_only_mean=permute(mean(used_neruons_VA_5_sort(1:sum(VA_response_2(:,5)),:,:),1,'omitmissing'),[2 3 1]);
+used_neruons_VA_5_only_error=permute(std(used_neruons_VA_5_sort(1:sum(VA_response_2(:,5)),:,:),0,1,'omitmissing')/sqrt(sum(VA_response_2(:,5))),[2 3 1]);
+nexttile
+hold on
+ap.errorfill(t_bins,used_neruons_VA_5_only_mean(:,3),used_neruons_VA_5_only_error(:,3),[0 0 1],0.1 ,0.5)
+ap.errorfill(t_bins,used_neruons_VA_5_only_mean(:,5),used_neruons_VA_5_only_error(:,5),[1 0 0],0.1 ,0.5)
+
+
+sgtitle('VA group')
+savefig (gcf,[Path 'figures\summary\VA responsive neurons']);
+
+
+[~,AV_max_idx_3]=max(AV_single_neuron_2(: ,psth_use_t,3),[],2)
+[~,AV_max_idx_5]=max(AV_single_neuron_2(: ,psth_use_t,5),[],2)
+
+[~,AV_sort_idx_3] = sortrows([AV_response_2(:,3), AV_max_idx_3],[1,2],["descend","ascend"]);
+[~,AV_sort_idx_5] = sortrows([AV_response_2(:,5), AV_max_idx_5],[1,2],["descend","ascend"]);
+
+% [~,AV_sort_idx_3] = sortrows([AV_response_2(:,3), nanmean(AV_single_neuron_2(: ,psth_use_t,3),2)],[1,2],'descend');
+% [~,AV_sort_idx_5] = sortrows([AV_response_2(:,5), nanmean(AV_single_neuron_2(: ,psth_use_t,5),2)],[1,2],'descend');
+
+AV_use_idx= AV_response_2(:,3)==1|AV_response_2(:,5)==1;
+
+% [~,AV_sort_idx_3] = sort(nanmean(AV_single_neuron_2(: ,psth_use_t,3),2),'descend');
+% [~,AV_sort_idx_5] = sort(nanmean(AV_single_neuron_2(: ,psth_use_t,5),2),'descend');
+figure('Position',[50 50 400 400]);
+tiledlayout(2, 3); % 创建一个1行2列的布局
+
+used_neruons_AV_3=AV_single_neuron_2(AV_sort_idx_3,:,:);
+used_neruons_AV_3_sort=used_neruons_AV_3(AV_use_idx(AV_sort_idx_3),:,:);
+
+for curr_idx=[3 5]
+nexttile
+imagesc(t_centers,[],used_neruons_AV_3_sort(:,:,curr_idx))
+colormap(ap.colormap('BWR'));
+clim(clim_value);
+xlabel('time (s)')
+title(titles{curr_idx})
+yline(sum(AV_response_2(:,3)),'Color',[0 1 0],'LineWidth',1)
+end
+used_neruons_AV_3_only_mean=permute(mean(used_neruons_AV_3_sort(1:sum(AV_response_2(:,3)),:,:),1,'omitmissing'),[2 3 1]);
+used_neruons_AV_3_only_error=permute(std(used_neruons_AV_3_sort(1:sum(AV_response_2(:,3)),:,:),0,1,'omitmissing')/sqrt(sum(AV_response_2(:,3))),[2 3 1]);
+nexttile
+hold on
+ap.errorfill(t_bins,used_neruons_AV_3_only_mean(:,3),used_neruons_AV_3_only_error(:,3),[0 0 1],0.1 ,0.5)
+ap.errorfill(t_bins,used_neruons_AV_3_only_mean(:,5),used_neruons_AV_3_only_error(:,5),[1 0 0],0.1 ,0.5)
+
+
+
+
+used_neruons_AV_5=AV_single_neuron_2(AV_sort_idx_5,:,:);
+used_neruons_AV_5_sort=used_neruons_AV_5(AV_use_idx(AV_sort_idx_5),:,:);
+
+for curr_idx=[3 5]
+nexttile
+imagesc(t_centers,[],used_neruons_AV_5_sort(:,:,curr_idx))
+colormap(ap.colormap('BWR'));
+clim(clim_value);
+xlabel('time (s)')
+yline(sum(AV_response_2(:,5)),'Color',[0 1 0],'LineWidth',1)
+end
+used_neruons_AV_5_only_mean=permute(mean(used_neruons_AV_5_sort(1:sum(AV_response_2(:,5)),:,:),1,'omitmissing'),[2 3 1]);
+used_neruons_AV_5_only_error=permute(std(used_neruons_AV_5_sort(1:sum(AV_response_2(:,5)),:,:),0,1,'omitmissing')/sqrt(sum(AV_response_2(:,5))),[2 3 1]);
+nexttile
+hold on
+ap.errorfill(t_bins,used_neruons_AV_5_only_mean(:,3),used_neruons_AV_5_only_error(:,3),[0 0 1],0.1 ,0.5)
+ap.errorfill(t_bins,used_neruons_AV_5_only_mean(:,5),used_neruons_AV_5_only_error(:,5),[1 0 0],0.1 ,0.5)
+
+sgtitle('AV group')
+savefig (gcf,[Path 'figures\summary\AV responsive neurons']);
+
+ % save('C:\Users\dsong\Documents\MATLAB\Da_Song\Data_analysis\mice\process\processed_data_v2\ephys\mat_data\buffered_data.mat','VA_single_neuron_2','VA_response_idx','AV_single_neuron_2','AV_response_idx','-v7.3')
+
+%% Load atlas
+
+allen_atlas_path = fileparts(which('template_volume_10um.npy'));
+av = readNPY([allen_atlas_path filesep 'annotation_volume_10um_by_index.npy']); % the number at each pixel labels the area, see note below
+
+
+% Set up axes, plot brain outline
+figure('Color','w','name',animal);
+% Set up 3D axes
+ccf_3d_axes = axes;
+set(ccf_3d_axes,'ZDir','reverse');
+hold(ccf_3d_axes,'on');
+axis(ccf_3d_axes,'vis3d','equal','off','manual');
+view([-30,25]);
+axis tight;
+h = rotate3d(ccf_3d_axes);
+h.Enable = 'on';
+
+slice_spacing = 5;
+brain_volume = ...
+    bwmorph3(bwmorph3(av(1:slice_spacing:end, ...
+    1:slice_spacing:end,1:slice_spacing:end)>1,'majority'),'majority');
+brain_outline_patchdata = isosurface(permute(brain_volume,[3,1,2]),0.5);
+brain_outline = patch( ...
+    'Vertices',brain_outline_patchdata.vertices*slice_spacing, ...
+    'Faces',brain_outline_patchdata.faces, ...
+    'FaceColor',[0.7,0.7,0.7],'EdgeColor','none','FaceAlpha',0.1);
+
+for curr_animal=1:length(animals)
+
+    for curr_probe=1:length(animals_probe_positions{curr_animal})
+        cells_position{curr_probe} = animals_probe_positions{curr_animal}{curr_probe}(:,1)' + animals_all_cell_position_sorted{curr_animal}{curr_probe}/3840 * (animals_probe_positions{curr_animal}{curr_probe}(:,2) - animals_probe_positions{curr_animal}{curr_probe}(:,1))';
+
+
+        % 每行对应一种颜色
+        non_responsive_neurons=~(...
+            (animals_all_event_response{curr_animal}{curr_probe}{1} > 0.95) | ...
+            (animals_all_event_response{curr_animal}{curr_probe}{1} < 0.05) | ...
+            (animals_all_event_response{curr_animal}{curr_probe}{2} > 0.95) | ...
+            (animals_all_event_response{curr_animal}{curr_probe}{2} < 0.05) | ...
+            ((animals_all_event_response{curr_animal}{curr_probe}{2} > 0.95) & (animals_all_event_response{curr_animal}{curr_probe}{1} > 0.95)) | ...
+            ((animals_all_event_response{curr_animal}{curr_probe}{1} < 0.05) & (animals_all_event_response{curr_animal}{curr_probe}{2} < 0.05)));
+
+        % colorMap = ([0, 0, 1] .* (animals_all_event_response_p{curr_animal}{curr_probe}{1} > 0.95)) + ...
+        %     ([0.5, 0.5, 1] .* (animals_all_event_response_p{curr_animal}{curr_probe}{1} < 0.05)) + ...
+        %     ([1, 0, 0] .* (animals_all_event_response_p{curr_animal}{curr_probe}{2} > 0.95)) + ...
+        %     ([1, 0.5, 0.5] .* (animals_all_event_response_p{curr_animal}{curr_probe}{2} < 0.05)) + ...
+        %     ([0, 1, 0] .* ((animals_all_event_response_p{curr_animal}{curr_probe}{2} > 0.95) & (animals_all_event_response_p{curr_animal}{curr_probe}{1} > 0.95))) + ...
+        %     ([0.5, 1, 0.5] .* ((animals_all_event_response_p{curr_animal}{curr_probe}{1} < 0.05) & (animals_all_event_response_p{curr_animal}{curr_probe}{2} < 0.05))) + ...
+        %     ([0, 0, 0] .* non_responsive_neurons);
+
+        colorMap =+([0,0,1].*(animals_all_event_response{curr_animal}{curr_probe}{1} > 0.95)) + ([0.5,0.5,1].*(animals_all_event_response{curr_animal}{curr_probe}{1} < 0.05))...
+            +([1,0,0].*(animals_all_event_response{curr_animal}{curr_probe}{2} > 0.95))+([1,0.5,0.5].*(animals_all_event_response{curr_animal}{curr_probe}{2} <0.05))...
+            +([0,1,0].*((animals_all_event_response{curr_animal}{curr_probe}{2} > 0.95)& (animals_all_event_response{curr_animal}{curr_probe}{1} > 0.95)))+([0.5,1,0.5].*((animals_all_event_response{curr_animal}{curr_probe}{1} <0.05)&(animals_all_event_response{curr_animal}{curr_probe}{2} <0.05)));
+
+
+        scatter3(cells_position{curr_probe}(~non_responsive_neurons,1),cells_position{curr_probe}(~non_responsive_neurons,3),cells_position{curr_probe}(~non_responsive_neurons,2),10,colorMap(~non_responsive_neurons,:),'filled')
+
+        hold on
+    end
+
+end
+
+%%
+

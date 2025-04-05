@@ -47,7 +47,7 @@ elseif used_data==2
  use_t= t_kernels;
 end
 
-
+%%
 
 for curr_animal_idx=1:length(animals)
     main_preload_vars = who;
@@ -56,7 +56,7 @@ for curr_animal_idx=1:length(animals)
     fprintf('%s\n', ['start  ' animal ]);
     fprintf('%s\n', ['start saving tasks files...']);
 
-    raw_data_task=load([Path '\mat_data\task\old\' animal '_task.mat']);
+    raw_data_task=load([Path '\mat_data\task\' animal '_task.mat']);
     raw_data_lcr1=load([Path '\mat_data\lcr_passive\' animal '_lcr_passive.mat']);
     raw_data_lcr2=load([Path '\mat_data\lcr_passive\' animal '_lcr_passive_single_trial.mat']);
     raw_data_hml1=load([Path '\mat_data\hml_passive_audio\' animal '_hml_passive_audio.mat']);
@@ -84,7 +84,7 @@ use_period=find(use_t>0&use_t<passive_boundary);
         raw_data_hml2.imaging_all_trial(idx_hml) = cellfun(@(x)  x{1},raw_data_hml1.wf_px_kernels(idx_hml),'UniformOutput',false);
     end
 
-   learned_buff= cellfun(@(x,y)  x<2 & y<0.05, num2cell(raw_data_task.rxn_med),raw_data_task.rxn_stat_p,'UniformOutput',false);
+   learned_buff= cellfun(@(x,y)   y<0.05, num2cell(raw_data_task.rxn_med),raw_data_task.rxn_stat_p,'UniformOutput',false);
  raw_data_task.learned_day=cellfun(@(x) x(1)  ,learned_buff,'UniformOutput',true);
 
     if animals_type(curr_animal_idx) == 1
@@ -146,11 +146,11 @@ use_period=find(use_t>0&use_t<passive_boundary);
         end
 
         
-        all_react_single_day{1,idxx}=task_s2m;
-        all_react_single_day{2,idxx}=task_s2r;
+        all_react_single_day{1,idxx}=cell2mat(task_s2m);
+        all_react_single_day{2,idxx}=cell2mat(task_s2r);
 
-        task_s2m_mean=nanmean(task_s2m);
-        task_s2r_mean=nanmean(task_s2r);
+        task_s2m_mean=nanmean(cell2mat(task_s2m));
+        task_s2r_mean=nanmean(cell2mat(task_s2r));
         all_react{1,idxx}=task_s2m_mean;
         all_react{2,idxx}=task_s2r_mean;
 

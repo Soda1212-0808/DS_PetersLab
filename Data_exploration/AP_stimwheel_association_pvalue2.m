@@ -1,21 +1,23 @@
-function p = AP_stimwheel_association_pvalue2(stimOn_times,trial_events,stim_to_move,tasktype)
-% p = AP_stimwheel_association_pvalue(trial_events)
+function [p,rxn_stat,rxn_null_stat] = AP_stimwheel_association_pvalue2(stimOn_times,trial_events,stim_to_move,tasktype,use_stat)
+% [p,rxn_stat,rxn_null_stat] = AP_stimwheel_association_pvalue(stimOn_times,trial_events,stim_to_move)
 % Get p-value for whether reaction times are faster than chance (the animal
 % has a stim-wheel association)
 %
-% Does this by conditional resampling: determines all valid stim on times
-% for each trial if other quiescence periods had been selected, gets what
-% the reaction times would have been for each of those valid stim times,
-% compares to actual reactin times.
+% Does this by conditional resampling: determines all valid stim onset
+% times for each trial if other quiescence periods had been selected, gets
+% what the reaction times would have been for each of those valid stim
+% times, compares to actual reaction times.
 %
 % Inputs:
 % stimOn_times: stim times from Timelite
 % trial_events: Bonsai trial event structure from ap.load_bonsai
 % stim_to_move: measured reaction times
+% use_stat (optional): reaction statistic to use, 'mad' (default), 'mean', 'median'
 %
 % Output:
 % p: p-value for median reaction time
-
+% rxn_stat: statistic for reaction times
+% rxn_null_stat: statistic for null reaction times
 
 % Only look at completed trials
 n_trials = length([trial_events.timestamps.Outcome]);
@@ -44,16 +46,25 @@ for curr_trial = 1:n_trials
     % there's fewer "valid" stim times, so less statistical power, and may
     % err on the side of missing learned days.
 
-    % Get quiescence durations
-    response_move_timestamp = trial_events.timestamps(curr_trial).StimOn(1) + ...
-        seconds(stim_to_move(curr_trial));
+    % Get time of last quiescence reset (Timelite)
+    % (define as stim time - trial quiescence time)
+    last_quiescence_reset = stimOn_times(curr_trial) - trial_events.values(curr_trial).TrialQuiescence;
 
-    curr_quiescence_resets = vertcat(...
+    % Get quiescence reset times (Timelite)
+    curr_quiescence_resets_bonsai = vertcat(...
         trial_events.timestamps(curr_trial).QuiescenceStart, ... % start of quiescence period
-        trial_events.timestamps(curr_trial).QuiescenceReset, ... % all quiescence resets
-        response_move_timestamp);                                % first post-stim movement
+        trial_events.timestamps(curr_trial).QuiescenceReset);    % all quiescence resets
 
-    curr_quiescence_durations = seconds(diff(curr_quiescence_resets));
+    curr_quiescence_resets_timelite = last_quiescence_reset + ...
+        seconds(curr_quiescence_resets_bonsai - ...
+        curr_quiescence_resets_bonsai(end,:));
+
+    % Get quiescence durations between resets, including post-stim move
+    curr_poststim_move_timelite = stimOn_times(curr_trial) + stim_to_move(curr_trial);
+
+    curr_quiescence_durations = ...
+        diff(vertcat(curr_quiescence_resets_timelite, ...
+        curr_poststim_move_timelite));
 
     % Get valid quiescence times that would yield same response movement
     % (i.e. last quiescence duration was first over-threshold)
@@ -69,17 +80,42 @@ for curr_trial = 1:n_trials
 
     stimOn_times_valid{curr_trial} = stimOn_times(curr_trial) + valid_quiescence_offsets;
 
+    % (debugging: plot trial)
+    if false
+
+        trial_start_t = min(curr_quiescence_resets_timelite) - 2;
+        trial_end_t = stimOn_times(curr_trial) + 4;
+        curr_t_idx = timelite.timestamps > trial_start_t & timelite.timestamps < trial_end_t;
+
+        figure;
+        % (wheel velocity)
+        plot(timelite.timestamps(curr_t_idx),wheel_velocity(curr_t_idx));
+        % (quiescence resets)
+        xline(curr_quiescence_resets_timelite,'c')
+        % (stim onset)
+        xline(stimOn_times(curr_trial),'g','linewidth',2);
+        % (move onset)
+        xline(stimOn_times(curr_trial)+stim_to_move(curr_trial),'r','linewidth',2);
+        % (possible stim times)
+        xline(stimOn_times_valid{curr_trial},'--m');
+        % (last quiescence reset)
+        xline(stimOn_times(curr_trial)-trial_events.values(curr_trial).TrialQuiescence,'k')
+
+    end
+
 end
 
 move_times = stimOn_times(1:n_trials) + stim_to_move;
 stim_to_move_valid = cellfun(@(stim_time,move_time) move_time-stim_time, ...
     stimOn_times_valid,num2cell(move_times),'uni',false);
 
-% Create null reaction distribution (only from trials with reaction
-% times > 0ms: these are bad quiescence clock)
-null_use_trials = (stim_to_move > 0) & ~cellfun(@isempty,stim_to_move_valid);
-null_use_trials_visual= (stim_to_move > 0) & ~cellfun(@isempty,stim_to_move_valid) & (tasktype(1:n_trials)==0)';
-null_use_trials_audio= (stim_to_move > 0) & ~cellfun(@isempty,stim_to_move_valid) & (tasktype(1:n_trials)==1)';
+% Create null reaction distribution 
+% (only from trials with reaction times > 0ms: negative reaction times mean
+% the quiescence time wasn't working exactly)
+stim_rxn_threshold = 0;
+null_use_trials = (stim_to_move > stim_rxn_threshold) & ~cellfun(@isempty,stim_to_move_valid);
+null_use_trials_visual= (stim_to_move > stim_rxn_threshold) & ~cellfun(@isempty,stim_to_move_valid) & (tasktype(1:n_trials)==0)';
+null_use_trials_audio= (stim_to_move > stim_rxn_threshold) & ~cellfun(@isempty,stim_to_move_valid) & (tasktype(1:n_trials)==1)';
 
 n_samples = 10000;
 stim_to_move_null = nan(length(stim_to_move),n_samples);
@@ -88,46 +124,68 @@ stim_to_move_null(null_use_trials,:) = ...
     stim_to_move_valid(null_use_trials),'uni',false));
 
 % Get reaction statistic
-rxn_stat = mad(stim_to_move(null_use_trials),1,1);
-rxn_null_stat = mad(stim_to_move_null(null_use_trials,:),1,1);
+% (mad or mean, no median because doesn't look reliable)
 
-rxn_stat_rank = tiedrank(horzcat(rxn_stat,rxn_null_stat));
+% (default is mad)
+if nargin < 5 || isempty(use_stat)
+    use_stat = 'mad';
+end
+
+switch use_stat
+    case 'mad'
+        % (median absolute devation)
+        rxn_stat(1) = mad(stim_to_move(null_use_trials),1,1);
+        rxn_null_stat_distribution = mad(stim_to_move_null(null_use_trials,:),1,1);
+ 
+        rxn_stat(2) = mad(stim_to_move(null_use_trials_visual),1,1);
+        rxn_null_stat_distribution_v = mad(stim_to_move_null(null_use_trials_visual,:),1,1);
+
+         rxn_stat(3) = mad(stim_to_move(null_use_trials_audio),1,1);
+        rxn_null_stat_distribution_a = mad(stim_to_move_null(null_use_trials_audio,:),1,1);
+
+    case 'mean'
+        % (mean)
+        rxn_stat(1) = mean(stim_to_move(null_use_trials),1);
+        rxn_null_stat_distribution = mean(stim_to_move_null(null_use_trials,:),1);
+         rxn_stat(2) = mean(stim_to_move(null_use_trials_visual),1);
+        rxn_null_stat_distribution_v = mean(stim_to_move_null(null_use_trials_visual,:),1);
+
+         rxn_stat(3) = mean(stim_to_move(null_use_trials_audio),1);
+        rxn_null_stat_distribution_a = mean(stim_to_move_null(null_use_trials_audio,:),1);
+
+    case 'median'
+        % (median)
+        rxn_stat(1) = median(stim_to_move(null_use_trials),1);
+        rxn_null_stat_distribution = median(stim_to_move_null(null_use_trials,:),1);
+
+         rxn_stat(2) = median(stim_to_move(null_use_trials_visual),1);
+        rxn_null_stat_distribution_v = median(stim_to_move_null(null_use_trials_visual,:),1);
+
+         rxn_stat(3) = median(stim_to_move(null_use_trials_audio),1);
+        rxn_null_stat_distribution_a = median(stim_to_move_null(null_use_trials_audio,:),1);
+
+end
+
+rxn_stat_rank = tiedrank(horzcat(rxn_stat(1),rxn_null_stat_distribution));
 p(1) = rxn_stat_rank(1)./(n_samples+1);
 
+% Output mean statistic of null reaction times
+rxn_null_stat(1) = mean(rxn_null_stat_distribution);
 
 
 
-
-n_samples = 10000;
-stim_to_move_null = nan(length(stim_to_move),n_samples);
-stim_to_move_null(null_use_trials_visual,:) = ...
-    cell2mat(cellfun(@(x) datasample(x,n_samples)', ...
-    stim_to_move_valid(null_use_trials_visual),'uni',false));
-
-% Get reaction statistic
-rxn_stat = mad(stim_to_move(null_use_trials_visual),1,1);
-rxn_null_stat = mad(stim_to_move_null(null_use_trials_visual,:),1,1);
-
-rxn_stat_rank = tiedrank(horzcat(rxn_stat,rxn_null_stat));
+rxn_stat_rank = tiedrank(horzcat(rxn_stat(2),rxn_null_stat_distribution_v));
 p(2) = rxn_stat_rank(1)./(n_samples+1);
 
+% Output mean statistic of null reaction times
+rxn_null_stat(2) = mean(rxn_null_stat_distribution_v);
 
 
-
-
-
-n_samples = 10000;
-stim_to_move_null = nan(length(stim_to_move),n_samples);
-stim_to_move_null(null_use_trials_audio,:) = ...
-    cell2mat(cellfun(@(x) datasample(x,n_samples)', ...
-    stim_to_move_valid(null_use_trials_audio),'uni',false));
-
-% Get reaction statistic
-rxn_stat = mad(stim_to_move(null_use_trials_audio),1,1);
-rxn_null_stat = mad(stim_to_move_null(null_use_trials_audio,:),1,1);
-
-rxn_stat_rank = tiedrank(horzcat(rxn_stat,rxn_null_stat));
+rxn_stat_rank = tiedrank(horzcat(rxn_stat(3),rxn_null_stat_distribution_a));
 p(3) = rxn_stat_rank(1)./(n_samples+1);
+
+% Output mean statistic of null reaction times
+rxn_null_stat(3) = mean(rxn_null_stat_distribution_a);
 
 
 
