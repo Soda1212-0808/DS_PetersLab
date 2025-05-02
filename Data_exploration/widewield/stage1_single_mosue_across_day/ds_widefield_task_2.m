@@ -18,11 +18,10 @@ surround_sample_rate = 100;
 surround_time_points = surround_time(1):1/surround_sample_rate:surround_time(2);
 
 
-animals = {'DS007','DS013','DS010','AP019','AP021','DS011','AP022','DS001','AP018','AP020',...
+animals = {'DS021','DS007','DS013','DS010','AP019','AP021','DS011','AP022','DS001','AP018','AP020',...
     'DS004','DS014','DS015','DS016', 'DS003','DS006','DS013','DS000',...
-    'HA000','HA001','HA002','HA003','HA004','AP027','AP028','AP029','DS019','DS020','DS021'};
-
-for curr_animal_idx=14
+    'HA000','HA001','HA002','HA003','HA004','AP027','AP028','AP029','DS019','DS020'};
+for curr_animal_idx=1:length(animals)
     animal=animals{curr_animal_idx};
     fprintf('%s\n', ['start  ' animal ]);
     fprintf('%s\n', ['start saving tasks files...']);
@@ -80,7 +79,7 @@ for curr_animal_idx=14
         file_length=1;
         problem=0;
         img_size = nan(length(recordings2),2);
-
+        iti_move_time= cell(size(recordings2))';
         workflow_type=zeros(length(recordings2),1);
         workflow_type_name=cell(length(recordings2),1);
         workflow_type_name_merge=cell(length(recordings2),1);
@@ -368,33 +367,47 @@ for curr_animal_idx=14
             real_stimOn_times=stimOn_times(1:n_trials);
             real_stim_move_time=stim_move_time(1:n_trials);
 
+ pho_on_times=photodiode_times(photodiode_values==1);
+            pho_off_times=photodiode_times(photodiode_values==0)+2;
+
+
             if workflow_type(curr_recording)==1|workflow_type(curr_recording)==2
 
-                move_regressors = histcounts(real_stim_move_time,wf_regressor_bins);
-                stim_regressors = histcounts(real_stimOn_times,wf_regressor_bins);
+                move_regressors = {histcounts(real_stim_move_time,wf_regressor_bins)};
+                stim_regressors = {histcounts(real_stimOn_times,wf_regressor_bins)};
+             wf_t_only_task= {ones(length(wf_t),1)};
 
             elseif workflow_type(curr_recording)==3
 
-                stim_regressors = [histcounts(real_stimOn_times(curr_tasktype==0),wf_regressor_bins);histcounts(real_stimOn_times(curr_tasktype==1),wf_regressor_bins)];
-                move_regressors = [histcounts(real_stim_move_time(curr_tasktype==0),wf_regressor_bins);histcounts(real_stim_move_time(curr_tasktype==1),wf_regressor_bins)];
+                stim_regressors = {histcounts(real_stimOn_times(curr_tasktype==0),wf_regressor_bins);histcounts(real_stimOn_times(curr_tasktype==1),wf_regressor_bins)};
+                move_regressors = {histcounts(real_stim_move_time(curr_tasktype==0),wf_regressor_bins);histcounts(real_stim_move_time(curr_tasktype==1),wf_regressor_bins)};
+
+                wf_t_only_v= interp1([pho_on_times(curr_tasktype==1);pho_off_times(curr_tasktype==1)], ...
+                    [zeros(sum(photodiode_values(repelem(curr_tasktype, 2)'==1)==1),1);....
+                    ones(sum(photodiode_values(repelem(curr_tasktype, 2)'==1)==0),1)], ...
+                    wf_t,'previous')==1;
+
+
+                wf_t_only_a= interp1([pho_on_times(curr_tasktype==0);pho_off_times(curr_tasktype==0)], ...
+                    [zeros(sum(photodiode_values(repelem(curr_tasktype, 2)'==0)==1),1);....
+                    ones(sum(photodiode_values(repelem(curr_tasktype, 2)'==0)==0),1)], ...
+                    wf_t,'previous')==1;
+                wf_t_only_task={wf_t_only_v;wf_t_only_a};
+
 
             end
 
 
             iti_move_regressors=histcounts(real_iti_move,wf_regressor_bins);
-
-             wf_pd_off = interp1(photodiode_times,photodiode_values,wf_t,'previous')==0;
-
-            pho_on_times=photodiode_times(photodiode_values==1);
-            pho_off_times=photodiode_times(photodiode_values==0)+2;
-
+            wf_pd_off = interp1(photodiode_times,photodiode_values,wf_t,'previous')==0;
+           
             wf_t_only_iti = interp1([pho_on_times;pho_off_times], ...
                 [zeros(sum(photodiode_values==1),1);ones(sum(photodiode_values==0),1)], ...
                 wf_t,'previous')==1;
 
+        
 
 
-   
 
             % move_regressor = histcounts(stim_move_time,wf_regressor_bins);
             % regressors = {stim_regressors;move_regressors};
@@ -418,7 +431,11 @@ for curr_animal_idx=14
 
                     disp(['Running with n_components = ', num2str(n_components)]);
                     [stim_kernels,predicted_signals,explained_var] = ...
-                        ap.regresskernel(wf_V(1:n_components,:),stim_regressors,-frame_shifts,lambda);
+           cellfun(@(x,y) ap.regresskernel(wf_V(1:n_components,x),y(x),-frame_shifts,lambda),...
+               wf_t_only_task, stim_regressors ,'UniformOutput',false );
+
+                    % [stim_kernels,predicted_signals,explained_var] = ...
+                    %     ap.regresskernel(wf_V(1:n_components,:),stim_regressors,-frame_shifts,lambda)
 
                     % [BUF_kernels,BUF_predict,exp]= ap.regresskernel(stim_regressors,wf_V,-frame_shifts,lambda);
 
@@ -442,8 +459,13 @@ for curr_animal_idx=14
                 try
 
                     disp(['Running with n_components = ', num2str(n_components)]);
+                    % [move_kernels,predicted_signals,explained_var] = ...
+                    % ap.regresskernel(wf_V(1:n_components,:),move_regressors,-frame_shifts,lambda);
+
+
                     [move_kernels,predicted_signals,explained_var] = ...
-                        ap.regresskernel(wf_V(1:n_components,:),move_regressors,-frame_shifts,lambda);
+                        cellfun(@(x,y) ap.regresskernel(wf_V(1:n_components,x),y(x),-frame_shifts,lambda),...
+                        wf_t_only_task, move_regressors ,'UniformOutput',false );
 
                     success = true; % 如果没有报错，则成功运行
                 catch ME
@@ -479,7 +501,7 @@ for curr_animal_idx=14
             disp('iti_move_kernels_running_successfully');
 
 
-            wf_px_task_kernels{curr_recording}={stim_kernels,move_kernels,iti_move_kernels}';
+            wf_px_task_kernels{curr_recording}={cat(3,stim_kernels{:}),cat(3,move_kernels{:}),iti_move_kernels}';
 
             % for curr_kernels=1:2
             %     wf_V_stim_reduced_kernels=predicted_signals_reduced(:,:,curr_kernels);

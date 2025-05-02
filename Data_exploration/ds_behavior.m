@@ -1,9 +1,9 @@
 %% Behavior across days
 clear all
-Path = 'C:\Users\dsong\Documents\MATLAB\Da_Song\Data_analysis\mice\process\processed_data_v2\';
+Path = 'D:\Data process\wf_data\';
 
-animals = {'DS007','DS010','AP019','AP021','DS011','AP022','DS001','AP018','AP020'};n1_name='visual position';n2_name='audio volume';
-% animals = {'DS003','DS006','DS013','DS000','DS004','DS014','DS015','DS016'};n1_name='audio volume';n2_name='visual position';
+% animals = {'DS007','DS010','AP019','AP021','DS011','AP022','DS001','AP018','AP020'};n1_name='visual position';n2_name='audio volume';
+animals = {'DS003','DS006','DS013','DS000','DS004','DS014','DS015','DS016'};n1_name='audio volume';n2_name='visual position';
 % % animals = {'DS005'} ;transfer_type='a_frequency_to_v_position';
 % animals = {'AP027','AP028','AP029'};n1_name='visual opacity';n2_name='visual position';
 % animals = {'AP027','AP028','AP029','DS019','DS020','DS021'};n1_name='visual position';n2_name='audio frequency';
@@ -28,7 +28,7 @@ all_animal_learned_day=cell(length(animals),1);
 all_animal_workflow_name=cell(length(animals),1);
 all_animal_workflow_name_full=cell(length(animals),1);
 all_animal_workflow_day=cell(length(animals),1);
-
+all_animal_stim_on2off_time=cell(length(animals),1);
 all_animal_rxn_med=cell(length(animals),1);
 all_animal_stim2move_mean=cell(length(animals),1);
 all_animal_stim2move_mean_null=cell(length(animals),1);
@@ -39,6 +39,8 @@ all_animal_stim2move_med_null=cell(length(animals),1);
 all_animal_workflow_day_frac_move=cell(length(animals),1);
 all_animal_trials_iti_move2all_trials=cell(length(animals),1);
 all_animal_stim2move_time=cell(length(animals),1);
+all_animal_frac_move_trialbytrial=cell(length(animals),1);
+all_animal_frac_velocity_trialbytrial=cell(length(animals),1);
 
 figure('Position',[50 100 length(animals)*300 900]);
 
@@ -91,6 +93,7 @@ for curr_animal_idx = 1:length(animals)
     frac_move_day = nan(length(recordings),1);
     success = nan(length(recordings),1);
     rxn_med = nan(length(recordings),1);
+    stim_on_to_off_times=cell(length(recordings),1);
     stim2move_mean = nan(length(recordings),1);
     stim2move_mean_null = nan(length(recordings),1);
     stim2move_mad_null = nan(length(recordings),1);
@@ -103,13 +106,17 @@ for curr_animal_idx = 1:length(animals)
 
     frac_move_stimalign = nan(length(recordings),length(surround_time_points));
     frac_velocity_stimalign= nan(length(recordings),length(surround_time_points));
+   
+    frac_move_stimalign_trialbytrial =cell(length(recordings),1);
+    frac_velocity_stimalign_trialbytrial=cell(length(recordings),1);
+    
     rxn_stat_p = nan(length(recordings),1);
     workflow_name= cell(length(recordings),1);
     workflow_name_full=cell(length(recordings),1);
     trials_success= nan(length(recordings),1);
-     trials_iti_move= nan(length(recordings),1);
+    trials_iti_move= nan(length(recordings),1);
 
-    figure
+    % figure
     for curr_recording =1: length(recordings)
 
         % Grab pre-load vars
@@ -175,6 +182,8 @@ for curr_animal_idx = 1:length(animals)
 
         % Get median stim-outcome time
         n_trials = length([trial_events.timestamps.Outcome])-1;
+        stim_on_to_off_times{curr_recording}=stimOff_times(1:n_trials) - ...
+            stimOn_times(1:n_trials);
         rxn_med(curr_recording) = median(stimOff_times(1:n_trials) - ...
             stimOn_times(1:n_trials)  );
 
@@ -229,25 +238,32 @@ for curr_animal_idx = 1:length(animals)
 
 
         frac_move_day(curr_recording) = nanmean(wheel_move);
+        wheel_move_direction=double(wheel_move);
+        wheel_move_direction(wheel_move==1&wheel_velocity<0)=-1;
 
         event_aligned_wheel_vel = interp1(timelite.timestamps, ...
             wheel_velocity,pull_times);
         event_aligned_wheel_move = interp1(timelite.timestamps, ...
             +wheel_move,pull_times,'previous');
 
-        frac_move_stimalign(curr_recording,:) = nanmean(event_aligned_wheel_move,1);
-
-        % imagesc(event_aligned_wheel_vel)
-        nexttile
-        scatter(1:length(stim_to_move),stim_to_move,5,'fill')
-        ylim([-0.1 0.5])
-        nexttile;
-        histogram(stim_to_move,[-0.1:0.02:0.3])
-        drawnow
+       
+        frac_move_stimalign(curr_recording,:) = nanmean(event_aligned_wheel_move,1);    
+        frac_move_stimalign_trialbytrial{curr_recording}=event_aligned_wheel_move;
+                
+        frac_velocity_stimalign(curr_recording,:) = nanmean(event_aligned_wheel_vel,1);
+        frac_velocity_stimalign_trialbytrial{curr_recording} = event_aligned_wheel_vel;
+        % % figure
+        % nexttile
+        % imagesc(event_aligned_wheel_move')
+        % hold on
+        % scatter(1:length(stim_to_move),(1*stim_to_move+5)*100,5,'fill')
+        % % ylim([-0.1 0.5])
+        % nexttile;
+        % histogram(stim_to_move,[-0.1:0.02:0.3])
+        % drawnow
         
         stim2move_time{curr_recording}=stim_to_move;
 
-        frac_velocity_stimalign(curr_recording,:) = nanmean(event_aligned_wheel_vel,1);
 
         % Get association stat
         % rxn_stat_p(curr_recording) = AP_stimwheel_association_pvalue( ...
@@ -438,7 +454,7 @@ for curr_animal_idx = 1:length(animals)
 
 
     nexttile(t_animal);
-    react_null_index=(stim2move_mean-stim2move_mean_null)./stim2move_mean;
+    react_null_index=(stim2move_mean_null-stim2move_mean)./(stim2move_mean+stim2move_mean_null);
     plot(react_null_index)
     set(gca,'XTick',1:length(recordings),'XTickLabel', ...
         cellfun(@(day,num) sprintf('%d (%s)',num,day(6:end)), ...
@@ -491,22 +507,27 @@ for curr_animal_idx = 1:length(animals)
     iti_move2all_trials=trials_iti_move./trials_success;
     all_animal_trials_iti_move2all_trials{curr_animal_idx}= iti_move2all_trials;
     all_animal_stim2move_time{curr_animal_idx}=stim2move_time;
+    all_animal_stim_on2off_time{curr_animal_idx}=stim_on_to_off_times;
+
+    all_animal_frac_move_trialbytrial{curr_animal_idx}=frac_move_stimalign_trialbytrial;
+    all_animal_frac_velocity_trialbytrial{curr_animal_idx}=frac_velocity_stimalign_trialbytrial;
+
     drawnow;
-    save([Path 'mat_data\behavior\' animal '_behavior.mat' ],'workflow_day','learned_day','workflow_name',...
+    save([Path 'behavior\' animal '_behavior.mat' ],'workflow_day','learned_day','workflow_name',...
         'workflow_name_full','react_index2','react_index','react_null_index','learned_day','rxn_med',...
         'stim2move_med','stim2move_mad','stim2move_mean','stim2move_mean_null','stim2move_med_null',...
-        'stim2move_mad_null','frac_move_stimalign','iti_move2all_trials','stim2move_time','-v7.3');
+        'stim2move_mad_null','frac_move_stimalign','iti_move2all_trials','stim2move_time','stim_on_to_off_times','-v7.3');
 
 end
 
 % saveas(gcf,[Path 'figures\summary\behavior\behavior in ' n1_name '_to_' n2_name ], 'jpg');
 % 
- save([Path 'mat_data\summary_data\behavior in ' n1_name '_to_' n2_name '.mat' ],...
+ save([Path 'summary_data\behavior in ' n1_name '_to_' n2_name '.mat' ],...
      'animals','all_animal_workflow_day','all_animal_learned_day', 'all_animal_workflow_name',...
      'all_animal_react_index','all_animal_rxn_med','all_animal_stim2move_mean','all_animal_stim2move_mean_null',...
      'all_animal_stim2move_mad','all_animal_stim2move_mad_null','all_animal_stim2move_med_null',...
      'all_animal_stim2move_med','all_animal_react_null_index','all_animal_workflow_day_frac_move',...
-     'all_animal_trials_iti_move2all_trials','all_animal_stim2move_time','-v7.3');
+     'all_animal_trials_iti_move2all_trials','all_animal_stim2move_time','all_animal_stim_on2off_time','-v7.3');
 
 %%
 clear all

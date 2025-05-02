@@ -1,6 +1,6 @@
 clear all
 clc
-Path = 'C:\Users\dsong\Documents\MATLAB\Da_Song\Data_analysis\mice\process\processed_data_v2\';
+Path = 'D:\Data process\wf_data\';
 master_U_fn = fullfile(plab.locations.server_path,'Lab', ...
     'widefield_alignment','U_master.mat');
 load(master_U_fn);
@@ -17,16 +17,16 @@ period_task=find(t_task>0&t_task<passive_boundary);
 period_kernels=find(t_kernels>0&t_kernels<passive_boundary);
 
 
-animal='DS010';
+animal='DS016';
 wokrflow='task';
 
 learn_name={'non-learned','learned'};
 workflow_stage={'naive','visual','auditory','mixed'};
 legend_name={'-90','0','90';'4k','8k','12k';'-90','0','90';};
 
-used_data=1;% 1 raw data;2 kernels
+used_data=2;% 1 raw data;2 kernels
 data_type={'raw','kernels'};
-raw_data_task=load([Path '\mat_data\' wokrflow '\' animal '_' wokrflow '.mat']);
+raw_data_task=load([Path  wokrflow '\' animal '_' wokrflow '.mat']);
 
 
 if used_data==1
@@ -38,7 +38,8 @@ if used_data==1
 else
     idx=cellfun(@(x) ~(isempty(x)|| ~(size(x,3)==1)),raw_data_task.wf_px_task_kernels);
 
-    image_all(idx)=cellfun(@(x)  plab.wf.svd2px(U_master(:,:,1:size(x{3})),x{3}),raw_data_task.wf_px_task_kernels(idx),'UniformOutput',false);
+    image_all(idx)=cellfun(@(x)  plab.wf.svd2px(U_master(:,:,1:size(x{1})),x{1}),raw_data_task.wf_px_task_kernels(idx),'UniformOutput',false);
+   
     use_period=period_kernels;
     use_t=t_kernels;
 end
@@ -97,7 +98,7 @@ for i=find(idx)
      axis image off;
     ap.wf_draw('ccf', 'black');
     colormap( ap.colormap('WG'));
-    clim(0.05 .* [0, 1]);
+    clim(0.0002 .* [0, 1]);
     % xlim([0 213])
 
    title(['day' num2str(i) ' ' raw_data_task.workflow_day{i}],[raw_data_task.workflow_type_name_merge{i} '-' learn_name{(raw_data_task.rxn_stat_p{i}<0.05)+1} ])

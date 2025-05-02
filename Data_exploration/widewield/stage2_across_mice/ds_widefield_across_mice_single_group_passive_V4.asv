@@ -1,6 +1,6 @@
 clear all
 clc
-Path = 'C:\Users\dsong\Documents\MATLAB\Da_Song\Data_analysis\mice\process\processed_data_v2\';
+Path = 'D:\Data process\wf_data\';
 master_U_fn = fullfile(plab.locations.server_path,'Lab', ...
     'widefield_alignment','U_master.mat');
 load(master_U_fn);
@@ -16,19 +16,8 @@ passive_boundary=0.2;
 period_passive=find(t_passive>0&t_passive<passive_boundary);
 period_kernels=find(t_kernels>0&t_kernels<passive_boundary);
 
-
-
 all_workflow={'lcr_passive','hml_passive_audio','lcr_passive_size60'};
 Color={'B','R'};
-
-
-% data_all=struct;
-% data_all.(all_workflow{1})=[];
-% data_all.(all_workflow{2})=[];
-
-% data_all_images=struct;
-% data_all_images.(all_workflow{1})=[];
-% data_all_images.(all_workflow{2})=[];
 
 n1_name='';n2_name='';
 use_period=[];
@@ -36,166 +25,306 @@ workflow='';
 use_t=[];
 animals={};
 groups={'Vp-Av','Av-Vp','Vp-Av-n','Av-Vp-n','Vp-Af','Vo-n-Vp','Vs-Vp','Va-Vp'};
-select_group=[1 2]
+select_group=1:2
 
-data_all_video=cell(2,1)
-data_all=cell(2,1)
+data_all_video=cell(2,1);
+data_all=cell(2,1);
 % used_data=1;% 1 raw data;2 kernels
 data_type={'raw','kernels'};
 for used_data=2
-for  workflow_idx=1:2
-    workflow=all_workflow{workflow_idx};
-    for curr_group=select_group;
-    main_preload_vars = who;
-    if curr_group==1
-        animals{curr_group} = {'DS007','DS010','AP019','AP021','DS011','AP022'};n1_name='visual position';n2_name='audio volume';
-    elseif curr_group==2
-        animals{curr_group} = {'DS000','DS004','DS014','DS015','DS016'};n1_name='audio volume';n2_name='visual position';
-    elseif curr_group==3
-        animals{curr_group} = {'AP018','AP020'};n1_name='visual position';n2_name='audio volume';
-    elseif curr_group==4
-        animals{curr_group} = {'DS006','DS013'};n1_name='audio volume';n2_name='visual position';
-    elseif curr_group==5
-        animals{curr_group} = {'AP027','AP028','DS019','DS020','DS021'};n1_name='visual position';n2_name='audio frequency';
-    elseif curr_group==6
-        animals{curr_group} = {'AP027','AP028','AP029'};n1_name='visual opacity';n2_name='visual position';
-    elseif curr_group==7
-        animals{curr_group} = {'HA003','HA004','DS019','DS020','DS021'};n1_name='visual size up';n2_name='visual position';
-    elseif curr_group==8
-        animals{curr_group} = {'HA000','HA001','HA002'};n1_name='visual angle';n2_name='visual position';
+    for  workflow_idx=1:2
+        workflow=all_workflow{workflow_idx};
+        for curr_group=select_group;
+            main_preload_vars = who;
+            if curr_group==1
+                animals{curr_group} = {'DS007','DS010','AP019','AP021','DS011','AP022'};n1_name='visual position';n2_name='audio volume';
+            elseif curr_group==2
+                animals{curr_group} = {'DS000','DS004','DS014','DS015','DS016'};n1_name='audio volume';n2_name='visual position';
+            elseif curr_group==3
+                animals{curr_group} = {'AP018','AP020'};n1_name='visual position';n2_name='audio volume';
+            elseif curr_group==4
+                animals{curr_group} = {'DS006','DS013'};n1_name='audio volume';n2_name='visual position';
+            elseif curr_group==5
+                animals{curr_group} = {'AP027','AP028','DS019','DS020','DS021'};n1_name='visual position';n2_name='audio frequency';
+            elseif curr_group==6
+                animals{curr_group} = {'AP027','AP028','AP029'};n1_name='visual opacity';n2_name='visual position';
+            elseif curr_group==7
+                animals{curr_group} = {'HA003','HA004','DS019','DS020','DS021'};n1_name='visual size up';n2_name='visual position';
+            elseif curr_group==8
+                animals{curr_group} = {'HA000','HA001','HA002'};n1_name='visual angle';n2_name='visual position';
 
-    end
+            end
 
-    used_id=1:3;
-    all_data_video=cell(length(animals{curr_group}),1);
-    all_data_workflow_name=cell(length(animals{curr_group}),1);
-    all_data_learned_day=cell(length(animals{curr_group}),1);
-    matches=cell(length(animals{curr_group}),1);
-    use_t=[];
-    use_period=[];
-    for curr_animal=1:length(animals{curr_group})
-        preload_vars = who;
-        animal=animals{curr_group}{curr_animal};
-        raw_data_passive=load([Path '\mat_data\' workflow '\' animal '_' workflow '.mat']);
-        if used_data==1
+            used_id=1:3;
+            all_data_video=cell(length(animals{curr_group}),1);
+            all_data_workflow_name=cell(length(animals{curr_group}),1);
+            all_data_learned_day=cell(length(animals{curr_group}),1);
+            matches=cell(length(animals{curr_group}),1);
+            use_t=[];
+            use_period=[];
+            for curr_animal=1:length(animals{curr_group})
+                preload_vars = who;
+                animal=animals{curr_group}{curr_animal};
+                raw_data_passive=load([Path  workflow '\' animal '_' workflow '.mat']);
+                if used_data==1
 
-            idx=cellfun(@(x) ~(isempty(x)|~(size(x,3)==3))  ,raw_data_passive.wf_px);
-            image_all(idx,1)=cellfun(@(x)  plab.wf.svd2px(U_master,x),raw_data_passive.wf_px(idx),'UniformOutput',false);
+                    idx=cellfun(@(x) ~(isempty(x)|~(size(x,3)==3))  ,raw_data_passive.wf_px);
+                    image_all(idx,1)=cellfun(@(x)  plab.wf.svd2px(U_master,x),raw_data_passive.wf_px(idx),'UniformOutput',false);
 
-            use_period=period_passive;
-            use_t=t_passive;
-        else
-            idx=cellfun(@(x) ~isempty(x),raw_data_passive.wf_px_kernels);
+                    use_period=period_passive;
+                    use_t=t_passive;
+                else
+                    idx=cellfun(@(x) ~isempty(x),raw_data_passive.wf_px_kernels);
 
-            image_all(idx,1)=cellfun(@(x)  plab.wf.svd2px(U_master(:,:,1:size(x,1)),x),raw_data_passive.wf_px_kernels(idx),'UniformOutput',false);
-            use_period=period_kernels;
-            use_t=t_kernels;
+                    image_all(idx,1)=cellfun(@(x)  plab.wf.svd2px(U_master(:,:,1:size(x,1)),x),raw_data_passive.wf_px_kernels(idx),'UniformOutput',false);
+                    use_period=period_kernels;
+                    use_t=t_kernels;
+                end
+                matches{curr_animal}=unique(raw_data_passive.workflow_type_name_merge(idx)  ,'stable');
+
+
+                all_data_video{curr_animal}=image_all(idx);
+                all_data_workflow_name{curr_animal}=raw_data_passive.workflow_type_name_merge(idx);
+                all_data_learned_day{curr_animal}=raw_data_passive.learned_day(idx);
+                clearvars('-except',preload_vars{:});
+
+            end
+
+            naive_idx=cellfun(@(x) any(strcmp('naive',x)),matches,'UniformOutput',true );
+            naive_data=cell(length(animals{curr_group}),1);
+            naive_data(naive_idx) =  cellfun(@(x, y, z)...
+                x(find(strcmp(y, z(find(cellfun(@(idx) strcmp('naive', idx), z, 'UniformOutput', true)))), 3, 'first'), :), ...
+                all_data_video(naive_idx), all_data_workflow_name(naive_idx), matches(naive_idx), ...
+                'UniformOutput', false);
+            naive_data(~naive_idx) = arrayfun(@(x) repmat({nan(450,426,length(use_t),3)},3,1),...
+                (1:length(find(~naive_idx)))', 'UniformOutput', false);
+            naive_data= cellfun(@(x) [x; repmat({nan(450,426,length(use_t),3)},3-length(x),1)],naive_data,'UniformOutput',false);
+
+
+            pre_learn_data0=cell(length(animals{curr_group}),1);
+            pre_learn_data0 = cellfun(@(x,y,z,l) x(find(strcmp(y,z(find(cellfun(@(idx) strcmp(n1_name, idx),z,'UniformOutput',true))))& l'==0 ))...
+                ,all_data_video,all_data_workflow_name,matches,all_data_learned_day,'UniformOutput',false);
+            pre_learn_data0 = cellfun(@(x) x(1:end-2),pre_learn_data0,'UniformOutput',false);
+            pre_learn_data0 = cellfun(@(x) mean(cat(5,x{:}),5),pre_learn_data0,'UniformOutput',false);
+            pre_learn_data0= cellfun(@(x) [x; repmat({nan(450,426,length(use_t),3)},1-length(x),1)],pre_learn_data0,'UniformOutput',false);
+
+
+            pre_learn_data1=cell(length(animals{curr_group}),1);
+            pre_learn_data1 = cellfun(@(x,y,z,l) x(find(strcmp(y,z(find(cellfun(@(idx) strcmp(n1_name, idx),z,'UniformOutput',true))))& l'==0 ,2,'last'))...
+                ,all_data_video,all_data_workflow_name,matches,all_data_learned_day,'UniformOutput',false);
+            pre_learn_data1= cellfun(@(x) [x; repmat({nan(450,426,length(use_t),3)},2-length(x),1)],pre_learn_data1,'UniformOutput',false);
+
+            post_learn1_data1=cell(length(animals{curr_group}),1);
+            post_learn1_data1 = cellfun(@(x,y,z,l) x(find(strcmp(y,z(find(cellfun(@(idx) strcmp(n1_name, idx),z,'UniformOutput',true))))& l'==1 ,2,'first'))...
+                ,all_data_video,all_data_workflow_name,matches,all_data_learned_day,'UniformOutput',false);
+            post_learn1_data1= cellfun(@(x) [x; repmat({nan(450,426,length(use_t),3)},2-length(x),1)],post_learn1_data1,'UniformOutput',false);
+
+
+            post_learn2_data1=cell(length(animals{curr_group}),1);
+            post_learn2_data1 = cellfun(@(x,y,z,l) x(find(strcmp(y,z(find(cellfun(@(idx) strcmp(n1_name, idx),z,'UniformOutput',true))))& l'==1 ,5,'first'))...
+                ,all_data_video,all_data_workflow_name,matches,all_data_learned_day,'UniformOutput',false);
+            post_learn2_data1 = cellfun(@(x) x(3:end),post_learn2_data1,'UniformOutput',false);
+            post_learn2_data1= cellfun(@(x) [x; repmat({nan(450,426,length(use_t),3)},3-length(x),1)],post_learn2_data1,'UniformOutput',false);
+
+            pre_learn_data2=cell(length(animals{curr_group}),1);
+            pre_learn_data2 = cellfun(@(x,y,z,l) x(find(strcmp(y,z(find(cellfun(@(idx) strcmp(n2_name, idx),z,'UniformOutput',true))))& l'==0 ,2,'first'))...
+                ,all_data_video,all_data_workflow_name,matches,all_data_learned_day,'UniformOutput',false);
+            pre_learn_data2= cellfun(@(x) [x; repmat({nan(450,426,length(use_t),3)},2-length(x),1)],pre_learn_data2,'UniformOutput',false);
+
+            post_learn1_data2=cell(length(animals{curr_group}),1);
+            post_learn1_data2 = cellfun(@(x,y,z,l) x(find(strcmp(y,z(find(cellfun(@(idx) strcmp(n2_name, idx),z,'UniformOutput',true))))& l'==1 ,2,'first'))...
+                ,all_data_video,all_data_workflow_name,matches,all_data_learned_day,'UniformOutput',false);
+            post_learn1_data2= cellfun(@(x) [x; repmat({nan(450,426,length(use_t),3)},2-length(x),1)],post_learn1_data2,'UniformOutput',false);
+
+            post_learn2_data2=cell(length(animals{curr_group}),1);
+            post_learn2_data2 = cellfun(@(x,y,z,l) x(find(strcmp(y,z(find(cellfun(@(idx) strcmp(n2_name, idx),z,'UniformOutput',true))))& l'==1 ,5,'first'))...
+                ,all_data_video,all_data_workflow_name,matches,all_data_learned_day,'UniformOutput',false);
+            post_learn2_data2 = cellfun(@(x) x(3:end),post_learn2_data2,'UniformOutput',false);
+            post_learn2_data2= cellfun(@(x) [x; repmat({nan(450,426,length(use_t),3)},3-length(x),1)],post_learn2_data2,'UniformOutput',false);
+
+            n3_name='mixed VA';
+            mixed_idx=cellfun(@(x) any(strcmp(n3_name, x)),matches ,'UniformOutput',true);
+            data3=cell(length(animals{curr_group}),1);
+            data3(mixed_idx) = cellfun(@(x,y,z) x(find(strcmp(y,z(find(cellfun(@(idx) strcmp(n3_name, idx),z,'UniformOutput',true)))),3,'last'),:),...
+                all_data_video(mixed_idx) ,all_data_workflow_name(mixed_idx) ,matches(mixed_idx) ,'UniformOutput',false);
+
+            data3(~mixed_idx) = arrayfun(@(x) repmat({nan(450,426,length(use_t),3)},3,1),...
+                (1:length(find(~mixed_idx)))', 'UniformOutput', false);
+            data3= cellfun(@(x) [x; repmat({nan(450,426,length(use_t),3)},3-length(x),1)],data3,'UniformOutput',false);
+
+            all_data=cellfun(@(a0,a,b,c,d,e,f,g,h) [a0;a;b;c;d;e;f;g;h], naive_data,pre_learn_data0,pre_learn_data1,post_learn1_data1,post_learn2_data1,...
+                pre_learn_data2,post_learn1_data2,post_learn2_data2,data3,'UniformOutput',false);
+
+
+            data_list = {
+                naive_data, pre_learn_data0, pre_learn_data1, ...
+                post_learn1_data1, post_learn2_data1, ...
+                pre_learn_data2, post_learn1_data2, post_learn2_data2, ...
+                data3
+                };
+            combine_func = @(x) nanmean(cat(5, x{:}), 5);
+            all_data_image = cellfun(@(d) cellfun(combine_func, d, 'UniformOutput', false), data_list, 'UniformOutput', false);
+
+
+            all_data_image1= cellfun(@(x) cat(5,x{:}), all_data_image,'UniformOutput',false);
+            all_data_image2=cat(6,all_data_image1{:});
+            % data_all_video{workflow_idx}=permute(max(all_data_image2(:,:,use_period,:,:,:),[],3),[1 2 4 5 6 3]);
+
+
+            data_all{curr_group}{used_data}{workflow_idx}=all_data;
+
+            % data_all_images.(all_workflow{workflow_idx})=permute(max(all_data_image2(:,:,use_period,:,:,:),[],3),[1 2 4 5 6 3]);
+
+            data_all_video{curr_group}{used_data}{workflow_idx}=all_data_image2;
+
+
+
+            clearvars('-except',main_preload_vars{:});
+
         end
-        matches{curr_animal}=unique(raw_data_passive.workflow_type_name_merge(idx)  ,'stable');
-
-
-
-
-
-
-        all_data_video{curr_animal}=image_all(idx);
-        all_data_workflow_name{curr_animal}=raw_data_passive.workflow_type_name_merge(idx);
-        all_data_learned_day{curr_animal}=raw_data_passive.learned_day(idx);
-        clearvars('-except',preload_vars{:});
-
     end
-
-    naive_idx=cellfun(@(x) any(strcmp('naive',x)),matches,'UniformOutput',true );
-    naive_data=cell(length(animals{curr_group}),1);
-    naive_data(naive_idx) =  cellfun(@(x, y, z)...
-        x(find(strcmp(y, z(find(cellfun(@(idx) strcmp('naive', idx), z, 'UniformOutput', true)))), 3, 'first'), :), ...
-        all_data_video(naive_idx), all_data_workflow_name(naive_idx), matches(naive_idx), ...
-        'UniformOutput', false);
-    naive_data(~naive_idx) = arrayfun(@(x) repmat({nan(450,426,length(use_t),3)},3,1),...
-        (1:length(find(~naive_idx)))', 'UniformOutput', false);
-    naive_data= cellfun(@(x) [x; repmat({nan(450,426,length(use_t),3)},3-length(x),1)],naive_data,'UniformOutput',false);
-
-    pre_learn_data1=cell(length(animals{curr_group}),1);
-    pre_learn_data1 = cellfun(@(x,y,z,l) x(find(strcmp(y,z(find(cellfun(@(idx) strcmp(n1_name, idx),z,'UniformOutput',true))))& l'==0 ,2,'first'))...
-        ,all_data_video,all_data_workflow_name,matches,all_data_learned_day,'UniformOutput',false);
-    pre_learn_data1= cellfun(@(x) [x; repmat({nan(450,426,length(use_t),3)},2-length(x),1)],pre_learn_data1,'UniformOutput',false);
-
-    post_learn1_data1=cell(length(animals{curr_group}),1);
-    post_learn1_data1 = cellfun(@(x,y,z,l) x(find(strcmp(y,z(find(cellfun(@(idx) strcmp(n1_name, idx),z,'UniformOutput',true))))& l'==1 ,2,'first'))...
-        ,all_data_video,all_data_workflow_name,matches,all_data_learned_day,'UniformOutput',false);
-    post_learn1_data1= cellfun(@(x) [x; repmat({nan(450,426,length(use_t),3)},2-length(x),1)],post_learn1_data1,'UniformOutput',false);
-
-
-    post_learn2_data1=cell(length(animals{curr_group}),1);
-    post_learn2_data1 = cellfun(@(x,y,z,l) x(find(strcmp(y,z(find(cellfun(@(idx) strcmp(n1_name, idx),z,'UniformOutput',true))))& l'==1 ,5,'first'))...
-        ,all_data_video,all_data_workflow_name,matches,all_data_learned_day,'UniformOutput',false);
-    post_learn2_data1 = cellfun(@(x) x(3:end),post_learn2_data1,'UniformOutput',false);
-    post_learn2_data1= cellfun(@(x) [x; repmat({nan(450,426,length(use_t),3)},3-length(x),1)],post_learn2_data1,'UniformOutput',false);
-
-    pre_learn_data2=cell(length(animals{curr_group}),1);
-    pre_learn_data2 = cellfun(@(x,y,z,l) x(find(strcmp(y,z(find(cellfun(@(idx) strcmp(n2_name, idx),z,'UniformOutput',true))))& l'==0 ,2,'first'))...
-        ,all_data_video,all_data_workflow_name,matches,all_data_learned_day,'UniformOutput',false);
-    pre_learn_data2= cellfun(@(x) [x; repmat({nan(450,426,length(use_t),3)},2-length(x),1)],pre_learn_data2,'UniformOutput',false);
-
-    post_learn1_data2=cell(length(animals{curr_group}),1);
-    post_learn1_data2 = cellfun(@(x,y,z,l) x(find(strcmp(y,z(find(cellfun(@(idx) strcmp(n2_name, idx),z,'UniformOutput',true))))& l'==1 ,2,'first'))...
-        ,all_data_video,all_data_workflow_name,matches,all_data_learned_day,'UniformOutput',false);
-    post_learn1_data2= cellfun(@(x) [x; repmat({nan(450,426,length(use_t),3)},2-length(x),1)],post_learn1_data2,'UniformOutput',false);
-
-    post_learn2_data2=cell(length(animals{curr_group}),1);
-    post_learn2_data2 = cellfun(@(x,y,z,l) x(find(strcmp(y,z(find(cellfun(@(idx) strcmp(n2_name, idx),z,'UniformOutput',true))))& l'==1 ,5,'first'))...
-        ,all_data_video,all_data_workflow_name,matches,all_data_learned_day,'UniformOutput',false);
-    post_learn2_data2 = cellfun(@(x) x(3:end),post_learn2_data2,'UniformOutput',false);
-    post_learn2_data2= cellfun(@(x) [x; repmat({nan(450,426,length(use_t),3)},3-length(x),1)],post_learn2_data2,'UniformOutput',false);
-
-    n3_name='mixed VA';
-    mixed_idx=cellfun(@(x) any(strcmp(n3_name, x)),matches ,'UniformOutput',true);
-    data3=cell(length(animals{curr_group}),1);
-    data3(mixed_idx) = cellfun(@(x,y,z) x(find(strcmp(y,z(find(cellfun(@(idx) strcmp(n3_name, idx),z,'UniformOutput',true)))),3,'last'),:),...
-        all_data_video(mixed_idx) ,all_data_workflow_name(mixed_idx) ,matches(mixed_idx) ,'UniformOutput',false);
-
-    data3(~mixed_idx) = arrayfun(@(x) repmat({nan(450,426,length(use_t),3)},3,1),...
-        (1:length(find(~mixed_idx)))', 'UniformOutput', false);
-    data3= cellfun(@(x) [x; repmat({nan(450,426,length(use_t),3)},3-length(x),1)],data3,'UniformOutput',false);
-
-    all_data=cellfun(@(a,b,c,d,e,f,g,h) [a;b;c;d;e;f;g;h], naive_data,pre_learn_data1,post_learn1_data1,post_learn2_data1,...
-        pre_learn_data2,post_learn1_data2,post_learn2_data2,data3,'UniformOutput',false);
-
-    all_data_image{1}=cellfun(@(x) nanmean(cat(5,x{:}),5),naive_data,'UniformOutput',false);
-    all_data_image{2}=cellfun(@(x) nanmean(cat(5,x{:}),5),pre_learn_data1,'UniformOutput',false);
-    all_data_image{3}=cellfun(@(x) nanmean(cat(5,x{:}),5),post_learn1_data1,'UniformOutput',false);
-    all_data_image{4}=cellfun(@(x) nanmean(cat(5,x{:}),5),post_learn2_data1,'UniformOutput',false);
-    all_data_image{5}=cellfun(@(x) nanmean(cat(5,x{:}),5),pre_learn_data2,'UniformOutput',false);
-    all_data_image{6}=cellfun(@(x) nanmean(cat(5,x{:}),5),post_learn1_data2,'UniformOutput',false);
-    all_data_image{7}=cellfun(@(x) nanmean(cat(5,x{:}),5),post_learn2_data2,'UniformOutput',false);
-    all_data_image{8}=cellfun(@(x) nanmean(cat(5,x{:}),5),data3,'UniformOutput',false);
-
-
-    all_data_image1= cellfun(@(x) cat(5,x{:}), all_data_image,'UniformOutput',false);
-    all_data_image2=cat(6,all_data_image1{:});
-    % data_all_video{workflow_idx}=permute(max(all_data_image2(:,:,use_period,:,:,:),[],3),[1 2 4 5 6 3]);
-
-
-    data_all{curr_group}{used_data}{workflow_idx}=all_data;
-
-    % data_all_images.(all_workflow{workflow_idx})=permute(max(all_data_image2(:,:,use_period,:,:,:),[],3),[1 2 4 5 6 3]);
-
-    data_all_video{curr_group}{used_data}{workflow_idx}=all_data_image2;
-
-
-
-    clearvars('-except',main_preload_vars{:});
-
-    end
-end
 
 end
 
 % save([Path 'mat_data\summary_data\passive ' data_type{used_data} ' in group ' groups{select_group}  '.mat' ],'data_all_images','data_all','-v7.3');
 
-%%
+%%  visual passive averaged raw vs kernels
+
+raw_v=permute(mean(max(data_all_video{1}{1}{1}(:,:,period_passive,:,:,5),[],3),5),[1,2,4,3]);
+kernels_v=permute(mean(max(data_all_video{1}{2}{1}(:,:,period_kernels,:,:,5),[],3),5),[1,2,4,3]);
+figure('Position',[50,50,400,400])
+t2 = tiledlayout(2, 3, 'TileSpacing', 'tight', 'Padding', 'compact');
+titles={'L','M','R'}
+    for curr_stim=1:3
+        nexttile
+       
+        imagesc(raw_v(:,:,curr_stim))
+       
+        axis image off
+        ap.wf_draw('ccf','black');
+        clim(0.0025.*[0,1]);
+        colormap(ap.colormap('WB'));
+        axis image;
+        title(titles{curr_stim})
+        switch curr_stim
+            case 3
+                colorbar('southoutside')
+            case 1
+             text(-50, 150,  'raw', 'FontSize', 10, 'FontWeight', 'bold', ...
+                'HorizontalAlignment', 'right', 'Rotation', 90);
+        end
+    end
+for curr_stim=1:3
+        nexttile
+       
+        imagesc(kernels_v(:,:,curr_stim))
+      
+        axis image off
+        ap.wf_draw('ccf','black');
+        clim(0.0002.*[0,1]);
+        colormap(ap.colormap('WB'));
+        axis image;
+
+         switch curr_stim
+             case 1
+                   text(-50, 150,  'kernels', 'FontSize', 10, 'FontWeight', 'bold', ...
+                'HorizontalAlignment', 'right', 'Rotation', 90);
+            case 3
+                colorbar('southoutside')
+        end
+    end
+
+
+saveas(gcf,[Path 'figures\summary\figures\  visual passive vs kernels ' ], 'jpg');
+%%  auditory passive averaged raw vs kernels
+
+raw_a=permute(mean(max(data_all_video{2}{1}{2}(:,:,period_passive,:,:,5),[],3),5),[1,2,4,3]);
+kernels_a=permute(mean(max(data_all_video{2}{2}{2}(:,:,period_kernels,:,:,5),[],3),5),[1,2,4,3]);
+figure('Position',[50,50,400,400])
+t2 = tiledlayout(2, 3, 'TileSpacing', 'tight', 'Padding', 'compact');
+titles={'4K','8K','12K'}
+for curr_stim=1:3
+    nexttile
+
+    imagesc(raw_a(:,:,curr_stim))
+
+    axis image off
+    ap.wf_draw('ccf','black');
+    clim(0.0025.*[0,1]);
+    colormap(ap.colormap('WR'));
+    axis image;
+    title(titles{curr_stim})
+    switch curr_stim
+        case 3
+            colorbar('southoutside')
+        case 1
+            text(-50, 150,  'raw', 'FontSize', 10, 'FontWeight', 'bold', ...
+                'HorizontalAlignment', 'right', 'Rotation', 90);
+    end
+end
+for curr_stim=1:3
+    nexttile
+
+    imagesc(kernels_a(:,:,curr_stim))
+
+    axis image off
+    ap.wf_draw('ccf','black');
+    clim(0.0002.*[0,1]);
+    colormap(ap.colormap('WR'));
+    axis image;
+
+    switch curr_stim
+        case 1
+            text(-50, 150,  'kernels', 'FontSize', 10, 'FontWeight', 'bold', ...
+                'HorizontalAlignment', 'right', 'Rotation', 90);
+        case 3
+            colorbar('southoutside')
+    end
+end
+
+
+ saveas(gcf,[Path 'figures\summary\figures\  auditory passive vs kernels ' ], 'jpg');
+
+
+%% images across time aligned to stim 
+curr_video= nanmean(data_all_video{1}{2}{1}(:,:,:,:,:,3),5);
+
+scale=0.0004;
+time_period=[-0.05 0.3]
+figure('Position', [50 50 110*length(find(use_t>=time_period(1)& use_t<=time_period(2))) 160*(size(curr_video,4))]);
+t1 = tiledlayout(size(curr_video,4), length(find(use_t>=time_period(1)& use_t<=time_period(2))), 'TileSpacing', 'none', 'Padding', 'none');
+
+for curr_stim=1:size(curr_video,4)
+    for curr_time =find(use_t>=time_period(1)& use_t<time_period(2))
+
+        a_1=nexttile
+        buff_image=curr_video(:,:,curr_time,curr_stim);
+
+        imagesc(buff_image)
+        axis image off;
+        ap.wf_draw('ccf', 'black');
+        clim(scale .* [0,1]);
+        colormap( a_1, ap.colormap(['W' Color{curr_group}]  ));
+        if curr_stim==1
+            title(num2str(t_kernels(curr_time)))
+        end
+        if curr_time==find(use_t>=time_period(1)& use_t<time_period(2),1,'first')
+            text(-30, 100, row_labels(curr_stim), 'FontSize', 12, 'FontWeight', 'bold', ...
+                'HorizontalAlignment', 'right', 'VerticalAlignment', 'middle','Rotation', 90);
+        end
+        if curr_time==find(use_t>=time_period(1)& use_t<time_period(2),1,'last')& curr_stim==size(curr_video,4)
+cb = colorbar( 'southoutside');
+
+% 紧贴图像 + 防止偏离窗口：手动微调位置
+ % cb.Position(2) = cb.Position(2)-0.05;   % 下移 colorbar
+% cb.Position(4) = 0.02;    
+        end
+    end
+
+end
+
 %% across time 
-group=1
+group=2
 group_name={'VA','AV'}; % VA-1,AV-2
 stim_type=1
 stim_name={'V passive','A passive'}
@@ -212,8 +341,10 @@ stage_name={'naive','mod1-pre','mod1-post1','mod1-well trained','mod2-pre','mod2
 % stage2-pre:4 ;stage2-post:5 ;stage2-post:6;
 % mixed visual:7 ; mixed auditory :8
 
-curr_video=permute(nanmean(data_all_video{group}{type}{stim_type}(:,:,:,stim_cue{stim_type},:,stage),5),[1 2 3 6 4 5]);
-
+ curr_video0=permute(nanmean(data_all_video{1}{type}{1}(:,:,:,stim_cue{stim_type},:,1),5),[1 2 3 6 4 5]);
+curr_video1=permute(nanmean(data_all_video{1}{type}{1}(:,:,:,stim_cue{stim_type},:,7),5),[1 2 3 6 4 5]);
+curr_video2=permute(nanmean(data_all_video{2}{type}{1}(:,:,:,stim_cue{stim_type},:,4),5),[1 2 3 6 4 5]);
+curr_video=cat(4,curr_video0,curr_video1,curr_video2);
 
 ap.imscroll(curr_video,use_t)
 axis image off
@@ -224,18 +355,18 @@ colormap(ap.colormap('KWB'));
 axis image;
 % set(gcf,'name',sprintf('%s',[ group_name{group} ' ' data_type{type} ' ' align_time_name{align_time} ' ' stage_name{stage}]));
 %
-
+%
 scale=0.0002;
 
 figure('Position', [50 50 120*length(find(use_t>=0& use_t<=0.3)) 150*(size(curr_video,4)+1)]);
 t1 = tiledlayout(size(curr_video,4)+1, length(find(use_t>=0& use_t<=0.3)), 'TileSpacing', 'none', 'Padding', 'none');
 Color={'G','P','P','P','P','P','P'};
 
-for curr_stage=1:size(curr_video,4)
+for curr_stim=1:size(curr_video,4)
 for curr_time =find(use_t>=0& use_t<0.3)
 
     a_1=nexttile
-    buff_image=curr_video(:,:,curr_time,curr_stage);
+    buff_image=curr_video(:,:,curr_time,curr_stim);
     
     imagesc(buff_image)
     % imagesc(buff_image-fliplr(buff_image))
@@ -243,11 +374,11 @@ for curr_time =find(use_t>=0& use_t<0.3)
     ap.wf_draw('ccf', 'black');
     clim(scale .* [-1, 1]);
         colormap( a_1, ap.colormap(['KW' Color{group}]  ));
-   if curr_stage==1
+   if curr_stim==1
         title(num2str(t_kernels(curr_time)))
    end
    if curr_time==find(use_t>=0& use_t<0.3,1,'first')
-        text(-30, 100, stage_name(stage(curr_stage)), 'FontSize', 12, 'FontWeight', 'bold', ...
+        text(-30, 100, stage_name(stage(curr_stim)), 'FontSize', 12, 'FontWeight', 'bold', ...
         'HorizontalAlignment', 'right', 'VerticalAlignment', 'middle','Rotation', 90);
    end
 end
@@ -257,157 +388,521 @@ cb=colorbar('southoutside'); % 在下方添加 colorbar
  
 % saveas(gcf,[Path 'figures\summary\figures\' stim_name{stim_type} '' data_type{type} ' across time in ' group_name{group}   ], 'jpg');
 
-%% sequenced activity PPC vs amPFC vs pmPFC
-
-curr_video=permute(data_all_video{group}{type}{stim_type}(:,:,:,stim_cue{stim_type},:,stage),[1 2 3 6 5 4]);
-
-buf1= reshape(curr_video,size(curr_video,1)*size(curr_video,2),size(curr_video,3),size(curr_video,4),size(curr_video,5)) ;
-selected_roi=[ 1 3 5];
-buf3_roi_error=cell(length(selected_roi),1);
-buf3_roi_mean=cell(length(selected_roi),1);
-
-scale=0.0003
-figure('Position', [50 50 600 400]);
-t1 = tiledlayout(1, 2, 'TileSpacing', 'tight', 'Padding', 'none');
-cmap = parula(length(selected_roi))
-for curr_stage=1:2
-    nexttile
-hold on
-ii=0;
-  for curr_roi=selected_roi
-ii=ii+1;
-buf3_roi=  permute(mean(buf1(roi1(curr_roi).data.mask(:),:,:,:),1),[2,3,4,1]) ;
-buf3_roi_error{curr_roi}=std(buf3_roi,0,3,"omitmissing")./sqrt(size(buf3_roi,3));
-buf3_roi_mean{curr_roi}=nanmean(buf3_roi,3);
- ap.errorfill(use_t,buf3_roi_mean{curr_roi}(:,curr_stage),...
-        buf3_roi_error{curr_roi}(:,curr_stage)  ,cmap(ii,:),0.1,0.5);
-  ylim(scale*[-0.4 1.2])
-  % title(roi1(curr_roi).name)
-
-  xlim([-0.2 0.3])
-  
-  xlabel('time (s)')
- 
-  end
-  title(stage_name(stage(curr_stage)))
-       xline(0,'LineStyle','--')
-  xline(-0.05,'LineStyle','--')
-
-end
-
-
-sgtitle({[ group_name{group} ' ' data_type{type} ]})
-     legend({'',roi1(selected_roi(1)).name, '',roi1(selected_roi(2)).name,...
-         '',roi1(selected_roi(3)).name },'Location','northeastoutside','Box','off')
-
-     
-saveas(gcf,[Path 'figures\summary\figures\passive of sequenced activity_2 '  group_name{group} ' ' data_type{type} ' ' stage_name{stage(1)}  ], 'jpg');
 
 
 
-%%
-% 
-group=1
-group_name={'VA','AV'}; % VA-1,AV-2
-stim_type=1
-stim_name={'V passive','A passive'}
-stim_cue={3,2};
-
-type =2
-data_type={'raw','kernels'}; % raw-1 kernels-2
-t_t={t_passive,t_kernels};
-     use_t=t_t{type};
-
+%% passive cross modality of 2 stage images and selectivity
 colors{1}={[0 0 0],    [0 0 0],            [  84 130 53 ]./255;...
-        [0 0 0],    [112  48 160]./255, [0 0 0]}
-colors{2}={[0 0 0],    [112  48 160]./255,            ;...
-        [0 0 0],    , [0 0 0]}
-scale=0.0002
+        [0 0 0], [0 0 0],    [112  48 160]./255}
+colors{2}={[0 0 0],  [  84 130 53 ]./255  ,  [0.5 0.5 0.5]          ;...
+        [0 0 0], [112  48 160]./255    ,[0.5 0.5 0.5]}
+scale=0.0002;
+type=2;
+ figure('Position', [50 50 700 800]);
+ t1 = tiledlayout(5, 5, 'TileSpacing', 'tight', 'Padding', 'tight');
+ Color={'G','P','P','P','P','P','P'};
+titles{1}='naive'; titles{5}='Mod1'; titles{8}='Mod2'; titles{9}='mixed';
+
+all_buf_data=cell(2,1);
+img_data1=cell(2,1)
+buf3_roi_error_crossday=cell(2,1);
+buf3_roi_mean_crossday=cell(2,1);
+buf3_roi_l_mean_crosstime=cell(2,1);
+buf3_roi_l_error_crosstime=cell(2,1);
+buf3_roi_peak1=cell(2,1);
+all_data_passive=cell(2,1);
+all_buf_data_each=cell(2,1);
+for curr_group=1:2
+     for curr_passive=1:2
+         if curr_passive==1
+             use_stim=3;
+         else
+             use_stim=2;
+         end
+
+         for curr_stim=[ 1 5 8 ]
+             a1=nexttile
+             all_buf_data_each{curr_group}{curr_passive}{curr_stim}=...
+                 permute(max(data_all_video{curr_group}{type}{curr_passive}...
+                 (:,:,period_kernels,use_stim,:,curr_stim),[],3),[1 2 5 3 4]);
+             temp_data=nanmean(data_all_video{curr_group}{type}{curr_passive}(:,:,:,use_stim,:,curr_stim),5);
+             temp_image=max(temp_data(:,:,period_kernels),[],3);
+             all_buf_data{curr_group}{curr_passive}{curr_stim}=temp_image;
+             
+             imagesc(temp_image)
+             axis image off;
+            colormap(a1,ap.colormap(['W' Color{curr_group}] ));
+             clim(scale .* [0.3, 0.7]);
+
+              frame1 = getframe(gca);
+             img_data1{curr_group}{curr_passive}{curr_stim} =im2double( imresize(frame1.cdata, size(temp_image)));
+             ap.wf_draw('ccf', 'black');
+                          clim(scale .* [0, 1]);
+
+             if curr_group==1& curr_passive==1
+                title(titles{curr_stim})
+             end
+
+             if curr_passive==1&curr_stim==1
+            text(-50, 50,  'V passive', 'FontSize', 10, 'FontWeight', 'bold', ...
+                'HorizontalAlignment', 'right', 'Rotation', 90);
+             elseif curr_passive==2&curr_stim==1
+                 text(-50, 50,  'A passive', 'FontSize', 10, 'FontWeight', 'bold', ...
+                'HorizontalAlignment', 'right', 'Rotation', 90);
+             end
 
 
-figure('Position', [50 50 310 300]);
+         end
 
-t1 = tiledlayout(2, 2, 'TileSpacing', 'compact', 'Padding', 'compact');
-for curr_type=1:2
-    for curr_group=1:2
-curr_data=cat(2 ,data_all{curr_group}{type}{curr_type}{:});
-buf1= cellfun(@(x) reshape(x,size(x,1)*size(x,2),size(x,3),size(x,4)),curr_data,'UniformOutput',false) ;
 
-selected_roi=2*curr_type-1;
+         curr_data=cat(2 ,data_all{curr_group}{type}{curr_passive}{:});
+         buf1= cellfun(@(x) reshape(x,size(x,1)*size(x,2),size(x,3),size(x,4)),curr_data,'UniformOutput',false) ;
+         selected_roi=2*curr_passive-1;
+         % selected_roi=[1 ]
+         nexttile([1 2])
+         hold on
+         for curr_roi=1:length(roi1)
 
-  for curr_roi=selected_roi
+             buf3_roi_l=  cellfun(@(x) permute(nanmean(x(roi1(curr_roi).data.mask(:),:,:,:),1),[2,3,4,1]),buf1,'UniformOutput', false);
+             buf3_roi_l_mean_crosstime{curr_group}{curr_passive}{curr_roi}= arrayfun(@(day) nanmean(cat(3,buf3_roi_l{day,:}),3),1:size(buf3_roi_l,1),'UniformOutput',false );
+             buf3_roi_l_error_crosstime{curr_group}{curr_passive}{curr_roi}= arrayfun(@(day) std(cat(3,buf3_roi_l{day,:}),0,3,'omitmissing')./sqrt(size(cat(3,buf3_roi_l{day,:}),3)),1:size(buf3_roi_l,1),'UniformOutput',false );
+             buf3_roi_l_mean= arrayfun(@(day) nanmean(cat(3,buf3_roi_l{day,:}),3),1:size(buf3_roi_l,1),'UniformOutput',false );
 
-buf3_roi=  cellfun(@(x) permute(mean(x(roi1(curr_roi).data.mask(:),:,:,:),1),[2,3,4,1]),buf1,'UniformOutput', false);
-buf3_roi_peak=cellfun(@(x) double(max(x(use_period,:),[],1) )',buf3_roi, 'UniformOutput', false);
-buf3_roi_peak1=reshape(cat(2,buf3_roi_peak{:}), [length(buf3_roi_peak{1}) size(buf3_roi_peak)]);
-buf3_roi_error=std(buf3_roi_peak1,0,3,"omitmissing")./sqrt(size(buf3_roi_peak1,3));
-buf3_roi_mean=nanmean(buf3_roi_peak1,3);
+             all_data_passive{curr_group}{curr_passive}{curr_roi}=cat(3,buf3_roi_l_mean{:});
+             buf3_roi_peak=cellfun(@(x) double(max(x(use_period,:),[],1) )',buf3_roi_l, 'UniformOutput', false);
+             buf3_roi_peak1{curr_group}{curr_passive}{curr_roi}=reshape(cat(2,buf3_roi_peak{:}), [length(buf3_roi_peak{1}) size(buf3_roi_peak)]);
+             buf3_roi_error_crossday{curr_group}{curr_passive}{curr_roi}=std(buf3_roi_peak1{curr_group}{curr_passive}{curr_roi},0,3,"omitmissing")./sqrt(size(buf3_roi_peak1{curr_group}{curr_passive}{curr_roi},3));
+             buf3_roi_mean_crossday{curr_group}{curr_passive}{curr_roi}=nanmean(buf3_roi_peak1{curr_group}{curr_passive}{curr_roi},3);
+         end
+
+         for curr_roi=selected_roi
+             for curr_stim=1:3
+                 ap.errorfill(1:3,buf3_roi_mean_crossday{curr_group}{curr_passive}{curr_roi}(curr_stim,1:3),...
+                     buf3_roi_error_crossday{curr_group}{curr_passive}{curr_roi}(curr_stim,1:3) ,colors{curr_passive}{curr_group,curr_stim},0.1,0.5);
+                 ap.errorfill(4:11,buf3_roi_mean_crossday{curr_group}{curr_passive}{curr_roi}(curr_stim,4:11),...
+                     buf3_roi_error_crossday{curr_group}{curr_passive}{curr_roi}(curr_stim,4:11) ,colors{curr_passive}{curr_group,curr_stim},0.1,0.5);
+
+                 plot(1:3, permute(buf3_roi_peak1{curr_group}{curr_passive}{curr_roi}(use_stim,1:3,:),[2 3 1]),...
+                     'Color',colors{curr_passive}{curr_group,use_stim})
+                 plot(4:11, permute(buf3_roi_peak1{curr_group}{curr_passive}{curr_roi}(use_stim,4:11,:),[2 3 1]),...
+                     'Color',colors{curr_passive}{curr_group,use_stim})
+                 if curr_group==1
+                     ap.errorfill(12:16,buf3_roi_mean_crossday{curr_group}{curr_passive}{curr_roi}(curr_stim,14:18),...
+                         buf3_roi_error_crossday{curr_group}{curr_passive}{curr_roi}(curr_stim,14:18) ,colors{curr_passive}{curr_group,curr_stim},0.1,0.5);
+                      
+                     plot(12:16, permute(buf3_roi_peak1{curr_group}{curr_passive}{curr_roi}(use_stim,14:18,:),[2 3 1]),...
+                         'Color',colors{curr_passive}{curr_group,use_stim})
+                  
+                     xlim([0.5 16.5])
+                     xticks([2 7.5 14 ]); % 设置 y 轴的刻度位置（2代表naive stage中间位置，8代表stage1中间位置）
+
+                 else
+                     plot(12:18, permute(buf3_roi_peak1{curr_group}{curr_passive}{curr_roi}(use_stim,12:18,:),[2 3 1]),...
+                         'Color',colors{curr_passive}{curr_group,use_stim})
+                        ap.errorfill(12:18,buf3_roi_mean_crossday{curr_group}{curr_passive}{curr_roi}(curr_stim,12:18),...
+                         buf3_roi_error_crossday{curr_group}{curr_passive}{curr_roi}(curr_stim,12:18) ,colors{curr_passive}{curr_group,curr_stim},0.1,0.5);
+                      xlim([0.5 18.5])
+                     xticks([2 7.5 15 ]); % 设置 y 轴的刻度位置（2代表naive stage中间位置，8代表stage1中间位置）
+                 end
+             end
+             ylim(scale*[0 1])
+             title(roi1(curr_roi).name)
+             xticklabels({'naive','Mod 1','Mod 2'}); % 设置对应的标签
+             ylabel('\Delta F/F')
+         end
+     end
+ end
+
+ 
 nexttile
-for curr_stim=1:3
-ap.errorfill(1:3,buf3_roi_mean(curr_stim,1:3),buf3_roi_error(curr_stim,1:3) ,colors{curr_stim}{curr_group,curr_stim},0.1,0.5);
-ap.errorfill(4:10,buf3_roi_mean(curr_stim,4:10),buf3_roi_error(curr_stim,4:10) ,colors{curr_stim}{curr_group,curr_stim},0.1,0.5);
-ap.errorfill(11:15,buf3_roi_mean(curr_stim,13:17),buf3_roi_error(curr_stim,13:17) ,colors{curr_stim}{curr_group,curr_stim},0.1,0.5);
-
-end
-  % ylim(scale*[-0.4 1.2])
-   title(roi1(curr_roi).name)
-xlim([1 15])
-    ylim(scale*[0 1])
-   xticks([2 7 13]); % 设置 y 轴的刻度位置（2代表naive stage中间位置，8代表stage1中间位置）
-    xticklabels({'naive','Mod 1','Mod 2'}); % 设置对应的标签
-ylabel('\Delta F/F') 
-
-  end
-end
-end
-
-saveas(gcf,[Path 'figures\summary\figures\passive of selectivity 1 '   ], 'jpg');
-
-colors={[  84 130 53 ]./255,[112  48 160]./255}
-
-figure('Position', [50 50 310 300]);
-
-t1 = tiledlayout(2, 2, 'TileSpacing', 'compact', 'Padding', 'compact');
-for curr_type=1:2
-    for curr_group=1:2
-curr_data=cat(2 ,data_all{curr_group}{type}{curr_type}{:});
-buf1= cellfun(@(x) reshape(x,size(x,1)*size(x,2),size(x,3),size(x,4)),curr_data,'UniformOutput',false) ;
-
-selected_roi=2*curr_type-1;
-
-  for curr_roi=selected_roi
-
-buf3_roi=  cellfun(@(x) permute(mean(x(roi1(curr_roi).data.mask(:),:,:,:),1),[2,3,4,1]),buf1,'UniformOutput', false);
-buf3_roi_peak=cellfun(@(x) double(max(x(use_period,:),[],1) )',buf3_roi, 'UniformOutput', false);
-buf3_roi_peak1=reshape(cat(2,buf3_roi_peak{:}), [length(buf3_roi_peak{1}) size(buf3_roi_peak)]);
-if curr_type==1
-buf3_roi_peak2=buf3_roi_peak1(3,:,:)-max(buf3_roi_peak1(1,:,:),buf3_roi_peak1(2,:,:))
-else
-buf3_roi_peak2=buf3_roi_peak1(2,:,:)-max(buf3_roi_peak1(1,:,:),buf3_roi_peak1(3,:,:))
-end
-buf3_roi_error=std(buf3_roi_peak2,0,3,"omitmissing")./sqrt(size(buf3_roi_peak2,3));
-buf3_roi_mean=nanmean(buf3_roi_peak2,3);
+result_p = min(img_data1{1}{1}{5}, img_data1{2}{1}{8});
+imshow([result_p]);
+ap.wf_draw('ccf', 'black');
+title('V-overlay')
 nexttile
+result_p = min(img_data1{1}{2}{8}, img_data1{2}{2}{5});
+imshow([result_p]);
+ap.wf_draw('ccf', 'black');
+title('A-overlay')
 
-ap.errorfill(1:3,buf3_roi_mean(1:3),buf3_roi_error(1:3) ,colors{curr_group},0.1,0.5);
-ap.errorfill(4:10,buf3_roi_mean(4:10),buf3_roi_error(4:10) ,colors{curr_group},0.1,0.5);
-ap.errorfill(11:15,buf3_roi_mean(13:17),buf3_roi_error(13:17) ,colors{curr_group},0.1,0.5);
 
 
-  % ylim(scale*[-0.4 1.2])
-   title(roi1(curr_roi).name)
-xlim([1 15])
-    ylim(scale*[-0.5 1])
-    yline(0)
-   xticks([2 7 13]); % 设置 y 轴的刻度位置（2代表naive stage中间位置，8代表stage1中间位置）
-    xticklabels({'naive','Mod 1','Mod 2'}); % 设置对应的标签
-ylabel('selectivity') 
+    save([ Path 'summary_data\passive kernels of images crossday corsstime.mat'],...
+        'buf3_roi_l_error_crosstime','buf3_roi_l_mean_crosstime','buf3_roi_error_crossday',...
+        'buf3_roi_mean_crossday', 'all_buf_data','all_data_passive','-v7.3')
 
-  end
+% Permutation test
+    
+t2 = tiledlayout(t1,2, 2, 'TileSpacing', 'none', 'Padding', 'none');
+t2.Layout.Tile = 23;
+colors1 = [...
+   0.3 0.3 0.9;   % Group 1: 蓝色
+    0.9 0.4 0.4;   % Group 2: 绿色
+    0.5 0.5 0.5;
+     0.5 0.5 0.5];  % Group 3: 红色
+legend_names={'V', 'A', 'VA','AV'};
+
+overlays{1}={[1 1 5],[2 1 8]};
+overlays{2}={[1 2 8],[2 2 5]};
+overlays{3}={[1 1 5],[1 2 8]};
+overlays{4}={[2 2 5],[2 1 8]};
+threshold=0.00006;
+data_above_threshold=cellfun(@(x) cellfun(@(y) cellfun(@(z) z>threshold,y,'UniformOutput',false),...
+    x,'UniformOutput',false ),all_buf_data_each,'UniformOutput',false);
+p_vals_roi_mean=cell(4,1);
+p_thres_roi_mean=cell(4,1);
+p_vals_roi_error=cell(4,1);
+p_vals=cell(4,1);
+p_thres=cell(4,1);
+for curr_overlay=1:4
+A=data_above_threshold{overlays{curr_overlay}{1}(1)}{overlays{curr_overlay}{1}(2)}{overlays{curr_overlay}{1}(3)};
+B=data_above_threshold{overlays{curr_overlay}{2}(1)}{overlays{curr_overlay}{2}(2)}{overlays{curr_overlay}{2}(3)};
+% A=all_buf_data_each{1}{4};
+% B=all_buf_data_each{2}{7};
+% A(A<threshold)=0;
+% B(B<threshold)=0;
+A_reshape = reshape(A,[],size(A,3));  
+B_reshape = reshape(B,[],size(B,3)); 
+% 将每组图像展平为 [像素数 × 图数]
+A_reshape = reshape(A,[],size(A,3));  
+B_reshape = reshape(B,[],size(B,3)); 
+
+% 合并数据
+all_data = [A_reshape, B_reshape];   
+nA = size(A_reshape,2);
+nB = size(B_reshape,2);
+n_total = nA + nB;
+
+% 计算真实的均值差异
+diff_real = mean(A_reshape,2) - mean(B_reshape,2);  % [120000 x 1]
+
+% 生成打乱样本
+n_perm = 1000;
+diff_shuff = zeros(size(diff_real,1), n_perm);
+
+for i = 1:n_perm
+    rand_idx = randperm(n_total);
+    group1 = all_data(:,rand_idx(1:nA));
+    group2 = all_data(:,rand_idx(nA+1:end));
+    diff_shuff(:,i) = mean(group1,2) - mean(group2,2);  % [120000 x 1]
 end
+
+% 拼接真实和打乱结果 -> [120000 x (1+n_perm)]
+all_diffs = [diff_real, diff_shuff];
+
+% 排序后计算秩
+ranks = tiedrank(all_diffs')';  % 转置->对每一行排序（每个像素点）
+
+% 实际结果的秩在第一列
+real_ranks = ranks(:,1);
+
+% 越接近最大值，越显著（两尾）
+p_vals{curr_overlay} =  abs(real_ranks - (n_perm+1)/2) / ((n_perm+1)/2);
+  p_thres{curr_overlay}=p_vals{curr_overlay}>0.95;
+ curr_roi=[1 2 3 4 5 6 8 12]
+ p_thres_roi_mean{curr_overlay}= arrayfun(@(roi) nanmean(p_thres{curr_overlay}(roi1(roi).data.mask(:),:,:),1),...
+    curr_roi,'UniformOutput',true);
+p_vals_roi_mean{curr_overlay}= arrayfun(@(roi) nanmean(p_vals{curr_overlay}(roi1(roi).data.mask(:),:,:),1),...
+    curr_roi,'UniformOutput',true);
+p_vals_roi_error{curr_overlay}= arrayfun(@(roi) std(p_vals{curr_overlay}(roi1(roi).data.mask(:)),0,1,'omitmissing')/...
+    sqrt(sum((roi1(roi).data.mask(:)))) ,curr_roi,'UniformOutput',true);
+
+% % 重塑为图像
+p_map = reshape(p_vals{curr_overlay},size(A,[1 2]));
+aa=nexttile(t2)
+imagesc(p_map>0.95 );  axis image off;
+ colormap(aa, ap.colormap(['WK'] ));     
+ap.wf_draw('ccf', 'black');
+title(legend_names{curr_overlay},'Color',colors1(curr_overlay,:))
+
 end
 
-saveas(gcf,[Path 'figures\summary\figures\passive of selectivity 2 '   ], 'jpg');
+
+% 数据（5个类别 × 3组）
+% data = cell2mat(p_vals_roi_mean)'
+data = cell2mat(p_thres_roi_mean)';
+
+% % 对应的标准误差（可换成你自己的）
+% errors =cell2mat(p_vals_roi_error)'
+% 
+% 绘制分组柱状图
+nexttile(t1,[1 2])
+
+hBar = bar(data, 'grouped'); hold on;
+box off
+% 设置每组的颜色
+for i = 1:length(hBar)
+    hBar(i).FaceColor = colors1(i, :);
+         hBar(i).EdgeColor = 'none';       % 无边框线
+
+end
 
 
+% 设置 x 轴标签
+set(gca, 'XTick', 1:8, 'XTickLabel', {'pl-mPFC', 'pr-mPFC', 'al-mPFC', 'ar-mPFC', 'l-PPC', 'r-PPC', 'auditory area', 'visual area'});
 
+% 图例和轴标签
+% legend(legend_names, 'Location', 'northeastoutside','Box','off');
+% xlabel('Category');
+ylabel('proportion of difference ');
+    saveas(gcf,[Path 'figures\summary\figures\passive of 3 stage images and selectivity 1'], 'jpg');
+
+%% passive cross modality of mixed stage images and selectivity
+colors{1}={[0 0 0],    [0 0 0],            [  84 130 53 ]./255;...
+        [0 0 0], [0 0 0],    [112  48 160]./255}
+colors{2}={[0 0 0],  [  84 130 53 ]./255  ,  [0 0 0]          ;...
+        [0 0 0], [112  48 160]./255    ,[0 0 0]}
+scale=0.0002;
+type=2;
+ figure('Position', [50 50 620 650]);
+ t1 = tiledlayout(3, 4, 'TileSpacing', 'tight', 'Padding', 'tight');
+ Color={'G','P','P','P','P','P','P'};
+titles{1}='naive'; titles{5}='Mod1'; titles{8}='Mod2'; titles{9}='mixed';
+
+all_buf_data=cell(2,1);
+img_data1=cell(2,1)
+buf3_roi_error_crossday=cell(2,1);
+buf3_roi_mean_crossday=cell(2,1);
+buf3_roi_l_mean_crosstime=cell(2,1);
+buf3_roi_l_error_crosstime=cell(2,1);
+buf3_roi_peak1=cell(2,1);
+all_data_passive=cell(2,1);
+all_buf_data_each=cell(2,1);
+for curr_group=1:2
+     for curr_passive=1:2
+         if curr_passive==1
+             use_stim=3;
+         else
+             use_stim=2;
+         end
+
+         for curr_stim=[ 9 ]
+             a1=nexttile
+             all_buf_data_each{curr_group}{curr_passive}{curr_stim}=...
+               permute( max(data_all_video{curr_group}{type}{curr_passive}(:,:,:,use_stim,:,curr_stim),[],3),[1 2 5 3 4])
+             temp_data=nanmean(data_all_video{curr_group}{type}{curr_passive}(:,:,:,use_stim,:,curr_stim),5);
+             temp_image=max(temp_data(:,:,period_kernels),[],3);
+             all_buf_data{curr_group}{curr_passive}{curr_stim}=temp_image;
+             
+             imagesc(temp_image)
+             axis image off;
+            colormap(a1,ap.colormap(['W' Color{curr_group}] ));
+             clim(scale .* [0.3, 0.7]);
+
+              frame1 = getframe(gca);
+             img_data1{curr_group}{curr_passive}{curr_stim} =im2double( imresize(frame1.cdata, size(temp_image)));
+             ap.wf_draw('ccf', 'black');
+                          clim(scale .* [0, 1]);
+
+             if curr_group==1& curr_passive==1
+                title(titles{curr_stim})
+             end
+
+             if curr_passive==1&curr_stim==1
+            text(-50, 50,  'V passive', 'FontSize', 10, 'FontWeight', 'bold', ...
+                'HorizontalAlignment', 'right', 'Rotation', 90);
+             elseif curr_passive==2&curr_stim==1
+                 text(-50, 50,  'A passive', 'FontSize', 10, 'FontWeight', 'bold', ...
+                'HorizontalAlignment', 'right', 'Rotation', 90);
+             end
+
+             if curr_passive==2
+                 colorbar('southoutside')
+             end
+         end
+
+
+         curr_data=cat(2 ,data_all{curr_group}{type}{curr_passive}{:});
+         buf1= cellfun(@(x) reshape(x,size(x,1)*size(x,2),size(x,3),size(x,4)),curr_data,'UniformOutput',false) ;
+         selected_roi=2*curr_passive-1;
+         % selected_roi=[1 ]
+         nexttile
+hold on
+         for curr_roi=1:length(roi1)
+
+             buf3_roi_l=  cellfun(@(x) permute(nanmean(x(roi1(curr_roi).data.mask(:),:,:,:),1),[2,3,4,1]),buf1,'UniformOutput', false);
+             buf3_roi_l_mean_crosstime{curr_group}{curr_passive}{curr_roi}= arrayfun(@(day) nanmean(cat(3,buf3_roi_l{day,:}),3),1:size(buf3_roi_l,1),'UniformOutput',false );
+             buf3_roi_l_error_crosstime{curr_group}{curr_passive}{curr_roi}= arrayfun(@(day) std(cat(3,buf3_roi_l{day,:}),0,3,'omitmissing')./sqrt(size(cat(3,buf3_roi_l{day,:}),3)),1:size(buf3_roi_l,1),'UniformOutput',false );
+             buf3_roi_l_mean= arrayfun(@(day) nanmean(cat(3,buf3_roi_l{day,:}),3),1:size(buf3_roi_l,1),'UniformOutput',false );
+
+             all_data_passive{curr_group}{curr_passive}{curr_roi}=cat(3,buf3_roi_l_mean{:});
+             buf3_roi_peak=cellfun(@(x) double(max(x(use_period,:),[],1) )',buf3_roi_l, 'UniformOutput', false);
+             buf3_roi_peak1{curr_group}{curr_passive}{curr_roi}=reshape(cat(2,buf3_roi_peak{:}), [length(buf3_roi_peak{1}) size(buf3_roi_peak)]);
+             buf3_roi_error_crossday{curr_group}{curr_passive}{curr_roi}=...
+                 std(nanmean(buf3_roi_peak1{curr_group}{curr_passive}{curr_roi}(:,19:21,:),2),0,3,"omitmissing")./sqrt(size(buf3_roi_peak1{curr_group}{curr_passive}{curr_roi},3));
+             buf3_roi_mean_crossday{curr_group}{curr_passive}{curr_roi}=...
+                 nanmean(buf3_roi_peak1{curr_group}{curr_passive}{curr_roi}(:,19:21,:),[2,3]);
+         end
+
+         for curr_roi=selected_roi
+           
+             for curr_stim=1:3
+                 errorbar(curr_stim,buf3_roi_mean_crossday{curr_group}{curr_passive}{curr_roi}(curr_stim),...
+                     buf3_roi_error_crossday{curr_group}{curr_passive}{curr_roi}(curr_stim),...
+                     'Color', colors{curr_passive}{curr_group,curr_stim},...
+                  'CapSize', 6, 'LineStyle', 'none')
+                 scatter(curr_stim, buf3_roi_mean_crossday{curr_group}{curr_passive}{curr_roi}(curr_stim),50,...
+                     colors{curr_passive}{curr_group,curr_stim}, 'filled');
+
+             end
+             xlim([0.5 3.5])
+             % ylim(scale*[-0.4 1.2])
+             ylim(scale*[0 1])
+
+             title(roi1(curr_roi).name)
+                xticks([2])
+             xticklabels({'mixed'}); % 设置对应的标签
+             ylabel('\Delta F/F')
+         end
+
+        
+
+     end
+ end
+ 
+
+nexttile
+result_p = min(img_data1{1}{1}{9}, img_data1{2}{1}{9});
+imshow([result_p]);
+ap.wf_draw('ccf', 'black');
+title('V-overlay')
+nexttile
+result_p = min(img_data1{1}{2}{9}, img_data1{2}{2}{9});
+imshow([result_p]);
+ap.wf_draw('ccf', 'black');
+title('A-overlay')
+%
+
+% permutation test
+t2 = tiledlayout(t1,2, 2, 'TileSpacing', 'none', 'Padding', 'none');
+t2.Layout.Tile = 11;
+colors1 = [...
+   0.3 0.3 0.9;   % Group 1: 蓝色
+    0.9 0.4 0.4;   % Group 2: 绿色
+    0.5 0.5 0.5;
+     0.5 0.5 0.5];  % Group 3: 红色
+legend_names={'V', 'A', 'VA','AV'};
+
+threshold=0.0001
+data_above_threshold=cellfun(@(x) cellfun(@(y) cellfun(@(z) z>threshold,y,'UniformOutput',false),...
+    x,'UniformOutput',false ),all_buf_data_each,'UniformOutput',false);
+p_vals_roi_mean=cell(4,1);
+p_thres_roi_mean=cell(4,1);
+
+p_vals_roi_error=cell(4,1);
+p_vals=cell(4,1);
+p_thres=cell(4,1);
+
+overlays{1}={[1 1 9],[2 1 9]};
+overlays{2}={[1 2 9],[2 2 9]};
+overlays{3}={[1 1 9],[2 2 9]};
+overlays{4}={[1 2 9],[2 1 9]};
+
+for curr_overlay=1:4
+
+A=data_above_threshold{overlays{curr_overlay}{1}(1)}{overlays{curr_overlay}{1}(2)}{overlays{curr_overlay}{1}(3)};
+B=data_above_threshold{overlays{curr_overlay}{2}(1)}{overlays{curr_overlay}{2}(2)}{overlays{curr_overlay}{2}(3)};
+
+% A=all_buf_data_each{1}{4};
+% B=all_buf_data_each{2}{7};
+% A(A<threshold)=0;
+% B(B<threshold)=0;
+A_reshape = reshape(A,[],size(A,3));  
+B_reshape = reshape(B,[],size(B,3)); 
+% 将每组图像展平为 [像素数 × 图数]
+A_reshape = reshape(A,[],size(A,3));  
+B_reshape = reshape(B,[],size(B,3)); 
+
+% 合并数据
+all_data = [A_reshape, B_reshape];   
+nA = size(A_reshape,2);
+nB = size(B_reshape,2);
+n_total = nA + nB;
+
+% 计算真实的均值差异
+diff_real = mean(A_reshape,2) - mean(B_reshape,2);  % [120000 x 1]
+
+% 生成打乱样本
+n_perm = 1000;
+diff_shuff = zeros(size(diff_real,1), n_perm);
+
+for i = 1:n_perm
+    rand_idx = randperm(n_total);
+    group1 = all_data(:,rand_idx(1:nA));
+    group2 = all_data(:,rand_idx(nA+1:end));
+    diff_shuff(:,i) = mean(group1,2) - mean(group2,2);  % [120000 x 1]
+end
+
+% 拼接真实和打乱结果 -> [120000 x (1+n_perm)]
+all_diffs = [diff_real, diff_shuff];
+
+% 排序后计算秩
+ranks = tiedrank(all_diffs')';  % 转置->对每一行排序（每个像素点）
+
+% 实际结果的秩在第一列
+real_ranks = ranks(:,1);
+
+% 越接近最大值，越显著（两尾）
+p_vals{curr_overlay} =  abs(real_ranks - (n_perm+1)/2) / ((n_perm+1)/2);
+  p_thres{curr_overlay}=p_vals{curr_overlay}>0.95;
+ curr_roi=[1 2 3 4 5 6 8 12];
+ p_thres_roi_mean{curr_overlay}= arrayfun(@(roi) nanmean(p_thres{curr_overlay}(roi1(roi).data.mask(:),:,:),1),...
+    curr_roi,'UniformOutput',true);
+p_vals_roi_mean{curr_overlay}= arrayfun(@(roi) nanmean(p_vals{curr_overlay}(roi1(roi).data.mask(:),:,:),1),...
+    curr_roi,'UniformOutput',true);
+p_vals_roi_error{curr_overlay}= arrayfun(@(roi) std(p_vals{curr_overlay}(roi1(roi).data.mask(:)),0,1,'omitmissing')/...
+    sqrt(sum((roi1(roi).data.mask(:)))) ,curr_roi,'UniformOutput',true);
+% 
+% % 重塑为图像
+ p_map = reshape(p_vals{curr_overlay},size(A,[1 2]));
+aa=nexttile(t2)
+imagesc(p_map>0.95 );  axis image off;
+ colormap(aa, ap.colormap(['WK'] ));     
+ap.wf_draw('ccf', 'black');
+title(legend_names{curr_overlay},'Color',colors1(curr_overlay,:))
+
+end
+
+% 数据（5个类别 × 3组）
+% data = cell2mat(p_vals_roi_mean)'
+data = cell2mat(p_thres_roi_mean)';
+
+% % 对应的标准误差（可换成你自己的）
+% errors =cell2mat(p_vals_roi_error)'
+% 
+% 绘制分组柱状图
+
+nexttile(t1)
+colors1 = [...
+   0.3 0.3 0.9;   % Group 1: 蓝色
+    0.9 0.4 0.4;   % Group 2: 绿色
+    0.5 0.5 0.5;
+     0.5 0.5 0.5];  % Group 3: 红色
+hBar = bar(data, 'grouped'); hold on;
+box off
+% 设置每组的颜色
+for i = 1:length(hBar)
+    hBar(i).FaceColor = colors1(i, :);
+         hBar(i).EdgeColor = 'none';       % 无边框线
+
+end
+% 
+% % 获取柱子的 x 坐标
+% ngroups = size(data, 1);
+% nbars = size(data, 2);
+% groupwidth = min(0.8, nbars/(nbars + 1.5));  % 控制组宽度
+% 
+% for i = 1:nbars
+%     % 计算每组中每个柱子的中心 x 位置
+%     x = (1:ngroups) - groupwidth/2 + (2*i-1) * groupwidth / (2*nbars);
+%     errorbar(x, data(:, i), errors(:, i), 'k', 'linestyle', 'none', 'LineWidth', 1);
+% end
+
+% 设置 x 轴标签
+set(gca, 'XTick', 1:8, 'XTickLabel', {'pl-mPFC', 'pr-mPFC', 'al-mPFC', 'ar-mPFC', 'l-PPC', 'r-PPC', 'auditory area', 'visual area'});
+
+% 图例和轴标签
+% legend({'V', 'A', 'VA','AV'}, 'Location', 'eastoutside','Box','off');
+% xlabel('Category');
+ylabel('proportion of difference ');
+    saveas(gcf,[Path 'figures\summary\figures\passive of mixed stage images and selectivity 1'], 'jpg');

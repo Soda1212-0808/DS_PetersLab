@@ -1,0 +1,277 @@
+clear all
+clc
+Path = 'D:\Data process\wf_data\';
+master_U_fn = fullfile(plab.locations.server_path,'Lab', ...
+    'widefield_alignment','U_master.mat');
+load(master_U_fn);
+load('C:\Users\dsong\Documents\MATLAB\Da_Song\DS_scripts_ptereslab\General_information\roi.mat')
+
+
+surround_samplerate = 35;
+surround_window_task = [-0.2,1];
+t_task = surround_window_task(1):1/surround_samplerate:surround_window_task(2);
+t_kernels=1/surround_samplerate*[-10:30];
+
+
+Color={'B','R'};
+n1_name='';n2_name='';
+use_period=[];
+use_t=[];
+animals={};
+groups={'Vp-Av','Av-Vp','Vp-Av-n','Av-Vp-n','Vp-Af','Vo-n-Vp','Vs-Vp','Va-Vp'};
+workflow='task';
+
+% used_data=1;% 1 raw data;2 kernels
+data_type={'raw','kernels'};
+select_group=1:2
+
+
+all_workflow=cell(2,1);
+
+for curr_group=select_group;
+
+
+
+if curr_group==1
+    animals{curr_group} = {'DS007','DS010','AP019','AP021','DS011','AP022'};n1_name='visual position';n2_name='audio volume';
+elseif curr_group==2
+    animals{curr_group} = {'DS000','DS004','DS014','DS015','DS016'};n1_name='audio volume';n2_name='visual position';
+elseif curr_group==3
+    animals{curr_group} = {'AP018','AP020'};n1_name='visual position';n2_name='audio volume';
+elseif curr_group==4
+    animals{curr_group} = {'DS006','DS013'};n1_name='audio volume';n2_name='visual position';
+elseif curr_group==5
+    animals{curr_group} = {'AP027','AP028','DS019','DS020','DS021'};n1_name='visual position';n2_name='audio frequency';
+elseif curr_group==6
+    animals{curr_group} = {'AP027','AP028','AP029'};n1_name='visual opacity';n2_name='visual position';
+elseif curr_group==7
+    animals{curr_group} = {'HA003','HA004','DS019','DS020','DS021'};n1_name='visual size up';n2_name='visual position';
+elseif curr_group==8
+    animals{curr_group} = {'HA000','HA001','HA002'};n1_name='visual angle';n2_name='visual position';
+
+end
+
+
+% used_id=1:3;
+
+all_data_work_flow_day=cell(length(animals{curr_group}),1);
+all_data_workflow_name=cell(length(animals{curr_group}),1);
+all_data_learned_day=cell(length(animals{curr_group}),1);
+matches=cell(length(animals{curr_group}),1);
+use_t=[];
+use_period=[];
+
+for curr_animal=1:length(animals{curr_group})
+    preload_vars = who;
+
+    animal=animals{curr_group}{curr_animal};
+    raw_data_task=load([Path  workflow '\' animal '_' workflow '.mat']);
+
+    for curr_d=1:length(raw_data_task.rxn_med)
+        if length(raw_data_task.rxn_med{curr_d})==1
+            raw_data_task.learned_day(curr_d)=raw_data_task.rxn_med{curr_d}<2& raw_data_task.rxn_stat_p{curr_d}<0.05;
+        else
+            raw_data_task.learned_day(curr_d)= bin2dec(num2str(raw_data_task.rxn_med{curr_d}<2& raw_data_task.rxn_stat_p{curr_d}(2:3)<0.05));
+        end
+        % raw_data_task.learned_day= cellfun(@(x,y)  x<2 & y<0.05, raw_data_task.rxn_med,raw_data_task.rxn_stat_p,'UniformOutput',false);
+    end
+
+
+        idx=cellfun(@(x) ~isempty(x),raw_data_task.wf_px_task_kernels);
+
+      
+      matches{curr_animal}=unique(raw_data_task.workflow_type_name_merge(idx)  ,'stable');
+
+
+
+    all_data_work_flow_day{curr_animal}= raw_data_task.workflow_day(idx);
+    all_data_workflow_name{curr_animal}=raw_data_task.workflow_type_name_merge(idx);
+    all_data_learned_day{curr_animal}=raw_data_task.learned_day(idx);
+    clearvars('-except',preload_vars{:});
+
+end
+
+
+
+
+pre_learn_data1=cell(length(animals{curr_group}),1);
+pre_learn_data1 = cellfun(@(x,y,z,l) ...
+    x(find(strcmp(y,z(find(cellfun(@(idx) strcmp(n1_name, idx),z,'UniformOutput',true))))& l'==0 ,2,'first'))...
+    ,all_data_work_flow_day,all_data_workflow_name,matches,all_data_learned_day,'UniformOutput',false);
+
+
+post_learn1_data1=cell(length(animals{curr_group}),1);
+post_learn1_data1 = cellfun(@(x,y,z,l)...
+    x(find(strcmp(y,z(find(cellfun(@(idx) strcmp(n1_name, idx),z,'UniformOutput',true))))& l'==1 ,2,'first'))...
+    ,all_data_work_flow_day,all_data_workflow_name,matches,all_data_learned_day,'UniformOutput',false);
+
+post_learn2_data1=cell(length(animals{curr_group}),1);
+post_learn2_data1 = cellfun(@(x,y,z,l)...
+    x(find(strcmp(y,z(find(cellfun(@(idx) strcmp(n1_name, idx),z,'UniformOutput',true))))& l'==1 ,5,'first'))...
+    ,all_data_work_flow_day,all_data_workflow_name,matches,all_data_learned_day,'UniformOutput',false);
+post_learn2_data1 = cellfun(@(x) x(3:end),post_learn2_data1,'UniformOutput',false);
+
+
+pre_learn_data2=cell(length(animals{curr_group}),1);
+pre_learn_data2 = cellfun(@(x,y,z,l) x(find(strcmp(y,z(find(cellfun(@(idx) strcmp(n2_name, idx),z,'UniformOutput',true))))& l'==0 ,2,'first'))...
+    ,all_data_work_flow_day,all_data_workflow_name,matches,all_data_learned_day,'UniformOutput',false);
+
+post_learn1_data2=cell(length(animals{curr_group}),1);
+post_learn1_data2 = cellfun(@(x,y,z,l) x(find(strcmp(y,z(find(cellfun(@(idx) strcmp(n2_name, idx),z,'UniformOutput',true))))& l'==1 ,2,'first'))...
+    ,all_data_work_flow_day,all_data_workflow_name,matches,all_data_learned_day,'UniformOutput',false);
+
+
+post_learn2_data2=cell(length(animals{curr_group}),1);
+post_learn2_data2 = cellfun(@(x,y,z,l) x(find(strcmp(y,z(find(cellfun(@(idx) strcmp(n2_name, idx),z,'UniformOutput',true))))& l'==1 ,5,'first'))...
+    ,all_data_work_flow_day,all_data_workflow_name,matches,all_data_learned_day,'UniformOutput',false);
+
+ % x=post_learn2_data2{2}
+
+n3_name='mixed VA';
+mixed_idx=cellfun(@(x) any(strcmp(n3_name, x)),matches ,'UniformOutput',true);
+data3=cell(length(animals{curr_group}),1);
+data3(mixed_idx) = cellfun(@(x,y,z) x(find(strcmp(y,z(find(cellfun(@(idx) strcmp(n3_name, idx),z,'UniformOutput',true)))),3,'last')),...
+    all_data_work_flow_day(mixed_idx) ,all_data_workflow_name(mixed_idx) ,matches(mixed_idx) ,'UniformOutput',false);
+
+
+
+
+all_workflow_Day{1}=pre_learn_data1;
+all_workflow_Day{2}=post_learn1_data1;
+all_workflow_Day{3}=post_learn2_data1;
+all_workflow_Day{4}=pre_learn_data2;
+all_workflow_Day{5}=post_learn1_data2;
+all_workflow_Day{6}=post_learn2_data2;
+all_workflow_Day{7}=data3;
+
+
+
+all_workflow{curr_group}=all_workflow_Day;
+
+end
+ 
+
+
+
+%%
+cmap = parula(5)
+
+for curr_group=1:2
+for curr_stage=[3 6 4]
+
+all_wf_px=cell(length(animals{curr_group}),1);
+all_type=cell(length(animals{curr_group}),1);
+all_stim2move=cell(length(animals{curr_group}),1);
+all_iti_move=cell(length(animals{curr_group}),1);
+
+for curr_animal=1:length(animals{curr_group})
+    raw_data_task=load([Path workflow '\' animals{curr_group}{curr_animal} '_' workflow '.mat']);
+    raw_data_task_single_trial=load([Path workflow '\'  animals{curr_group}{curr_animal} '_' workflow '_single_trial.mat']);
+    idx=ismember( raw_data_task.workflow_day,all_workflow{curr_group}{curr_stage}{curr_animal});
+    temp_wf=raw_data_task_single_trial.wf_px_task_all(idx);
+    temp_itimove=raw_data_task_single_trial.iti_move_time(idx);
+    temp_stim2move=cellfun(@(x,y)  x( y(1:length(y)/3)==1 ) ,  ...
+        raw_data_task_single_trial.stim2move(idx),raw_data_task_single_trial.wf_px_task_all_reward_id(idx)',...
+        'UniformOutput',false);
+    temp_type=raw_data_task_single_trial.wf_px_task_all_type_id(idx);
+    all_wf_px{curr_animal}=cat(3,temp_wf{:});
+    all_type{curr_animal}=cat(1,temp_type{:});
+    all_stim2move{curr_animal}=cat(1,temp_stim2move{:});
+    all_iti_move{curr_animal}=cat(1,temp_itimove{:});
+end
+
+
+%
+
+figure('Position', [50 50 1600 600]);
+t1 = tiledlayout(2,10, 'TileSpacing', 'compact', 'Padding', 'compact');
+
+for curr_catg=[1 2];
+
+for curr_roi=[1 3 8 12 16]
+ % curr_roi=1 
+main_preload_vars = who;
+
+ buf3_roi=cell(length(animals{curr_group}),1);
+for curr_animal=1:length(animals{curr_group})
+    
+preload_vars = who;
+avg_image= plab.wf.svd2px(U_master,all_wf_px{curr_animal}(:,:,all_type{curr_animal}==curr_catg));
+buf1=reshape(avg_image,size(avg_image,1)*size(avg_image,2),size(avg_image,3),size(avg_image,4));
+buf3_roi{curr_animal}=  permute(mean(buf1(roi1(curr_roi).data.mask(:),:,:),1),[2,3,1]);
+clearvars('-except',preload_vars{:});
+end
+
+all_buf_roi=cat(2,buf3_roi{:});
+
+final_all_stim2move=cat(1,all_stim2move{:});
+final_all_iti_move=cat(1,all_iti_move{:});
+
+if curr_catg==1|curr_catg==2
+[stim_to_move_sorted, sorted_indices] = sort(final_all_stim2move);
+all_buf_roi_sorted=all_buf_roi(:,sorted_indices);
+used_sort=stim_to_move_sorted;
+elseif curr_catg==4
+[real_iti_move_time_sorted, sorted_indices]  =sort(final_all_iti_move);
+used_sort=real_iti_move_time_sorted;
+all_buf_roi_sorted=all_buf_roi(:,sorted_indices);
+end
+
+
+nexttile
+% imagesc(t_task,[],all_buf_roi_sorted(:,stim_to_move_sorted<=0)')
+
+imagesc(t_task,[],all_buf_roi_sorted(:,sorted_indices)')
+yline(sum(used_sort<=0),'LineWidth',1,'Color','r')
+yline(sum(used_sort<=0.1),'LineWidth',1,'Color','r')
+yline(sum(used_sort<=0.2),'LineWidth',1,'Color','r')
+yline(sum(used_sort<=0.4),'LineWidth',1,'Color','r')
+
+hold on
+if curr_catg==1| curr_catg==4
+ scatter(used_sort,1:length(used_sort),3,'red','filled')
+elseif  curr_catg==2
+ scatter(-used_sort,1:length(used_sort),3,'red','filled')
+
+end
+% clim(0.8*max(buf3_roi{1},[],'all').*[-1,1]);
+clim(0.02.*[-1,1]);
+xline(0)
+colormap(ap.colormap('PWG'));
+if curr_catg==1
+title(roi1(curr_roi).name)
+end
+
+nexttile
+ ap.errorfill(t_task,nanmean(all_buf_roi_sorted(:,stim_to_move_sorted<=0)',1),...
+     std(all_buf_roi_sorted(:,stim_to_move_sorted<=0)',0,1,'omitmissing')/sqrt(sum(stim_to_move_sorted<=0)),...
+     cmap(1,:),0.1,0.5)
+  ap.errorfill(t_task,nanmean(all_buf_roi_sorted(:,(stim_to_move_sorted>0&stim_to_move_sorted<=0.1))',1),...
+     std(all_buf_roi_sorted(:,(stim_to_move_sorted>0&stim_to_move_sorted<=0.1))',0,1,'omitmissing')/...
+     sqrt(sum(stim_to_move_sorted>0&stim_to_move_sorted<=0.1)),...
+     cmap(2,:),0.1,0.5)
+
+    ap.errorfill(t_task,nanmean(all_buf_roi_sorted(:,(stim_to_move_sorted>0.1&stim_to_move_sorted<=0.2))',1),...
+     std(all_buf_roi_sorted(:,(stim_to_move_sorted>0.1&stim_to_move_sorted<=0.2))',0,1,'omitmissing')/...
+     sqrt(sum(stim_to_move_sorted>0.1&stim_to_move_sorted<=0.2)),...
+     cmap(3,:),0.1,0.5)
+     ap.errorfill(t_task,nanmean(all_buf_roi_sorted(:,(stim_to_move_sorted>0.2&stim_to_move_sorted<=0.4))',1),...
+     std(all_buf_roi_sorted(:,(stim_to_move_sorted>0.2&stim_to_move_sorted<=0.4))',0,1,'omitmissing')/...
+     sqrt(sum(stim_to_move_sorted>0.2&stim_to_move_sorted<=0.4)),...
+     cmap(4,:),0.1,0.5)
+    ap.errorfill(t_task,nanmean(all_buf_roi_sorted(:,stim_to_move_sorted>0.4)',1),...
+     std(all_buf_roi_sorted(:,stim_to_move_sorted>0.4)',0,1,'omitmissing')/sqrt(sum(stim_to_move_sorted>0.4)),...
+     cmap(5,:),0.1,0.5)
+
+xlim([t_task(1) t_task(end)])
+xline(0)
+legend({'','<0','','0-0.1','','0.1-0.2','','0.2-0.4','','>0.4'},'Box','off')
+clearvars('-except',main_preload_vars{:});
+drawnow
+end
+end
+sgtitle([groups{curr_group} ': stage ' num2str(curr_stage) ])
+saveas(gcf,[Path 'figures\summary\different_task_passive\ single trial activity in ' groups{curr_group} ': stage ' num2str(curr_stage)  ], 'jpg');
+
+end
+end

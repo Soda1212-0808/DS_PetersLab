@@ -1,7 +1,7 @@
 
 %% TESTING BATCH TASK WIDEFIELD
 clear all
-Path = 'C:\Users\dsong\Documents\MATLAB\Da_Song\Data_analysis\mice\process\processed_data_v2\';
+Path = 'D:\Data process\wf_data\';
 
 
 surround_samplerate = 35;

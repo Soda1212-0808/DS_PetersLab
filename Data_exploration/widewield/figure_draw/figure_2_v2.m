@@ -2,7 +2,7 @@
 clear all
 clc
 
-Path = 'C:\Users\dsong\Documents\MATLAB\Da_Song\Data_analysis\mice\process\processed_data_v2\';
+Path = 'D:\Data process\wf_data\';
 master_U_fn = fullfile(plab.locations.server_path,'Lab', ...
     'widefield_alignment','U_master.mat');
 load(master_U_fn);
@@ -38,7 +38,7 @@ data_part=cell(length(select_group),1);
 buf_images_all=cell(length(select_group),1);
 for curr_group=select_group
 
-    Path_task=[Path 'mat_data\summary_data\task ' data_type{used_data} ' in group ' groups{curr_group}  '.mat' ];
+    Path_task=[Path 'summary_data\task ' data_type{used_data} ' in group ' groups{curr_group}  '.mat' ];
  buffer_file = matfile(Path_task, 'Writable', false); % 以只读模式打开
  data_part{curr_group} = buffer_file.data_all;
 
@@ -46,7 +46,7 @@ for curr_group=select_group
 end
 
 % apply guassian filter
-apply_filter=1
+apply_filter=0
 
 if apply_filter==1
 sigma=20
