@@ -10,7 +10,7 @@ baseline_window = [-0.5,-0.1];
 
 t_task = surround_window(1):1/surround_samplerate:surround_window(2);
 baseline_t = baseline_window(1):1/surround_samplerate:baseline_window(2);
-t_kernels=1/surround_samplerate*[-5:30];
+t_kernels=1/surround_samplerate*[-10:30];
 
 
 surround_time = [-5,5];
@@ -21,6 +21,7 @@ surround_time_points = surround_time(1):1/surround_sample_rate:surround_time(2);
 animals = {'DS021','DS007','DS013','DS010','AP019','AP021','DS011','AP022','DS001','AP018','AP020',...
     'DS004','DS014','DS015','DS016', 'DS003','DS006','DS013','DS000',...
     'HA000','HA001','HA002','HA003','HA004','AP027','AP028','AP029','DS019','DS020'};
+
 for curr_animal_idx=1:length(animals)
     animal=animals{curr_animal_idx};
     fprintf('%s\n', ['start  ' animal ]);
@@ -160,7 +161,6 @@ for curr_animal_idx=1:length(animals)
                     ||strcmp(recordings2(curr_recording).workflow{index_real},'stim_wheel_right_stage2_angle')...
                     ||strcmp(recordings2(curr_recording).workflow{index_real},'stim_wheel_right_stage1_angle_size60')...
                     ||strcmp(recordings2(curr_recording).workflow{index_real},'stim_wheel_right_stage2_angle_size60')
-
 
                 workflow_type(curr_recording)=1;
             elseif  strcmp(recordings2(curr_recording).workflow{index_real},'stim_wheel_right_stage2_mixed_VA')...
@@ -332,8 +332,8 @@ for curr_animal_idx=1:length(animals)
                 align_category = [reshape(ones(sum(use_trials),3).*[1,2,3],[],1);...
                     ones(length(real_iti_move),1)*4];
             elseif workflow_type(curr_recording)==3
-                curr_tasktype_0=cell2mat({trial_events.values.TaskType});
-                curr_tasktype= curr_tasktype_0(1:n_trials);
+                curr_tasktype=cell2mat({trial_events.values(1:n_trials).TaskType});
+                % curr_tasktype= curr_tasktype_0(1:n_trials);
                 %分类标记
                 rewarded_tasktype=curr_tasktype(use_trials)';
                 align_category=[rewarded_tasktype ; rewarded_tasktype+10 ; rewarded_tasktype+20;...
@@ -367,7 +367,7 @@ for curr_animal_idx=1:length(animals)
             real_stimOn_times=stimOn_times(1:n_trials);
             real_stim_move_time=stim_move_time(1:n_trials);
 
- pho_on_times=photodiode_times(photodiode_values==1);
+            pho_on_times=photodiode_times(photodiode_values==1);
             pho_off_times=photodiode_times(photodiode_values==0)+2;
 
 
@@ -375,27 +375,61 @@ for curr_animal_idx=1:length(animals)
 
                 move_regressors = {histcounts(real_stim_move_time,wf_regressor_bins)};
                 stim_regressors = {histcounts(real_stimOn_times,wf_regressor_bins)};
-             wf_t_only_task= {ones(length(wf_t),1)};
+             wf_t_only_task= {ones(1,length(wf_t))};
 
             elseif workflow_type(curr_recording)==3
 
                 stim_regressors = {histcounts(real_stimOn_times(curr_tasktype==0),wf_regressor_bins);histcounts(real_stimOn_times(curr_tasktype==1),wf_regressor_bins)};
                 move_regressors = {histcounts(real_stim_move_time(curr_tasktype==0),wf_regressor_bins);histcounts(real_stim_move_time(curr_tasktype==1),wf_regressor_bins)};
 
-                wf_t_only_v= interp1([pho_on_times(curr_tasktype==1);pho_off_times(curr_tasktype==1)], ...
-                    [zeros(sum(photodiode_values(repelem(curr_tasktype, 2)'==1)==1),1);....
-                    ones(sum(photodiode_values(repelem(curr_tasktype, 2)'==1)==0),1)], ...
+                % wf_t_only_v= interp1([pho_on_times(curr_tasktype==1);pho_off_times(curr_tasktype==1)], ...
+                %     [zeros(sum(photodiode_values(repelem(curr_tasktype, 2)'==1)==1),1);....
+                %     ones(sum(photodiode_values(repelem(curr_tasktype, 2)'==1)==0),1)], ...
+                %     wf_t,'previous')==1;
+                % 
+                % wf_t_only_a= interp1([pho_on_times(curr_tasktype==0);pho_off_times(curr_tasktype==0)], ...
+                %     [zeros(sum(photodiode_values(repelem(curr_tasktype, 2)'==0)==1),1);....
+                %     ones(sum(photodiode_values(repelem(curr_tasktype, 2)'==0)==0),1)], ...
+                %     wf_t,'previous')==1;
+                % 
+                % wf_t_only_task={wf_t_only_v;wf_t_only_a};
+
+
+
+                temp_pho_off_times=[0; photodiode_off_times]
+                wf_t_only_v1=interp1([temp_pho_off_times(curr_tasktype==0);photodiode_on_times(curr_tasktype==0)],...
+                    [ones(sum(photodiode_values(repelem(curr_tasktype, 2)'==0)==1),1);....
+                    zeros(sum(photodiode_values(repelem(curr_tasktype, 2)'==0)==0),1)],...
+                    wf_t,'previous')==1;
+                wf_t_only_v2=interp1([photodiode_on_times(curr_tasktype==0);photodiode_off_times(curr_tasktype==0)],...
+                    [ones(sum(photodiode_values(repelem(curr_tasktype, 2)'==0)==1),1);....
+                    zeros(sum(photodiode_values(repelem(curr_tasktype, 2)'==0)==0),1)],...
                     wf_t,'previous')==1;
 
-
-                wf_t_only_a= interp1([pho_on_times(curr_tasktype==0);pho_off_times(curr_tasktype==0)], ...
-                    [zeros(sum(photodiode_values(repelem(curr_tasktype, 2)'==0)==1),1);....
-                    ones(sum(photodiode_values(repelem(curr_tasktype, 2)'==0)==0),1)], ...
+                wf_t_only_a1=interp1([temp_pho_off_times(curr_tasktype==1);photodiode_on_times(curr_tasktype==1)],...
+                    [ones(sum(photodiode_values(repelem(curr_tasktype, 2)'==1)==1),1);....
+                    zeros(sum(photodiode_values(repelem(curr_tasktype, 2)'==1)==0),1)],...
                     wf_t,'previous')==1;
-                wf_t_only_task={wf_t_only_v;wf_t_only_a};
+                wf_t_only_a2=interp1([photodiode_on_times(curr_tasktype==1);photodiode_off_times(curr_tasktype==1)],...
+                    [ones(sum(photodiode_values(repelem(curr_tasktype, 2)'==1)==1),1);....
+                    zeros(sum(photodiode_values(repelem(curr_tasktype, 2)'==1)==0),1)],...
+                    wf_t,'previous')==1;
 
+                wf_t_only_task={wf_t_only_v1+wf_t_only_v2;wf_t_only_a1+wf_t_only_a2};
 
             end
+
+
+
+% figure;
+% hold on
+% plot(wf_t,wf_t_only_v1+wf_t_only_v2)
+% % xline(pho_on_times(curr_tasktype==1))
+% xline(photodiode_off_times(curr_tasktype==0),'r')
+% xline(photodiode_on_times(curr_tasktype==0),'g')
+% 
+% ylim([0 1.5])
+
 
 
             iti_move_regressors=histcounts(real_iti_move,wf_regressor_bins);
@@ -431,13 +465,14 @@ for curr_animal_idx=1:length(animals)
 
                     disp(['Running with n_components = ', num2str(n_components)]);
                     [stim_kernels,predicted_signals,explained_var] = ...
-           cellfun(@(x,y) ap.regresskernel(wf_V(1:n_components,x),y(x),-frame_shifts,lambda),...
+           cellfun(@(x,y) ap.regresskernel(wf_V(1:n_components,find(x==1)),y(find(x==1)),-frame_shifts,lambda),...
                wf_t_only_task, stim_regressors ,'UniformOutput',false );
 
-                    % [stim_kernels,predicted_signals,explained_var] = ...
-                    %     ap.regresskernel(wf_V(1:n_components,:),stim_regressors,-frame_shifts,lambda)
 
-                    % [BUF_kernels,BUF_predict,exp]= ap.regresskernel(stim_regressors,wf_V,-frame_shifts,lambda);
+                    % [stim_kernels1,predicted_signals,explained_var] = ...
+                    %     ap.regresskernel(wf_V(1:n_components,:),stim_regressors{1},-frame_shifts,lambda)
+
+                     % [BUF_kernels,BUF_predict,exp]= ap.regresskernel(stim_regressors,wf_V,-frame_shifts,lambda);
 
 
                     success = true; % 如果没有报错，则成功运行
@@ -451,6 +486,27 @@ for curr_animal_idx=1:length(animals)
             end
 
             disp('stim_kernels_running_successfully');
+           
+            
+
+% % 
+%   a0=plab.wf.svd2px(U_master(:,:,1:200),stim_kernels{1});
+%   a1=plab.wf.svd2px(U_master(:,:,1:200),stim_kernels1);
+% 
+%   % ap.imscroll(a0-a1)
+%  figure;
+%  imagesc(max(a0(:,:,t_kernels>0&t_kernels<0.2),[],3))
+%    clim([0 0.0004])
+%  axis image off;
+% ap.wf_draw('ccf', 'black');
+% colormap( ap.colormap(['WG']  ));
+% 
+%  figure;
+%  imagesc(max(a1(:,:,t_kernels>0&t_kernels<0.2),[],3))
+%    clim([0 0.0004])
+%  axis image off;
+% ap.wf_draw('ccf', 'black');
+% colormap( ap.colormap(['WG']  ));
 
 
 
@@ -464,7 +520,7 @@ for curr_animal_idx=1:length(animals)
 
 
                     [move_kernels,predicted_signals,explained_var] = ...
-                        cellfun(@(x,y) ap.regresskernel(wf_V(1:n_components,x),y(x),-frame_shifts,lambda),...
+                        cellfun(@(x,y) ap.regresskernel(wf_V(1:n_components,find(x==1)),y(find(x==1)),-frame_shifts,lambda),...
                         wf_t_only_task, move_regressors ,'UniformOutput',false );
 
                     success = true; % 如果没有报错，则成功运行
@@ -539,27 +595,31 @@ for curr_animal_idx=1:length(animals)
 
         % learned_day = rxn_stat_p < 0.05 & rxn_med < 2;
 
-        pre_time=max(frac_move_stimalign(:,surround_time_points>-2&surround_time_points<-1),[],2);
-        post_time=max(frac_move_stimalign(:,surround_time_points>0&surround_time_points<1),[],2);
-        react_index=(post_time-pre_time)./(post_time+pre_time);
-
-        pre_time_V=max(frac_move_stimalign(:,surround_time_points>-2&surround_time_points<-1),[],2);
-        post_time_V=max(frac_move_stimalign(:,surround_time_points>0&surround_time_points<1),[],2);
-
-        pre_time_A=max(frac_move_stimalign(:,surround_time_points>-2&surround_time_points<-1),[],2);
-        post_time_A=max(frac_move_stimalign(:,surround_time_points>0&surround_time_points<1),[],2);
-        react_index_VA={(post_time_V-pre_time_V)./(post_time_V+pre_time_V), (post_time_A-pre_time_A)./(post_time_A+pre_time_A)};
+        % pre_time=max(frac_move_stimalign(:,surround_time_points>-2&surround_time_points<-1),[],2);
+        % post_time=max(frac_move_stimalign(:,surround_time_points>0&surround_time_points<1),[],2);
+        % react_index=(post_time-pre_time)./(post_time+pre_time);
+        % 
+        % pre_time_V=max(frac_move_stimalign(:,surround_time_points>-2&surround_time_points<-1),[],2);
+        % post_time_V=max(frac_move_stimalign(:,surround_time_points>0&surround_time_points<1),[],2);
+        % 
+        % pre_time_A=max(frac_move_stimalign(:,surround_time_points>-2&surround_time_points<-1),[],2);
+        % post_time_A=max(frac_move_stimalign(:,surround_time_points>0&surround_time_points<1),[],2);
+        % react_index_VA={(post_time_V-pre_time_V)./(post_time_V+pre_time_V), (post_time_A-pre_time_A)./(post_time_A+pre_time_A)};
 
 
     end
-    save([Path 'task\' animal '_task.mat' ],'workflow_type','workflow_type_name',...
-        'workflow_type_name_merge','frac_move_stimalign','wf_px_task',...
-        'wf_px_task_kernels','img_size','workflow_day','react_index',...
-        'react_index_VA','rxn_stat_p','rxn_med','stim2move_med', '-v7.3')
+     save([Path 'task\' animal '_task.mat' ],'workflow_type','workflow_type_name',...
+        'workflow_type_name_merge','wf_px_task',...
+        'wf_px_task_kernels','img_size','workflow_day', '-v7.3')
 
-    save([Path 'task\' animal '_task_single_trial.mat' ],'wf_px_task_all',...
-        'wf_px_task_all_type_id','wf_px_task_all_reward_id','wf_px_task_all_timepoint',...
-        'tasktype','rxn','stim2move','iti_move_time', '-v7.3')
+    % save([Path 'task\' animal '_task.mat' ],'workflow_type','workflow_type_name',...
+    %     'workflow_type_name_merge','frac_move_stimalign','wf_px_task',...
+    %     'wf_px_task_kernels','img_size','workflow_day','react_index',...
+    %     'react_index_VA','rxn_stat_p','rxn_med','stim2move_med', '-v7.3')
+    % 
+    % save([Path 'task\' animal '_task_single_trial.mat' ],'wf_px_task_all',...
+    %     'wf_px_task_all_type_id','wf_px_task_all_reward_id','wf_px_task_all_timepoint',...
+    %     'tasktype','rxn','stim2move','iti_move_time', '-v7.3')
 
 end
 

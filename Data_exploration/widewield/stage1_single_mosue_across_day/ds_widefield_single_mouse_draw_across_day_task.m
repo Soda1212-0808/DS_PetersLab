@@ -12,57 +12,140 @@ surround_window_task = [-0.2,1];
 t_task = surround_window_task(1):1/surround_samplerate:surround_window_task(2);
 t_kernels=1/surround_samplerate*[-10:30];
 
-passive_boundary=0.2;
-period_task=find(t_task>0&t_task<passive_boundary);
-period_kernels=find(t_kernels>0&t_kernels<passive_boundary);
+boundary=0.2;
+period_task=find(t_task>0&t_task<boundary);
+period_kernels=find(t_kernels>0&t_kernels<boundary);
 
-
-animal='DS016';
+animals={'HA000','HA001','HA002'}
+ animals={'HA003','HA004','DS019','DS020'}
+for curr_animal=1:length(animals)
+    animal=animals{curr_animal};
+% animal='DS019';
 wokrflow='task';
-
 learn_name={'non-learned','learned'};
 workflow_stage={'naive','visual','auditory','mixed'};
 legend_name={'-90','0','90';'4k','8k','12k';'-90','0','90';};
-
 used_data=2;% 1 raw data;2 kernels
 data_type={'raw','kernels'};
-raw_data_task=load([Path  wokrflow '\' animal '_' wokrflow '.mat']);
-
+raw_data_task=load([Path   'task\' animal '_task.mat']);
+ raw_data_Vpassive=load([Path   'lcr_passive\' animal '_lcr_passive.mat']);
+ % raw_data_Apassive=load([Path   'hml_passive_audio\' animal '_hml_passive_audio.mat']);
+raw_data_behavior=load([Path   'behavior\' animal '_behavior.mat']);
 
 if used_data==1
     idx=cellfun(@(x) ~(isempty(x)),raw_data_task.wf_px_task);
-    image_all(idx)=cellfun(@(x)  plab.wf.svd2px(U_master,x),raw_data_task.wf_px_task(idx),'UniformOutput',false);
-
+    image_task(idx)=cellfun(@(x)  plab.wf.svd2px(U_master,x),raw_data_task.wf_px_task(idx),'UniformOutput',false);
     use_period=period_task;
     use_t=t_task;
 else
     idx=cellfun(@(x) ~(isempty(x)|| ~(size(x,3)==1)),raw_data_task.wf_px_task_kernels);
+    image_task(idx)=cellfun(@(x)  plab.wf.svd2px(U_master(:,:,1:size(x{1})),x{1}),raw_data_task.wf_px_task_kernels(idx),'UniformOutput',false);
+     image_Vpassive(idx)=cellfun(@(x)  plab.wf.svd2px(U_master(:,:,1:size(x)),x),raw_data_Vpassive.wf_px_kernels(idx),'UniformOutput',false);
+    % image_Apassive(idx)=cellfun(@(x)  plab.wf.svd2px(U_master(:,:,1:size(x)),x),raw_data_Apassive.wf_px_kernels(idx),'UniformOutput',false);
 
-    image_all(idx)=cellfun(@(x)  plab.wf.svd2px(U_master(:,:,1:size(x{1})),x{1}),raw_data_task.wf_px_task_kernels(idx),'UniformOutput',false);
-   
     use_period=period_kernels;
     use_t=t_kernels;
 end
-
-image_all_mean(idx)=cellfun(@(x) permute(max(x(:,:,use_period,:),[],3),[1,2,4,3]),image_all(idx),'UniformOutput',false);
-buf1(idx)=cellfun(@(z) reshape(z,size(z,1)*size(z,2),size(z,3),size(z,4)) , image_all(idx), 'UniformOutput', false);
+clear image_task_mean
+image_task_mean(idx)=cellfun(@(x) permute(max(x(:,:,use_period,:),[],3),[1,2,4,3]),image_task(idx),'UniformOutput',false);
+buf1(idx)=cellfun(@(z) reshape(z,size(z,1)*size(z,2),size(z,3),size(z,4)) , image_task(idx), 'UniformOutput', false);
 % buf2= cell2mat(cellfun(@(z) permute(mean(z(roi1(1).data.mask(:),:,3),1),[2,3,1]) , buf1, 'UniformOutput', false));
-buf3_mPFC(idx)= cellfun(@(z) permute(mean(z(roi1(3).data.mask(:),:,:),1),[2,3,1]) , buf1(idx), 'UniformOutput', false);
+buf3_mPFC(idx)= cellfun(@(z) permute(mean(z(roi1(1).data.mask(:),:,:),1),[2,3,1]) , buf1(idx), 'UniformOutput', false);                               
+
+ image_V_mean(idx)=cellfun(@(x) permute(max(x(:,:,use_period,:),[],3),[1,2,4,3]),image_Vpassive(idx),'UniformOutput',false);
+% image_A_mean(idx)=cellfun(@(x) permute(max(x(:,:,use_period,:),[],3),[1,2,4,3]),image_Apassive(idx),'UniformOutput',false);
+
+all_image{curr_animal}=...
+image_task_mean(find(ismember(raw_data_behavior.workflow_name,'visual size up')&...
+    raw_data_behavior.rxn_f_stat_p(:,1)<0.05,2,'last'));
+
+figure('Position',[50 50 1400 300],'Name',['images of ' animal,' ', data_type{used_data}, ' ' strrep(wokrflow,'_','-')]);
+t2 = tiledlayout(5,length(image_task_mean), 'TileSpacing', 'none', 'Padding', 'none');
+for curr_day=find(idx)
+     nexttile(t2,curr_day)
+    % imagesc(image_all_mean{i}(:,:,3)-fliplr(image_all_mean{i}(:,:,3)))
+    if size(image_task_mean{curr_day},3)==1
+        imagesc(image_task_mean{curr_day})
+        title([raw_data_task.workflow_day{curr_day}],[raw_data_task.workflow_type_name_merge{curr_day}  ])
+
+    else
+        imagesc(image_task_mean{curr_day}(:,:,1))
+        title([raw_data_task.workflow_day{curr_day}],[raw_data_task.workflow_type_name_merge{curr_day}  ])
+
+        axis image off;
+        ap.wf_draw('ccf', [0.5 0.5 0.5]);
+        colormap( ap.colormap('WG'));
+        clim(0.0003 .* [0, 1]);
+        nexttile(t2,length(image_task_mean)+curr_day)
+        imagesc(image_task_mean{curr_day}(:,:,2))
+
+    end
+    axis image off;
+    ap.wf_draw('ccf', [0.5 0.5 0.5]);
+    colormap( ap.colormap('WG'));
+    clim(0.0003 .* [0, 1]);
+    % xlim([0 213])
+
+end
+
+end
+
+
+
+temp_image1=vertcat(all_image{:});
+temp_image2=nanmean(cat(3,temp_image1{:}),3);
+figure;
+imagesc(temp_image2)
+axis image off;
+ap.wf_draw('ccf', [0.5 0.5 0.5]);
+colormap( ap.colormap('WB'));
+clim(0.0004 .* [0, 1]);
+
+
+
+
+
+
+
+for curr_day=find(idx)
+    nexttile(t2,length(image_task_mean)*(curr_stim+1)+curr_day)
+        imagesc(image_V_mean{curr_day}(:,:,3))
+   
+        axis image off;
+        ap.wf_draw('ccf', [0.5 0.5 0.5]);
+        colormap( ap.colormap('WG'));
+        clim(0.0003 .* [0, 1]);
+ 
+end
+
+
+
+
+sgtitle(animal)
+colorbar
+
+
+
+
+
+
+
+
 
 
 %
 % mPFC
 figure('Position',[50 50 1000 800],'Name',['plots of ' animal,' ', data_type{used_data}, ' ' strrep(wokrflow,'_','-')]);
-for i=1:length(idx)
+for curr_day=1:length(idx)
     nexttile
     % if(~isempty(buf3_mPFC{i})) & size(buf3_mPFC{i},2)==1
         hold on
-        p=plot(use_t,buf3_mPFC{i});
+        p=plot(use_t,buf3_mPFC{curr_day});
         xline(0);
         xline(0.15)
 
         ylim(0.0001*[-1,2])
-        title(['day' num2str(i) ' ' raw_data_task.workflow_day{i}],[raw_data_task.workflow_type_name_merge{i} '-' learn_name{(raw_data_task.rxn_stat_p{i}<0.05)+1} ])
+        title(['day' num2str(curr_day) ' ' raw_data_task.workflow_day{curr_day}],[raw_data_task.workflow_type_name_merge{curr_day} '-' learn_name{(raw_data_task.rxn_stat_p{curr_day}<0.05)+1} ])
     % end
 end
 
@@ -89,11 +172,11 @@ colorbar
 
 
 figure('Position',[50 50 1000 800],'Name',['images of ' animal,' ', data_type{used_data}, ' ' strrep(wokrflow,'_','-')]);
-for i=find(idx)
+for curr_day=find(idx)
     nexttile
       % imagesc(image_all_mean{i}(:,:,3)-fliplr(image_all_mean{i}(:,:,3)))
-      if size(image_all_mean{i},3)==1
-        imagesc(image_all_mean{i}(:,:,1))
+      if size(image_task_mean{curr_day},3)==1
+        imagesc(image_task_mean{curr_day}(:,:,1))
       end
      axis image off;
     ap.wf_draw('ccf', 'black');
@@ -101,7 +184,7 @@ for i=find(idx)
     clim(0.0002 .* [0, 1]);
     % xlim([0 213])
 
-   title(['day' num2str(i) ' ' raw_data_task.workflow_day{i}],[raw_data_task.workflow_type_name_merge{i} '-' learn_name{(raw_data_task.rxn_stat_p{i}<0.05)+1} ])
+   title(['day' num2str(curr_day) ' ' raw_data_task.workflow_day{curr_day}],[raw_data_task.workflow_type_name_merge{curr_day} '-' learn_name{(raw_data_task.rxn_stat_p{curr_day}<0.05)+1} ])
 
 end
 sgtitle([animal,' ', data_type{used_data}, ' ' strrep(wokrflow,'_','-')])
@@ -137,7 +220,7 @@ colorbar
 
 
 rec_day=9
-curr_imaging=image_all{rec_day};
+curr_imaging=image_task{rec_day};
 ap.imscroll(curr_imaging(:,:,:,1),use_t)
 axis image off
 ap.wf_draw('ccf','black');
@@ -152,9 +235,9 @@ colorbar
      avg_day=6:8;
 % end
 % % 
-buf_image_move=cellfun(@(x) x(:,:,:,2),image_all,'UniformOutput',false);
+buf_image_move=cellfun(@(x) x(:,:,:,2),image_task,'UniformOutput',false);
 avg_imaging1=mean(cat(5,buf_image_move{avg_day}),5);
-buf_image_itimove=cellfun(@(x) x(:,:,:,4),image_all,'UniformOutput',false);
+buf_image_itimove=cellfun(@(x) x(:,:,:,4),image_task,'UniformOutput',false);
 avg_imaging2=mean(cat(5,buf_image_itimove{avg_day}),5);
 
 avg_imaging=avg_imaging1-avg_imaging2;

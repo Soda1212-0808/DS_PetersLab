@@ -2,8 +2,8 @@
 clear all
 Path = 'D:\Data process\wf_data\';
 
- animals = {'DS007','DS010','AP021','DS011','DS001','AP018','AP022'};n1_name='visual position';n2_name='audio volume'; index_group=[1  1 1 1 0 0 0  ]';
-% animals = {'DS003','DS006','DS013','DS000','DS004','DS014','DS015','DS016'};n1_name='audio volume';n2_name='visual position';index_group=[0 0 0 1 1 1 1 1 ];
+ % animals = {'DS007','DS010','AP021','DS011','DS001','AP018','AP022'};n1_name='visual position';n2_name='audio volume'; index_group=[1  1 1 1 0 0 0  ]';
+animals = {'DS003','DS006','DS013','DS000','DS004','DS014','DS015','DS016'};n1_name='audio volume';n2_name='visual position';index_group=[0 0 0 1 1 1 1 1 ];
 % animals = {'DS020','DS019','DS021'};n1_name='visual position';n2_name='audio frequency'; index_group=[1  1 1 1 0 0 0  ]';
 
 p_para='mean';
@@ -33,9 +33,9 @@ for curr_animal_idx = 1:length(animals)
 
     recordings = plab.find_recordings(animal,[],use_workflow);
     % only ephys data
-     % recordings(find([recordings.widefield])) = [];
+     recordings(find([recordings.widefield])) = [];
 
-     recordings(find([recordings.ephys])) = [];
+     % recordings(find([recordings.ephys])) = [];
 
     surround_time = [-5,5];
     surround_sample_rate = 100;
@@ -333,44 +333,10 @@ for curr_animal_idx = 1:length(animals)
 
 end
 
- saveas(gcf,[Path 'figures\summary\behavior\wf_mixed_behavior_' strjoin(animals, '_')], 'jpg');
+ saveas(gcf,[Path 'figures\summary\behavior\ephys_mixed_behavior_' strjoin(animals, '_')], 'jpg');
  % saveas(gcf,[Path 'mixed_behavior_' strjoin(animals, '_') '.eps' ], 'epsc');
-save ([Path 'summary_data\behavior in mixed task in ' n1_name '_to_' n2_name '.mat' ],...
-    'animals','all_animal_learned_day', 'all_animal_react_index','all_animal_rxn_med','all_animal_stim2move_med',...
-    'all_animal_stim2move_mean','all_animal_stim2move_mad','all_animal_frac_move_V','all_animal_frac_move_A',...
-    'all_animal_stim2move_med_null','all_animal_stim2move_mean_null','all_animal_stim2move_mad_null','-v7.3');
+% save ([Path 'summary_data\behavior in mixed task in ' n1_name '_to_' n2_name '.mat' ],...
+%     'animals','all_animal_learned_day', 'all_animal_react_index','all_animal_rxn_med','all_animal_stim2move_med',...
+%     'all_animal_stim2move_mean','all_animal_stim2move_mad','all_animal_frac_move_V','all_animal_frac_move_A',...
+%     'all_animal_stim2move_med_null','all_animal_stim2move_mean_null','all_animal_stim2move_mad_null','-v7.3');
 
-%%
-clear all
-Path = 'C:\Users\dsong\Documents\MATLAB\Da_Song\Data_analysis\mice\process\processed_data_v2\';
-
-data1=load([Path 'summary_data\behavior in mixed task in ' n1_name '_to_' n2_name '.mat' ]);
-
-animals = {'DS003','DS006','DS013','DS000','DS004','DS014','DS015','DS016'};n1_name='audio volume';n2_name='visual position';index_group=[0 0 0 1 1 1 1 1 ];
-
-
-
-
-
-s2m_v=cellfun(@(x,y) x(1:3,1),data1.all_animal_stim2move_med(index_group==1'),'UniformOutput',false )
-s2m_a=cellfun(@(x,y) x(1:3,2),data1.all_animal_stim2move_med(index_group==1'),'UniformOutput',false )
-
-
-
-mean_s2m_v=-log(mean(cat(2,s2m_v{:}),2))
-sem_s2m_v=std(cat(2,s2m_v{:}),0,2)/sqrt(length(data1.all_animal_stim2move_med(index_group==1)))
-
-mean_s2m_a=-log(mean(cat(2,s2m_a{:}),2))
-sem_s2m_a=std(cat(2,s2m_a{:}),0,2)/sqrt(length(data1.all_animal_stim2move_med(index_group==1)))
-
-figure('Position',[50 50 200 400]);
-ap.errorfill(1:3,mean_s2m_v, sem_s2m_v,[0 0 1],0.1,0.5);
-ap.errorfill(1:3,mean_s2m_a, sem_s2m_a,[1 0 0],0.1,0.5);
- % ylim([0 0.7])
-  ylim([0 3])
-
-xlabel('training days')
-ylabel('stim to move (s)')
-title([n1_name ' to ' n2_name])
-
-saveas(gcf,[Path 'figures\summary\behavior\mixed reaction time in ' n1_name '_to_' n2_name], 'jpg');

@@ -365,10 +365,8 @@ figure('Position',[50 50 300 200]);
 t1 = tiledlayout(1,2, 'TileSpacing', 'compact', 'Padding', 'compact');
 
 for curr_stage=1:2
-
 buff_stage=num_stage{curr_stage};
-  
-
+          p = ranksum(buff_stage{1}, buff_stage{2});
 
 % 计算均值和标准误差
 means = cellfun(@mean, buff_stage);
@@ -416,8 +414,40 @@ xticklabels({'VA', 'AV'});
 ylabel(['days to learn mod '  num2str(curr_stage)]);
 % title('Bar Chart with Error Bars and Scatter Points');
 grid off;
-hold off;
+
+
+y_max = max(cellfun(@max, buff_stage)) + 1; % 初始 y 值
+h_offset = 1; % 每组比较向上偏移的高度
+star_count = 0; % 当前比较编号，用于偏移高度
+% 判断显著性等级
+if p < 0.05
+    if p < 0.001
+        stars = '***';
+    elseif p < 0.01
+        stars = '**';
+    else
+        stars = '*';
+
+    end
+    % else
+    %     stars=num2str(p)
+    % end
+
+
+    % 星号y位置，逐层向上叠加
+    star_count = star_count + 1;
+    y = y_max + (star_count - 1) * h_offset;
+
+    % 连线
+    plot([1 2], [y y], 'k-', 'LineWidth', 1);
+
+    % 星号文本
+    text(mean([1 2]), y + 0.5, stars, ...
+        'HorizontalAlignment', 'center', ...
+        'FontSize', 14, 'FontWeight', 'bold');
 end
+end
+
 saveas(gcf,[Path 'figures\summary\figures\figure 1 days to learm modality1&2 '  ], 'jpg');
 
 %%  reaction time & performance of  stage 1 & 2
@@ -711,73 +741,9 @@ saveas(gcf,[Path 'figures\summary\figures\iti move of mod1 &mod2' ], 'jpg');
 
 
 
-
-%% example mouse
-
-figure('Position', [50 50 550 350]);
-t1 = tiledlayout(2, 3, 'TileSpacing', 'compact', 'Padding', 'compact');
-% figure;
-% t = tiledlayout(3,3);  % 两行一列
-ccolors={'b','r'}
-for curr_i=1:2
-    if curr_i==1
-% animal=animals{1}{1};
-animal='Visual';
-
-naive=stim2move_time_stage0{1}{2}{1};
-well_trained=stim2move_time_stage1_post{1}{2}{end};
-    else
-        % animal=animals{2}{2};
-        animal='Auditory';
-
-naive=stim2move_time_stage0{2}{4}{1};
-well_trained=stim2move_time_stage1_post{2}{4}{end};
-    end
-% 
-% naive=stim2move_time_stage0{1}{1}{1};
-% well_trained=stim2move_time_stage1_post{1}{1}{end};
-
-nexttile(curr_i*3-2)
-scatter(1:length(naive),naive,5,'filled','MarkerFaceColor','k')
-hold on
-scatter(length(naive)+10:length(well_trained)+length(naive)+9,well_trained,5,'filled','MarkerFaceColor',ccolors{curr_i})
-xline(length(naive)+5,'LineStyle',':','LineWidth',2)
-xticks([length(naive)/2 length(naive)+10+length(well_trained)/2])
-xticklabels({'naive','well trained'})
-ylim([-0.3 2])
-xlim([0 length(well_trained)+length(naive)+9])
-title(animal)
-ylabel('reaction time (s)')
-xlabel('trials')
-
-nexttile(curr_i*3-1)
-histogram(naive,-0.3:0.01:0.4 ,"LineStyle","none" ,'FaceColor','k')
-box off
-hold on
-histogram(well_trained,-0.2:0.01:0.4,"LineStyle","none",'FaceColor',ccolors{curr_i})
-% legend('Location','northoutside','Box','off')
-ylabel('distribution')
-xlabel('reaction time (s)')
-end
-well_trained_v_all= cellfun(@(x) cat(1,x{end})  , stim2move_time_stage1_post{1},'UniformOutput',false);
-visual=cat(1,well_trained_v_all{:});
-well_trained_a_all= cellfun(@(x) cat(1,x{end})  , stim2move_time_stage1_post{2},'UniformOutput',false);
-auditory=cat(1,well_trained_a_all{:});
-
-nexttile(3)
-histogram(visual,-0.2:0.01:0.4 ,"LineStyle","none" ,'FaceColor','b')
-hold on
-histogram(auditory,-0.2:0.01:0.4,"LineStyle","none",'FaceColor','r')
-box off
-
-% legend('Location','eastoutside','Box','off')
-ylabel('distribution')
-xlabel('reaction time (s)')
-title ('visual vs auditory')
-  saveas(gcf,[Path 'figures\summary\figures\figure 1 reacton distribution'  ], 'jpg');
 %% single mice distribution stim2move
      well_trained_all=cell(2,1)
-
+ccolors={[1 0 0],[0 0 1]}
 for curr_para=1:2
     para={'reaction time','reward time'};
 use_scale1={[-0.3 2], [0 3]};
@@ -802,6 +768,9 @@ well_trained=stim2move_time_stage1_post{curr_type}{curr_animal}{end};
 naive=stim_on2off_time_stage0{curr_type}{curr_animal}{1};
 well_trained=stim_on2off_time_stage1_post{curr_type}{curr_animal}{end};
     end
+
+
+
 
 ax = nexttile(subLayout, (curr_animal-1)*2 + 1);
 
@@ -831,7 +800,11 @@ end
 
   saveas(gcf,[Path 'figures\summary\figures\figure 1 distribution each mouse of ' para{curr_para}  ], 'jpg');
 end
-%%
+
+
+
+
+%%  bars of reaction time and reward time 
 
 well_trained_each_mouse=cellfun(@(x) cellfun(@(y)cellfun(@(z) nanmean(z),y,'UniformOutput',true),...
     x,'UniformOutput',false),well_trained_all,'UniformOutput',false)
@@ -908,93 +881,123 @@ xticklabels({'visual','auditory'});
 xtickangle(30);   % 设置标签倾斜 30 度
 
 end
-  saveas(gcf,[Path 'figures\summary\figures\figure 1 bar of reaction time and reward time '   ], 'jpg');
-  
-%% example behavior trace
+ 
 
-    animal ='DS019'
-    rec_day='2025-01-18'
-    rec = plab.find_recordings(animal,rec_day,'*wheel*');
-    rec_time = rec.recording{end};
-    load_parts = struct;
-    load_parts.behavior = true;
-    load_parts.widefield = false;
-    ap.load_recording;
-
-%
-    time_period=[  min(find(timelite.timestamps-(photodiode_on_times(16)-0.2)>0)),...
-        min(find(timelite.timestamps-(photodiode_off_times(16)+0.5)>0))]
-
-    reward_timeline =reward_thresh(time_period(1):time_period(2));  % 示例数据
-    % 找出所有为 1 的索引
-    idx_ones = find(reward_timeline == 1);
-    % 计算相邻 1 之间的间隔
-    gap_lengths = diff(idx_ones) - 1;
-    % 找出 gap < 20 的区间索引
-    valid = find(gap_lengths < 20 & gap_lengths > 0);
-    % 创建逻辑掩码
-    mask = false(size(reward_timeline));
-    % 用 arrayfun 给 mask 中对应位置赋值为 true
-    idx_ranges = arrayfun(@(i) idx_ones(i)+1:idx_ones(i+1)-1, valid, 'UniformOutput', false);
-    mask(cell2mat(idx_ranges')) = true;
-    % 应用掩码修改 vec
-    reward_timeline(mask) = 1;
-
-    %
-    figure('Position',[50 50 300 250]);
-    t1 = tiledlayout(4, 1, 'TileSpacing', 'loose', 'Padding', 'loose');
-
-    hold on
-    plot( photodiode_trace(time_period(1):time_period(2))>3,'LineWidth',2,'Color','k')
+saveas(gcf,[Path 'figures\summary\figures\figure 1 bar of reaction time and reward time '   ], 'jpg');
   
 
-    plot( reward_timeline-1.1,'LineWidth',2,'Color','k')
-   
-    plot(wheel_move(time_period(1):time_period(2))-2.2,'LineWidth',2,'Color','k')
-    % ylim([-0.1 1.1])
-    hold on
-    wheel_vel=wheel_velocity(time_period(1):time_period(2));
-    wheel_vel_norm = (wheel_vel - min(wheel_vel)) / (max(wheel_vel) - min(wheel_vel));
+  %% example mouse
 
-    plot(wheel_vel_norm-3.3,'LineWidth',2,'Color','k')
+figure('Position', [50 50 400 400]);
+t1 = tiledlayout(2, 2, 'TileSpacing', 'tight', 'Padding', 'tight');
+% figure;
+% t = tiledlayout(3,3);  % 两行一列
+ccolors={'b','r'}
+for curr_i=1:2
+    if curr_i==1
+% animal=animals{1}{1};
+animal='visual';
 
- ylim([-4.5 1.5])
- axis off
- plot(lick_thresh(time_period(1):time_period(2))-4.4,'LineWidth',2,'Color','k')
+naive=stim2move_time_stage0{1}{2}{1};
+well_trained=stim2move_time_stage1_post{1}{2}{end};
+    else
+        % animal=animals{2}{2};
+        animal='auditory';
 
- xline(find(photodiode_trace(time_period(1):time_period(2))>3,1,'first'),...
-     'LineStyle','--','LineWidth',1, 'Color',[0.5 0.5 0.5])
- xline(find(reward_timeline==1,1,'first'),'LineStyle','--','LineWidth',1, 'Color',[0.5 0.5 0.5])
- xline(find(wheel_move(time_period(1):time_period(2))==1,1,'first'),...
-     'LineStyle','--','LineWidth',1, 'Color',[0.5 0.5 0.5])
+naive=stim2move_time_stage0{2}{4}{1};
+well_trained=stim2move_time_stage1_post{2}{4}{end};
+    end
+% 
+% naive=stim2move_time_stage0{1}{1}{1};
+% well_trained=stim2move_time_stage1_post{1}{1}{end};
 
- line([find(photodiode_trace(time_period(1):time_period(2))>3,1,'first'),...
-     find(wheel_move(time_period(1):time_period(2))==1,1,'first')],...
-     [1.45,1.45], 'Color',[0.2 0.8 0.2],'LineWidth',1.5,'LineStyle','-')
+nexttile(curr_i*2-1)
+scatter(1:length(naive),naive,5,'filled','MarkerFaceColor','k')
+hold on
+scatter(length(naive)+10:length(well_trained)+length(naive)+9,well_trained,5,'filled','MarkerFaceColor',ccolors{curr_i})
+xline(length(naive)+5,'LineStyle',':','LineWidth',2)
+xticks([length(naive)/2 length(naive)+10+length(well_trained)/2])
+xticklabels({'naive','well trained'})
+ylim([-0.3 2])
+xlim([0 length(well_trained)+length(naive)+9])
+title(animal,'FontWeight','normal','FontSize',12)
+ylabel('reaction time (s)')
 
- line([find(photodiode_trace(time_period(1):time_period(2))>3,1,'first'),...
-     find(reward_timeline==1,1,'first')],[1.25,1.25],...
-     'Color',[0.5 0.5 0.5],'LineWidth',1.5,'LineStyle','-')
+% nexttile(curr_i*3-1)
+% histogram(naive,-0.3:0.01:0.4 ,"LineStyle","none" ,'FaceColor','k')
+% box off
+% hold on
+% histogram(well_trained,-0.2:0.01:0.4,"LineStyle","none",'FaceColor',ccolors{curr_i})
+% % legend('Location','northoutside','Box','off')
+% ylabel('distribution')
+% xlabel('reaction time (s)')
+end
+well_trained_v_all= cellfun(@(x) cat(1,x{end})  , stim2move_time_stage1_post{1},'UniformOutput',false);
+visual=cat(1,well_trained_v_all{:});
+well_trained_a_all= cellfun(@(x) cat(1,x{end})  , stim2move_time_stage1_post{2},'UniformOutput',false);
+auditory=cat(1,well_trained_a_all{:});
+
+nexttile(2)
+histogram(visual,-0.2:0.01:0.4 ,"LineStyle","none" ,'FaceColor','b')
+hold on
+histogram(auditory,-0.2:0.01:0.4,"LineStyle","none",'FaceColor','r')
+box off
+
+% legend('Location','eastoutside','Box','off')
+ylabel('distribution')
+xlabel('reaction time (s)')
+title ('visual vs auditory','FontWeight','normal','FontSize',12)
 
 
- labels = {'stim', 'reward', 'wheel move', 'wheel velocity', 'lick'};
- y_positions = [0.3, -0.7, -1.7, -2.7, -3.9];
+ curr_para=1
+    nexttile(4)
+hold on
+bh=bar(well_trained_each_mouse_median{curr_para}, 'FaceColor', 'flat','EdgeColor','none')
+for i = 1:2
+    bh.CData(i,:) = bar_colors(i,:);
+end
+x = bh.XData;
 
- cellfun(@(label, y) text(160, y, label, ...
-     'FontSize', 12, 'FontWeight', 'normal', ...
-            'HorizontalAlignment', 'right', 'VerticalAlignment', 'middle'), ...
-            labels, num2cell(y_positions));
-xlim([-190 length(reward_timeline)])
+errorbar(x,well_trained_each_mouse_median{curr_para},well_trained_each_mouse_error{curr_para}, 'k.', 'LineWidth', 1.5)
+% 添加散点（颜色与 bar 匹配但更深）
+for i = 1:2
+    xi = x(i) + (rand(size(well_trained_each_mouse{curr_para}{i})) - 0.5) * 0.2;
+    scatter(xi, well_trained_each_mouse{curr_para}{i}, 30, ...
+        'MarkerFaceColor', dot_colors(i,:), ...
+        'MarkerEdgeColor', 'none', ...
+        'MarkerFaceAlpha', 0.7);
+end
 
- text(250, 1.8, 'reaction time', ...
-     'FontSize', 12, 'FontWeight', 'normal', ...
-            'HorizontalAlignment', 'right', 'VerticalAlignment', 'middle','Color',[0.2 0.8 0.2]), ...
-   
- text(1000, 1.6, 'reward time', ...
-     'FontSize', 12, 'FontWeight', 'normal', ...
-            'HorizontalAlignment', 'right', 'VerticalAlignment', 'middle','Color',[0.5 0.5 0.5]), ...         
+  ylabel('reaction time (s)')
+  ylim([0 0.5])
 
-    % legend({'stim','reward','wheel move','wheel velocity','lick'},'Location','eastoutside','Box','off')
+yl=ylim
+y_offset = (yl(2) - yl(1)) * 0.05;  % 横线高度偏移比例
+% 横线和星号 y 位置
+y_star = max([well_trained_each_mouse{curr_para}{1} well_trained_each_mouse{curr_para}{2}]) + y_offset;
+  [~,p]=  ttest2(well_trained_each_mouse{curr_para}{1}, well_trained_each_mouse{curr_para}{2})
+% 判定星号数量
+if p < 0.001
+    stars = '***';
+elseif p < 0.01
+    stars = '**';
+elseif p < 0.05
+    stars = '*';
+else
+    stars = 'ns';  % 可选
+end
+  % 添加横线和星号
+plot([x(1), x(2)], [y_star y_star], 'k-', 'LineWidth', 1.2);  % 横线
+text(mean(x), y_star + y_offset * 2, stars, ...
+    'HorizontalAlignment', 'center', 'FontSize', 12, 'FontWeight', 'normal');
 
-    
-   saveas(gcf,[Path 'figures\summary\figures\figure 1 example behavioral trace' ], 'jpg');
+
+xticks(x);
+xticklabels({'visual','auditory'});
+xtickangle(30);   % 设置标签倾斜 30 度
+
+ 
+
+
+  saveas(gcf,[Path 'figures\summary\figures\figure 1 reacton distribution'  ], 'jpg');
+

@@ -188,7 +188,7 @@ period_kernels=find(t_kernels>0&t_kernels<passive_boundary);
 colors{1}=[[0 0 1];[0.5 0.5 1]];
 colors{2}=[[1 0 0];[1 0.5 0.5]];
     
-for curr_mod =1
+for curr_mod =2
  figure('Position',[2000 200 600 200]);
 t1 = tiledlayout(1, 4,'TileSpacing', 'tight', 'Padding', 'tight');
 for curr_group=1:2
@@ -229,10 +229,6 @@ for curr_group=1:2
 
         tem_learned_day_passive=cell(length(animals),1);
         tem_learned_day_task=cell(length(animals),1);
-        
-        tem_corr_task=cell(length(animals),1);
-        tem_corr_passive=cell(length(animals),1);
-
 
         for curr_animal=1:length(animals)
             animal=animals{curr_animal};
@@ -266,9 +262,9 @@ for curr_group=1:2
             performance=(data_behavior.stim2lastmove_mad_null(idx_0)-data_behavior.stim2lastmove_mad(idx_0))./...
                 (data_behavior.stim2lastmove_mad_null(idx_0)+data_behavior.stim2lastmove_mad(idx_0));
             day_learned=data_behavior.rxn_l_mad_p(idx_0)<0.01;
-           
             temp_vel=data_behavior.frac_velocity_stimalign(idx_0,1)
             temp_vel1= cellfun(@(x) corr(x(:,500:600)') ,temp_vel,'UniformOutput',false )
+
             temp_corr =cellfun(@(x) nanmean(x(~eye(size(x)))) ,temp_vel1,'UniformOutput',true);
 
 
@@ -282,7 +278,6 @@ for curr_group=1:2
             performance_passive=performance(temp_idx_passive);
             day_learned_passive=day_learned(temp_idx_passive);
 
-            corr_passive=temp_corr(temp_idx_passive);
 
 
 
@@ -296,7 +291,6 @@ for curr_group=1:2
             performance_task=performance(temp_idx_task);
             day_learned_task=day_learned(temp_idx_task);
 
-            corr_task=temp_corr(temp_idx_task);
 
 
             tem_mpfc_task_data{curr_animal}=wf_task;
@@ -307,10 +301,6 @@ for curr_group=1:2
 
             tem_learned_day_passive{curr_animal}=day_learned_passive;
             tem_learned_day_task{curr_animal}=day_learned_task;
-
-            tem_corr_task{curr_animal}=corr_task;
-            tem_corr_passive{curr_animal}=corr_passive;
-
 
         end
 
@@ -323,11 +313,6 @@ for curr_group=1:2
 
             performs_passive=cell2mat(tem_perform_passive);
             performs_task=cell2mat(tem_perform_task);
-
-            corr_passive=cell2mat(tem_corr_passive);
-            corr_task=cell2mat(tem_corr_task);
-
-
             if curr_roi==1
                 nexttile(curr_group)
             else
@@ -363,10 +348,6 @@ for curr_group=1:2
             scatter(performs_passive(cell2mat(tem_learned_day_passive)==1),...
                 data1_passive(cell2mat(tem_learned_day_passive)==1,used_stim)',...
                 'MarkerEdgeColor',colors{curr_group}(2,:))
-
-
-                   
-
             ylim([0 0.0005])
             xlim([-0.1 1])
             % title(roi_name{curr_roi} ,'FontWeight','normal')

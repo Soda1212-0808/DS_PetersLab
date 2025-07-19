@@ -1,4 +1,4 @@
-function [p,rxn_stat,rxn_null_stat] = AP_stimwheel_association_pvalue2(stimOn_times,trial_events,stim_to_move,tasktype,use_stat)
+function [p,rxn_stat,rxn_null_stat] = AP_stimwheel_association_pvalue2(stimOn_times,trial_events,stim_to_move_temp,tasktype,use_stat)
 % [p,rxn_stat,rxn_null_stat] = AP_stimwheel_association_pvalue(stimOn_times,trial_events,stim_to_move)
 % Get p-value for whether reaction times are faster than chance (the animal
 % has a stim-wheel association)
@@ -60,7 +60,7 @@ for curr_trial = 1:n_trials
         curr_quiescence_resets_bonsai(end,:));
 
     % Get quiescence durations between resets, including post-stim move
-    curr_poststim_move_timelite = stimOn_times(curr_trial) + stim_to_move(curr_trial);
+    curr_poststim_move_timelite = stimOn_times(curr_trial) + stim_to_move_temp(curr_trial);
 
     curr_quiescence_durations = ...
         diff(vertcat(curr_quiescence_resets_timelite, ...
@@ -95,7 +95,7 @@ for curr_trial = 1:n_trials
         % (stim onset)
         xline(stimOn_times(curr_trial),'g','linewidth',2);
         % (move onset)
-        xline(stimOn_times(curr_trial)+stim_to_move(curr_trial),'r','linewidth',2);
+        xline(stimOn_times(curr_trial)+stim_to_move_temp(curr_trial),'r','linewidth',2);
         % (possible stim times)
         xline(stimOn_times_valid{curr_trial},'--m');
         % (last quiescence reset)
@@ -105,7 +105,7 @@ for curr_trial = 1:n_trials
 
 end
 
-move_times = stimOn_times(1:n_trials) + stim_to_move;
+move_times = stimOn_times(1:n_trials) + stim_to_move_temp;
 stim_to_move_valid = cellfun(@(stim_time,move_time) move_time-stim_time, ...
     stimOn_times_valid,num2cell(move_times),'uni',false);
 
@@ -113,12 +113,12 @@ stim_to_move_valid = cellfun(@(stim_time,move_time) move_time-stim_time, ...
 % (only from trials with reaction times > 0ms: negative reaction times mean
 % the quiescence time wasn't working exactly)
 stim_rxn_threshold = 0;
-null_use_trials = (stim_to_move > stim_rxn_threshold) & ~cellfun(@isempty,stim_to_move_valid);
-null_use_trials_visual= (stim_to_move > stim_rxn_threshold) & ~cellfun(@isempty,stim_to_move_valid) & (tasktype(1:n_trials)==0)';
-null_use_trials_audio= (stim_to_move > stim_rxn_threshold) & ~cellfun(@isempty,stim_to_move_valid) & (tasktype(1:n_trials)==1)';
+null_use_trials = (stim_to_move_temp > stim_rxn_threshold) & ~cellfun(@isempty,stim_to_move_valid);
+null_use_trials_visual= (stim_to_move_temp > stim_rxn_threshold) & ~cellfun(@isempty,stim_to_move_valid) & (tasktype(1:n_trials)==0)';
+null_use_trials_audio= (stim_to_move_temp > stim_rxn_threshold) & ~cellfun(@isempty,stim_to_move_valid) & (tasktype(1:n_trials)==1)';
 
 n_samples = 10000;
-stim_to_move_null = nan(length(stim_to_move),n_samples);
+stim_to_move_null = nan(length(stim_to_move_temp),n_samples);
 stim_to_move_null(null_use_trials,:) = ...
     cell2mat(cellfun(@(x) datasample(x,n_samples)', ...
     stim_to_move_valid(null_use_trials),'uni',false));
@@ -134,34 +134,34 @@ end
 switch use_stat
     case 'mad'
         % (median absolute devation)
-        rxn_stat(1) = mad(stim_to_move(null_use_trials),1,1);
+        rxn_stat(1) = mad(stim_to_move_temp(null_use_trials),1,1);
         rxn_null_stat_distribution = mad(stim_to_move_null(null_use_trials,:),1,1);
  
-        rxn_stat(2) = mad(stim_to_move(null_use_trials_visual),1,1);
+        rxn_stat(2) = mad(stim_to_move_temp(null_use_trials_visual),1,1);
         rxn_null_stat_distribution_v = mad(stim_to_move_null(null_use_trials_visual,:),1,1);
 
-         rxn_stat(3) = mad(stim_to_move(null_use_trials_audio),1,1);
+         rxn_stat(3) = mad(stim_to_move_temp(null_use_trials_audio),1,1);
         rxn_null_stat_distribution_a = mad(stim_to_move_null(null_use_trials_audio,:),1,1);
 
     case 'mean'
         % (mean)
-        rxn_stat(1) = mean(stim_to_move(null_use_trials),1);
+        rxn_stat(1) = mean(stim_to_move_temp(null_use_trials),1);
         rxn_null_stat_distribution = mean(stim_to_move_null(null_use_trials,:),1);
-         rxn_stat(2) = mean(stim_to_move(null_use_trials_visual),1);
+         rxn_stat(2) = mean(stim_to_move_temp(null_use_trials_visual),1);
         rxn_null_stat_distribution_v = mean(stim_to_move_null(null_use_trials_visual,:),1);
 
-         rxn_stat(3) = mean(stim_to_move(null_use_trials_audio),1);
+         rxn_stat(3) = mean(stim_to_move_temp(null_use_trials_audio),1);
         rxn_null_stat_distribution_a = mean(stim_to_move_null(null_use_trials_audio,:),1);
 
     case 'median'
         % (median)
-        rxn_stat(1) = median(stim_to_move(null_use_trials),1);
+        rxn_stat(1) = median(stim_to_move_temp(null_use_trials),1);
         rxn_null_stat_distribution = median(stim_to_move_null(null_use_trials,:),1);
 
-         rxn_stat(2) = median(stim_to_move(null_use_trials_visual),1);
+         rxn_stat(2) = median(stim_to_move_temp(null_use_trials_visual),1);
         rxn_null_stat_distribution_v = median(stim_to_move_null(null_use_trials_visual,:),1);
 
-         rxn_stat(3) = median(stim_to_move(null_use_trials_audio),1);
+         rxn_stat(3) = median(stim_to_move_temp(null_use_trials_audio),1);
         rxn_null_stat_distribution_a = median(stim_to_move_null(null_use_trials_audio,:),1);
 
 end

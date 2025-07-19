@@ -1,25 +1,38 @@
 load('C:\Users\dsong\Documents\MATLAB\Da_Song\DS_scripts_ptereslab\General_information\roi.mat')
 
 figure;
-  imagesc(zeros(450,426));
-    axis image off;
-    ap.wf_draw('ccf', 'black');
- 
-    colormap(  ap.colormap(['KWG' ]  ));
-    hold on
- boundaries1 = bwboundaries(roi1(5).data.mask  );
+% imagesc(roi1(1).data.mask );
+ % imagesc(roi1(1).data.mask+roi1(3).data.mask ); 
+imagesc(roi1(3).data.mask+roi1(4).data.mask );
+% imagesc(roi1(1).data.mask+roi1(3).data.mask );
+ap.wf_draw('ccf', 'black');
+clim([0 2])
+colormap(  ap.colormap(['WR' ]  ));
+axis image off;
+
+hold on
+figure;
+imagesc(zeros(450,426));
+ap.wf_draw('ccf', 'black');
+colormap(  ap.colormap(['WWK' ]  ));
+axis image off;
+
+hold on
+
+
+ boundaries1 = bwboundaries(roi1(20).data.mask  );
     plot(boundaries1{1, 1} (:,2),boundaries1{1, 1} (:,1),'Color',[1 0 0])
 
 dat=roipoly;
-  % roi1(1).name='asymmetry lmPFC'
- roi1(2).data.mask=fliplr(roi1(1).data.mask);
+   roi1(20).name='l-AM'
+ roi1(5).data.mask=dat;
  
   % roi1(14).name='asymmetry rmPFC'
- roi1(3).data.mask=fliplr(roi1(4).data.mask);
+ roi1(15).data.mask=fliplr(roi1(14).data.mask);
 
   % roi1(2).name='posterior right mPFC'
- roi1(16).data.mask=dat;
- roi1(16).name='SSp'
+ roi1(17).data.mask=dat;
+ roi1(19).name='v-a-mPFC'
 
 
 save('C:\Users\dsong\Documents\MATLAB\Da_Song\DS_scripts_ptereslab\General_information\roi.mat',"roi1")
