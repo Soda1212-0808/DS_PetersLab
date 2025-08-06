@@ -3,9 +3,9 @@ clear all
 Path = 'D:\Data process\wf_data\';
 
  % animals = {'DS007','DS010','AP021','DS011','DS001','AP018','AP022'};n1_name='visual position';n2_name='audio volume'; index_group=[1  1 1 1 0 0 0  ]';
-animals = {'DS003','DS006','DS013','DS000','DS004','DS014','DS015','DS016'};n1_name='audio volume';n2_name='visual position';index_group=[0 0 0 1 1 1 1 1 ];
+% animals = {'DS003','DS006','DS013','DS000','DS004','DS014','DS015','DS016'};n1_name='audio volume';n2_name='visual position';index_group=[0 0 0 1 1 1 1 1 ];
 % animals = {'DS020','DS019','DS021'};n1_name='visual position';n2_name='audio frequency'; index_group=[1  1 1 1 0 0 0  ]';
-
+animals={'HA010'}
 p_para='mean';
 
 
@@ -33,7 +33,7 @@ for curr_animal_idx = 1:length(animals)
 
     recordings = plab.find_recordings(animal,[],use_workflow);
     % only ephys data
-     recordings(find([recordings.widefield])) = [];
+     % recordings(find([recordings.widefield])) = [];
 
      % recordings(find([recordings.ephys])) = [];
 
@@ -154,13 +154,13 @@ for curr_animal_idx = 1:length(animals)
         % rxn_stat_p_mean(curr_recording,:) = AP_stimwheel_association_pvalue2( ...
         %     stimOn_times,trial_events,stim_to_move,tasktype,p_para);
         %
-        [rxn_stat_p_mean(curr_recording,:), stim2move_mean(curr_recording,:),stim2move_mean_null(curr_recording,:)]=...
+        [useless_p, stim2move_mean(curr_recording,:),stim2move_mean_null(curr_recording,:)]=...
             AP_stimwheel_association_pvalue2( ...
             stimOn_times,trial_events,stim_to_move,tasktype,'mean');
 
-        [useless_p, stim2move_mad(curr_recording,:),stim2move_mad_null(curr_recording,:)] = ...
+        [rxn_stat_p_mean(curr_recording,:), stim2move_mad(curr_recording,:),stim2move_mad_null(curr_recording,:)] = ...
             AP_stimwheel_association_pvalue2( ...
-            stimOn_times,trial_events,stim_to_move,tasktype,'mad');
+            stimOn_times,trial_events,stim_to_lastmove,tasktype,'mad');
 
         [useless_p, stim2move_med(curr_recording,:),stim2move_med_null(curr_recording,:)] = ...
             AP_stimwheel_association_pvalue2( ...
@@ -206,13 +206,13 @@ for curr_animal_idx = 1:length(animals)
     if any(nonrecorded_day)
         xline(nonrecorded_day,'--k');
     end
-    if any(learned_day)
-        xline(relative_day(learned_day(:,1)),'g');
-        xline(relative_day(learned_day(:,2)),'b');
-        xline(relative_day(learned_day(:,2)&learned_day(:,1)),'r');
-    end
+    % if any(learned_day)
+    %     xline(relative_day(learned_day(:,1)),'g');
+    %     xline(relative_day(learned_day(:,2)),'b');
+    %     xline(relative_day(learned_day(:,2)&learned_day(:,1)),'r');
+    % end
 
-    xlim([range_t1,relative_day(end)])
+    % xlim([range_t1,relative_day(end)])
 
 
 

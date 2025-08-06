@@ -906,12 +906,17 @@ colors_group=[0 0 1];
 
 % animals = {'DS000','DS004','DS014','DS015','DS016'};
 % animals = {  'DS007','DS010','AP019','AP021','DS011','AP022'}
-animals={'DS010'}
+% animals={'DS010'}
+
+% animals={'HA000','HA001','HA002','HA003','HA004','DS019','DS020','DS021','AP027','AP028','AP029'}
+ % animals={'HA003','HA004','DS019','DS020'}
+ % animals={'AP027','AP028','AP029','DS019','DS020','DS021'}
+animals = {  'HA011','HA012','HA009','HA010'}
 
 for curr_animal =1:length(animals)
     animal=animals{curr_animal};
     raw_data_behavior=load([Path   'behavior\' animal '_behavior'  '.mat']);
-    stage=1
+    stage=[1  2 ]
     matches=unique(raw_data_behavior.workflow_name,'stable')
     learned_days=raw_data_behavior.rxn_l_mad_p(ismember(raw_data_behavior.workflow_name,{matches{stage}}),1)<0.01;
 
@@ -919,9 +924,9 @@ for curr_animal =1:length(animals)
     % figure('Position',[50 50 200 350])
     figure('Position',[50 50 400 750])
 
-    tiledlayout(5,1)
+    tiledlayout(6,1)
     sgtitle(animal,'FontWeight','normal')
-    for curr_state=1:3
+    for curr_state=1:4
         switch curr_state
             case 1
                 temp_data=raw_data_behavior.stim2move_times(ismember(raw_data_behavior.workflow_name,{matches{stage}}),1);
@@ -932,7 +937,10 @@ for curr_animal =1:length(animals)
             case 3
                 temp_data=raw_data_behavior.stim_on2off_times(ismember(raw_data_behavior.workflow_name,{matches{stage}}),1);
                 ylabel_name='reward time(s)';
-             
+            case 4
+                temp_data= cellfun(@(x) x', raw_data_behavior.iti_counts_all(ismember(raw_data_behavior.workflow_name,{matches{stage}}),1),'UniformOutput',false);
+               ylabel_name='iti move time(s)';
+
         end
 
         mergedVector = vertcat(temp_data{:});
@@ -966,8 +974,14 @@ for curr_animal =1:length(animals)
         % xticklabels(1:length(mid_indices))
         xticks([])
         xlabel('days')
-        set(gca, 'YScale', 'log');
-        yticks([1e-2 1e-1 1 10])
+        if curr_state<4
+            set(gca, 'YScale', 'log');
+            yticks([1e-2 1e-1 1 10])
+        else
+            ylim([0 10])
+            yticks([0 10])
+
+        end
 
         drawnow
 
@@ -982,16 +996,17 @@ for curr_animal =1:length(animals)
     plot(1:length(temp_data),temp_data,'LineStyle','-','Color',[0 0 0])
     plot(1:length(temp_data),temp_data_null,'LineStyle','--','Color',[0 0 0])
     set(gca, 'YScale', 'log');
-    ylim([0.01 20])
+  
+   
     yyaxis right
     set(gca, 'YColor', colors_group)
     perform=(temp_data_null-temp_data)./(temp_data_null+temp_data)
     plot(1:length(perform),perform,'Color',colors_group)
     xlim([1 length(temp_data)])
     ylabel('perform')
-
+if sum(learned_days)>0
     xline(find(learned_days==1,1)-0.5,'LineStyle','--')
-
+end
     nexttile
 
     temp_vel= raw_data_behavior.frac_velocity_stimalign(ismember(raw_data_behavior.workflow_name,{matches{stage}}),1)

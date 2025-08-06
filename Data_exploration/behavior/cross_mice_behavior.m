@@ -1,10 +1,6 @@
 clear all
 clc
 Path = 'D:\Data process\wf_data\';
-master_U_fn = fullfile(plab.locations.server_path,'Lab', ...
-    'widefield_alignment','U_master.mat');
-load(master_U_fn);
-load('C:\Users\dsong\Documents\MATLAB\Da_Song\DS_scripts_ptereslab\General_information\roi.mat')
 
 surround_samplerate = 35;
 surround_window_task = [-0.2,1];

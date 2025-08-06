@@ -27,7 +27,7 @@ select_group=1:2
 all_data_image2=cell(2,1);
 all_data_cross_day=cell(2,1);
 for used_data=2
-    for curr_state=2
+    for curr_state=1
 
         if curr_state==1
             task_boundary1=0;
@@ -38,11 +38,9 @@ for used_data=2
             task_boundary2=0.1;
             state='move';
         else curr_state==3
-
             task_boundary1=-0.1;
             task_boundary2=0.1;
             state='iti_move';
-
         end
 
         period_task=find(t_task>task_boundary1&t_task<task_boundary2);
@@ -78,6 +76,7 @@ for used_data=2
             all_data_workflow_name=cell(length(animals{curr_group}),1);
             all_data_learned_day=cell(length(animals{curr_group}),1);
             matches=cell(length(animals{curr_group}),1);
+            all_data_sim2move=cell(length(animals{curr_group}),1);
             use_t=[];
             use_period=[];
 
@@ -94,7 +93,7 @@ for used_data=2
 
                 temp_p=nan(length(raw_data_behavior.workflow_day),2);
                 idx_v=ismember(raw_data_behavior.workflow_name,'visual position');
-                idx_a=ismember(raw_data_behavior.workflow_name,'audio volume');
+                idx_a=ismember(raw_data_behavior.workflow_name,{'audio volume','audio freque'});
                 idx_m=ismember(raw_data_behavior.workflow_name,'mixed VA');
 
                 temp_p(idx_v,1)= raw_data_behavior.rxn_l_mad_p(idx_v,1);
@@ -105,7 +104,7 @@ for used_data=2
 
                 raw_data_task.learned_day=temp_p<0.01;
 
-
+                all_data_sim2move{curr_animal} =raw_data_behavior.stim2move_med(temp_idx,:);
 
 
                 temp_rxn_med=cellfun(@(x) mean(x,'omitnan'), raw_data_behavior.stim_on2off_times(temp_idx,:),'UniformOutput',true);
@@ -113,31 +112,21 @@ for used_data=2
 
 
 
-                % % raw_data_task.learned_day=nan(length(raw_data_task.workflow_day),2);
-                % for curr_d=1:length(raw_data_task.workflow_day)
-                %     if raw_data_task.workflow_type(curr_d)==1|raw_data_task.workflow_type(curr_d)==2
-                %         % raw_data_task.learned_day(curr_d)=temp_rxn_med(curr_d,1)<2& temp_p(curr_d,1)<0.01;
-                %         raw_data_task.learned_day(curr_d)= temp_p(curr_d,1)<0.05;
-                %
-                %     else
-                %         % raw_data_task.learned_day(curr_d,:)=(temp_rxn_med(curr_d,2:3)<2& temp_p(curr_d,2:3)<0.01);
-                %         raw_data_task.learned_day(curr_d,:)= temp_p(curr_d,1:2)<0.05;
-                %
-                %     end
-                % end
+
 
 
                 if used_data==1
 
                     idx=cellfun(@(x) ~isempty(x)  ,raw_data_task.wf_px_task);
                     if curr_state==1
-                        image_all(idx)=cellfun(@(x)  plab.wf.svd2px(U_master,x(:,:,ifelse(size(x,3)==4  ,1,[1 4]))),raw_data_task.wf_px_task(idx),'UniformOutput',false);
+                        image_all(idx)=cellfun(@(x)  plab.wf.svd2px(U_master,x(:,:,ifelse(size(x,3)==4  ,1,[1 4]))),...
+                            raw_data_task.wf_px_task(idx),'UniformOutput',false);
                     elseif curr_state==2
                         image_all(idx)=cellfun(@(x)  plab.wf.svd2px(U_master,x(:,:,ifelse(size(x,3)==4  ,2,[2 5]))),raw_data_task.wf_px_task(idx),'UniformOutput',false);
                     elseif curr_state==3
                         image_all(idx)=cellfun(@(x)  plab.wf.svd2px(U_master,x(:,:,ifelse(size(x,3)==4  ,4,7))),raw_data_task.wf_px_task(idx),'UniformOutput',false);
-                   
-                              end
+
+                    end
 
                     use_period=period_task;
                     use_t=t_task;
@@ -151,13 +140,13 @@ for used_data=2
                     idx=cellfun(@(x) ~isempty(x),raw_data_task.wf_px_task_kernels);
 
                     % image_all(idx)=cellfun(@(x)  plab.wf.svd2px(U_master,permute(x(),[3,2,1])),raw_data_task.wf_px_task_kernels_encode(idx),'UniformOutput',false);
-                    
+
                     image_all(idx)=cellfun(@(x)...
                         ifelse(size(x,1)==3, plab.wf.svd2px(U_master,permute(x(curr_state,:,:),[3,2,1])), ...
                         plab.wf.svd2px(U_master,permute(x(2*curr_state-1:2*curr_state,:,:),[3,2,1])) ),...
                         raw_data_task.wf_px_task_kernels_encode(idx),'UniformOutput',false);
-                    
-    
+
+
                     use_period=period_kernels;
                     use_t=t_kernels;
                 end
@@ -175,6 +164,43 @@ for used_data=2
             else
                 all_data_image=cell(9,1);
             end
+
+            pre_learn_data0_idx=cellfun(@(y,z,l) ...
+                find(strcmp(y,z(find(cellfun(@(idx) strcmp(n1_name, idx),z,'UniformOutput',true))))& l(:,1)==0 )...
+                ,all_data_workflow_name,matches,all_data_learned_day,'UniformOutput',false);
+
+            pre_learn_data1_idx = cellfun(@(y,z,l)...
+                find(strcmp(y,z(find(cellfun(@(idx) strcmp(n1_name, idx),z,'UniformOutput',true))))& l(:,1)==0 ,2,'last')...
+                ,all_data_workflow_name,matches,all_data_learned_day,'UniformOutput',false);
+
+            post_learn1_data1_idx = cellfun(@(y,z,l)...
+                find(strcmp(y,z(find(cellfun(@(idx) strcmp(n1_name, idx),z,'UniformOutput',true))))& l(:,1)==1 ,2,'first')...
+                ,all_data_workflow_name,matches,all_data_learned_day,'UniformOutput',false);
+
+            post_learn2_data1_idx = cellfun(@(y,z,l)...
+                find(strcmp(y,z(find(cellfun(@(idx) strcmp(n1_name, idx),z,'UniformOutput',true))))& l(:,1)==1 ,5,'first')...
+                ,all_data_workflow_name,matches,all_data_learned_day,'UniformOutput',false);
+            post_learn2_data1_idx=cellfun(@(x) x(4:end),post_learn2_data1_idx,'UniformOutput',false)
+            post_learn2_data1_stim2move{curr_group} =cellfun(@(x,y) x(y)  ,all_data_sim2move,post_learn2_data1_idx,'UniformOutput',false)
+
+
+            pre_learn_data2_idx = cellfun(@(y,z,l)...
+                find(strcmp(y,z(find(cellfun(@(idx) strcmp(n2_name, idx),z,'UniformOutput',true))))& l(:,1)==0 ,2,'first')...
+                ,all_data_workflow_name,matches,all_data_learned_day,'UniformOutput',false);
+
+            post_learn1_data2_idx = cellfun(@(y,z,l) find(strcmp(y,z(find(cellfun(@(idx)...
+                strcmp(n2_name, idx),z,'UniformOutput',true))))& l(:,1)==1 ,2,'first')...
+                ,all_data_workflow_name,matches,all_data_learned_day,'UniformOutput',false);
+
+            post_learn2_data2_idx = cellfun(@(y,z,l)...
+                find(strcmp(y,z(find(cellfun(@(idx) strcmp(n2_name, idx),z,'UniformOutput',true))))& l(:,1)==1 ,5,'first')...
+                ,all_data_workflow_name,matches,all_data_learned_day,'UniformOutput',false);
+            post_learn2_data2_idx=cellfun(@(x) x(4:end),post_learn2_data2_idx,'UniformOutput',false)
+
+
+
+
+
 
 
 
@@ -217,7 +243,7 @@ for used_data=2
             pre_learn_data2 = cellfun(@(x,y,z,l) x(find(strcmp(y,z(find(cellfun(@(idx) strcmp(n2_name, idx),z,'UniformOutput',true))))& l(:,1)==0 ,2,'first'))...
                 ,all_data_video,all_data_workflow_name,matches,all_data_learned_day,'UniformOutput',false);
             pre_learn_data2= cellfun(@(x) [x  repmat({nan(450,426,length(use_t))},1,2-length(x))],pre_learn_data2,'UniformOutput',false);
-            
+
             post_learn1_data2=cell(length(animals{curr_group}),1);
             post_learn1_data2 = cellfun(@(x,y,z,l) x(find(strcmp(y,z(find(cellfun(@(idx) strcmp(n2_name, idx),z,'UniformOutput',true))))& l(:,1)==1 ,2,'first'))...
                 ,all_data_video,all_data_workflow_name,matches,all_data_learned_day,'UniformOutput',false);
@@ -235,7 +261,10 @@ for used_data=2
                 ,all_data_video,all_data_workflow_name,matches,all_data_learned_day,'UniformOutput',false);
             first5day_data2= cellfun(@(x) [x repmat({single(nan(450,426,length(use_t)))},1,5-length(x))],first5day_data2,'UniformOutput',false);
 
-
+            % x=all_data_video{5};
+            % y=all_data_workflow_name{5}
+            % z=matches{5}
+            % l=all_data_learned_day{5}
 
             n3_name='mixed VA';
             mixed_idx=cellfun(@(x) any(strcmp(n3_name, x)),matches ,'UniformOutput',true);
@@ -295,7 +324,7 @@ end
 
 %
 % all_data_cross_day:  1-3 pre learn1; 4-8 post learn; 9-10 pre learn2
-% 11-15  post learn2;   16-21  mixed     
+% 11-15  post learn2;   16-21  mixed
 % 22-26
 
 %% task raw vs kernels
@@ -329,14 +358,14 @@ line_colors={[
     0.4 0.4 1.0   % 中浅蓝
     0.2 0.5 0.9   % 中深蓝
     0.0 0.2 0.5   % 深蓝
-],[
+    ],[
     1.0 0.8 0.8   % 浅红（粉色）
     1.0 0.4 0.4   % 中浅红
     0.8 0.1 0.1   % 中深红
     0.5 0.0 0.0   % 深红
-]}
+    ]}
 % figure;
-% 
+%
 % for curr_group=1:2
 %     nexttile
 % for curr_area =1:4
@@ -349,50 +378,50 @@ figure('Position',[50,50,290,600])
 t2 = tiledlayout(3, 2, 'TileSpacing', 'tight', 'Padding', 'tight','TileIndexing', 'columnmajor');
 colors={'B','R'}
 titles={'visual','auditory'}
-for curr_i=1:2
-a1=nexttile
-imagesc(raw_data{curr_i})
-axis image off
-ap.wf_draw('ccf',[0.5 0.5 0.5]);
-clim(0.02.*[0,1]);
-colormap(a1,ap.colormap(['W' colors{curr_i}]));
-axis image;
- colorbar('southoutside')
-     title(titles{curr_i},'FontWeight','normal')
+for curr_area=1:2
+    a1=nexttile
+    imagesc(raw_data{curr_area})
+    axis image off
+    ap.wf_draw('ccf',[0.5 0.5 0.5]);
+    clim(0.02.*[0,1]);
+    colormap(a1,ap.colormap(['W' colors{curr_area}]));
+    axis image;
+    colorbar('southoutside')
+    title(titles{curr_area},'FontWeight','normal')
 
-a3=nexttile
-imagesc(kernels_data_encode{curr_i})
-axis image off
-ap.wf_draw('ccf',[0.5 0.5 0.5]);
-clim(0.01.*[0,1]);
-colormap(a3,ap.colormap(['W' colors{curr_i}]));
-axis image;
- colorbar('southoutside')
-
-
-a2=nexttile
-imagesc(kernels_data{curr_i})
-axis image off
-ap.wf_draw('ccf',[0.5 0.5 0.5]);
-clim(0.0005.*[0,1]);
-colormap(a2,ap.colormap(['W' colors{curr_i}]));
-axis image;
- colorbar('southoutside')
+    a3=nexttile
+    imagesc(kernels_data_encode{curr_area})
+    axis image off
+    ap.wf_draw('ccf',[0.5 0.5 0.5]);
+    clim(0.01.*[0,1]);
+    colormap(a3,ap.colormap(['W' colors{curr_area}]));
+    axis image;
+    colorbar('southoutside')
 
 
+    a2=nexttile
+    imagesc(kernels_data{curr_area})
+    axis image off
+    ap.wf_draw('ccf',[0.5 0.5 0.5]);
+    clim(0.0005.*[0,1]);
+    colormap(a2,ap.colormap(['W' colors{curr_area}]));
+    axis image;
+    colorbar('southoutside')
 
 
 
-switch curr_i
-case 1
-      text(a1,-50, 150,  'raw', 'FontSize', 10, 'FontWeight', 'normal', ...
+
+
+    switch curr_area
+        case 1
+            text(a1,-50, 150,  'raw', 'FontSize', 10, 'FontWeight', 'normal', ...
                 'HorizontalAlignment', 'right', 'Rotation', 90);
-       text(a2,-50, 150,  'decoding', 'FontSize', 10, 'FontWeight', 'normal', ...
+            text(a2,-50, 150,  'decoding', 'FontSize', 10, 'FontWeight', 'normal', ...
                 'HorizontalAlignment', 'right', 'Rotation', 90);
-        text(a3,-50, 150,  'encoding', 'FontSize', 10, 'FontWeight', 'normal', ...
+            text(a3,-50, 150,  'encoding', 'FontSize', 10, 'FontWeight', 'normal', ...
                 'HorizontalAlignment', 'right', 'Rotation', 90);
-    
-end
+
+    end
 
 end
 
@@ -401,35 +430,54 @@ end
 % saveas(gcf,[Path 'figures\summary\figures\task raw vs kernels ' ], 'jpg');
 
 
-%% naive & well trained in visual task and auditory task 
+%% naive & well trained in visual task and auditory task
 
 % kernels_data{1}=permute(mean(max(all_data_image2{1}{2,1}(:,:,period_kernels,:,:,[ 4]),[],3),5),[1,2,6,5,4,3]);
 % kernels_data{2}=permute(mean(max(all_data_image2{2}{2,1}(:,:,period_kernels,:,:,[ 4]),[],3),5),[1,2,6,5,4,3]);
-line_colors={[
-    0.5 0.5 1   % 浅蓝
-    0 0 1   % 中浅蓝 
-],[
-    1 0.5 0.5   % 中浅蓝
-    1 0 0   % 中深蓝
-]}
 
 
 image_max_base=cellfun(@(x) ...
-    permute(max(x{2,2}(:,:,find(t_kernels<-0.1&t_kernels>-0.3),:,:,[1 4 7]),[],3),[1,2,5,6,4,3]),...
-    all_data_image2(1:2),'UniformOutput',false);
-image_max=cellfun(@(x) permute(max(x{2,2}(:,:,period_kernels,:,:,[1 4 7]),[],3),[1,2,5,6,4,3]),...
-    all_data_image2(1:2),'UniformOutput',false);
+    permute(max(x{2,1}(:,:,find(t_kernels<-0.1&t_kernels>-0.3),:,:,[1 4 7]),[],3),[1,2,5,6,4,3]),...
+    all_data_image2(select_group),'UniformOutput',false);
+image_max=cellfun(@(x) permute(max(x{2,1}(:,:,period_kernels,:,:,[1 4 7]),[],3),[1,2,5,6,4,3]),...
+    all_data_image2(select_group),'UniformOutput',false);
 
 
-temp_data=cellfun(@(x) permute( x{2,2}(:,:,:,:,:,[1 4]),[1,2,3,5,6,4]),all_data_image2(1:2),'UniformOutput',false);
+temp_data=cellfun(@(x) permute( x{2,1}(:,:,:,:,:,[1 4]),[1,2,3,5,6,4]),all_data_image2(select_group),'UniformOutput',false);
 buf1=cellfun(@(x) reshape(x,size(x,1)*size(x,2),size(x,3),size(x,4),size(x,5)),temp_data,'UniformOutput',false) ;
 
-buf3_roi_mean=cellfun(@(x) arrayfun(@(curr_roi) ...
-    permute(nanmean(nanmean(x(roi1(curr_roi).data.mask(:),:,:,:),1),3),[2,4,3,1]),...
+
+temp_each=cellfun(@(x) arrayfun(@(curr_roi) ...
+    permute(nanmean(x(roi1(curr_roi).data.mask(:),:,:,:),1),[2,3,4,1]),...
     1:length(roi1),'UniformOutput',false),buf1,'UniformOutput',false);
-buf3_roi_error=cellfun(@(x) arrayfun(@(curr_roi) ...
-    std(permute(mean(x(roi1(curr_roi).data.mask(:),:,:,:),1,'omitnan'),[2,4,3,1]),0,3,'omitmissing')...
-    ./sqrt(size(buf1{1},3)), 1:length(roi1),'UniformOutput',false),buf1,'UniformOutput',false);
+temp_each1=cat(1,temp_each{:})
+
+temp_max=arrayfun(@(x)  max(cat(2,temp_each1{:,x:x+1}),[],"all"), 1:2:size(temp_each1,2),'UniformOutput',false)
+temp_max=reshape(repmat(temp_max, 2, 1), 1, [])
+temp_min=arrayfun(@(x) min(cat(2,temp_each1{:,x:x+1}),[],"all") , 1:2:size(temp_each1,2),'UniformOutput',false)
+temp_min=reshape(repmat(temp_min, 2, 1), 1, [])
+
+temp_norm=cellfun(@(x) cellfun(@(y,max,min)  (y-min)/(max-min),x,temp_max,temp_min,'UniformOutput',false  ),...
+    temp_each,'UniformOutput',false   );
+
+
+buf3_roi_mean=cellfun(@(x) cellfun(@(y) ...
+    permute(nanmean(y,2),[1,3,2]),...
+    x,'UniformOutput',false),temp_norm,'UniformOutput',false);
+
+buf3_roi_error=cellfun(@(x) cellfun(@(y) ...
+    permute(std(y,0,2,'omitmissing'),[1,3,2])./sqrt(size(y,2)),...
+    x,'UniformOutput',false),temp_norm,'UniformOutput',false);
+
+
+
+% buf3_roi_mean=cellfun(@(x) arrayfun(@(curr_roi) ...
+%     permute(nanmean(nanmean(x(roi1(curr_roi).data.mask(:),:,:,:),1),3),[2,4,3,1]),...
+%     1:length(roi1),'UniformOutput',false),buf1,'UniformOutput',false);
+%
+% buf3_roi_error=cellfun(@(x) arrayfun(@(curr_roi) ...
+%     std(permute(mean(x(roi1(curr_roi).data.mask(:),:,:,:),1,'omitnan'),[2,4,3,1]),0,3,'omitmissing')...
+%     ./sqrt(size(buf1{1},3)), 1:length(roi1),'UniformOutput',false),buf1,'UniformOutput',false);
 
 
 buf3_roi_single=cellfun(@(x) arrayfun(@(curr_roi) ...
@@ -443,23 +491,23 @@ n_shuff=1000
 
 event_response_p_all=cell(2,1);
 used_line=cell(2,1);
-for i=1:2
-    for j=1:length(buf3_roi_signle_base{i})
+for curr_area=1:2
+    for j=1:length(buf3_roi_signle_base{curr_area})
         for k=1:2
-a=buf3_roi_single{i}{j}(:,:,k)';
-b=buf3_roi_signle_base{i}{j}(:,k);
-a=a(~any(isnan(a), 2),:);
-b=b(~any(isnan(b), 2),:);
-event_response=mean(a-b,1)';
-event_response_shuff= cell2mat(arrayfun(@(shuff) ...
-    squeeze(mean(diff(ap.shake(permute(cat(3,a,repmat(b, 1, 41)),[1,3,2]),2),[],2),1)), ...
-    1:n_shuff,'uni',false));
+            a=buf3_roi_single{curr_area}{j}(:,:,k)';
+            b=buf3_roi_signle_base{curr_area}{j}(:,k);
+            a=a(~any(isnan(a), 2),:);
+            b=b(~any(isnan(b), 2),:);
+            event_response=mean(a-b,1)';
+            event_response_shuff= cell2mat(arrayfun(@(shuff) ...
+                squeeze(mean(diff(ap.shake(permute(cat(3,a,repmat(b, 1, 41)),[1,3,2]),2),[],2),1)), ...
+                1:n_shuff,'uni',false));
 
-event_response_rank = tiedrank(horzcat(event_response,event_response_shuff )')';
-event_response_p_all{i}{j}{k}=event_response_rank (:,1)./(n_shuff+1);
-used_line{i}{j}{k}=use_t(find(t_kernels<0.2&t_kernels>0 & (event_response_p_all{i}{j}{k}>=0.95)',1 ));
+            event_response_rank = tiedrank(horzcat(event_response,event_response_shuff )')';
+            event_response_p_all{curr_area}{j}{k}=event_response_rank (:,1)./(n_shuff+1);
+            used_line{curr_area}{j}{k}=use_t(find(t_kernels<0.2&t_kernels>0 & (event_response_p_all{curr_area}{j}{k}>=0.95)',1 ));
 
-    end
+        end
     end
 end
 
@@ -476,17 +524,37 @@ firng_begin_error=cellfun(@(x) arrayfun(@(id)  cellfun(@(y) std(t_kernels(y(:,:,
 
 %%
 % draw figures
+face_colors={[
+    0.9 0.9 1
+    0.7 0.7 1% 浅蓝
+    0.5 0.5 1   % 中浅蓝
+    ],[
+    1 0.9 0.9
+    1 0.7 0.7% 中浅蓝
+    1 0.5 0.5   % 中深蓝
+    ]}
+line_colors={[
+    0.6 0.6 1
+    0.3 0.3 1% 浅蓝
+    0 0 1   % 中浅蓝
+    ],[
+    1 0.6 0.6
+    1 0.3 0.3% 中浅蓝
+    1 0 0   % 中深蓝
+    ]}
+
 colors={'B','R'}
-titles={'pre learned','well trained'}
+titles={'pre learned','well trained','mod2'}
 
 % images from naive to well trained
 for curr_group=1:2
-    figure('Position',[50 50 250 250])
-    mainLayout = tiledlayout(1, 3, 'TileSpacing', 'tight', 'Padding', 'tight');
-    leftLayout = tiledlayout(mainLayout, 2, 1, ...
-        'TileSpacing', 'tight', 'Padding', 'tight');
-    leftLayout.Layout.Tile = 1;  % 明确放在主 layout 的第 1 个 tile
+    % figure('Position',[50 50 250 250])
+    % mainLayout = tiledlayout(1, 3, 'TileSpacing', 'tight', 'Padding', 'tight');
 
+    figure('Position',[50 50 250 150])
+    leftLayout = tiledlayout(1, 2, ...
+        'TileSpacing', 'tight', 'Padding', 'tight');
+    % leftLayout.Layout.Tile = 1;  % 明确放在主 layout 的第 1 个 tile
     for curr_stage=1:2
         a1=nexttile(leftLayout)
         % a1=nexttile(length_y*curr_group+curr_stage-length_y)
@@ -495,24 +563,24 @@ for curr_group=1:2
         clim(0.0003.*[0,1]);
         ap.wf_draw('ccf',[0.5 0.5 0.5]);
         colormap(a1,ap.colormap(['W' colors{curr_group}]));
-  
+
         switch curr_group
             case 1
                 select_area=[1:4 7:8 14 15];
-            case 2  
+            case 2
                 select_area=[1:4 9:10 14 15];
         end
-        
+
         title(titles{curr_stage},'FontSize',10,'FontWeight','normal')
 
-        switch curr_stage
-            case 1
-                boundaries1 = arrayfun(@(idx) bwboundaries(roi1(idx).data.mask),select_area,'UniformOutput',false);
-                hold on
-                cellfun(@(x) plot(x{1} (:,2),x{1} (:,1),'Color',[0 0 0 0.5]),boundaries1,'UniformOutput',false);
-            case 2
-                colorbar('southoutside')
-        end
+        % switch curr_stage
+        %     case 1
+        %         boundaries1 = arrayfun(@(idx) bwboundaries(roi1(idx).data.mask),select_area,'UniformOutput',false);
+        %         hold on
+        %         cellfun(@(x) plot(x{1} (:,2),x{1} (:,1),'Color',[0 0 0 0.5]),boundaries1,'UniformOutput',false);
+        %     case 2
+        %         colorbar('southoutside')
+        % end
     end
 
 
@@ -520,52 +588,141 @@ for curr_group=1:2
     switch curr_group
         case 1
 
-            select_area=[7  1 3 14 ];
-            
+            select_area=[7 8  1 2 3 4 ];
+
         case 2
-            select_area=[9  1 3 14 ];
+            select_area=[9 10  1 2 3 4 ];
     end
-    
-    for curr_side=1:2
-        rightLayout = tiledlayout(mainLayout, length(select_area), 1, ...
-            'TileSpacing', 'none', 'Padding', 'none');
-        rightLayout.Layout.Tile = curr_side+1;  % 明确放在主 layout 的第 2 个 tile
-        for curr_area =1:length(select_area)
-            a4=nexttile(rightLayout)
 
+    thres_move=0.2
+    figure('Position',[50 50 150 150])
 
-            temp_line=buf3_roi_mean{curr_group}{select_area(curr_area)+curr_side-1}(:,2);
-            ap.errorfill(use_t,buf3_roi_mean{curr_group}{select_area(curr_area)+curr_side-1},...
-                buf3_roi_error{curr_group}{select_area(curr_area)+curr_side-1},...
-                line_colors{curr_group}(1:2,:),0.5,1,1)
-            xlim([-0.1 0.5])
-            ylim(0.0001*[-2.5 6])
-            % xline(0.1,'LineStyle',':')
-            if ~isempty(used_line{curr_group}{select_area(curr_area)+curr_side-1}{curr_stage})&...
-                    any(use_t(zscore(temp_line)>2.55)<0.2 & use_t(zscore(temp_line)>2.55)>0)
-
-                xline(used_line{curr_group}{select_area(curr_area)+curr_side-1}{curr_stage},'LineStyle',':')
-            end
-            xline(0,'LineStyle',':')
-            % legend(roi1(select_area(curr_area)).name,'Box','off','Location','northeast')
-            if curr_stage==2
-                text(0.95, 0.9, roi1(select_area(curr_area)+curr_side-1).name, ...
-                    'Units','normalized', ...       % 使用归一化坐标，确保每个 tile 相对位置一致
-                    'HorizontalAlignment','right', ...
-                    'FontSize', 8, ...
-                    'Color', [0.3 0.3 0.3]);
-            end
-
-            axis off
-
-        end
+    nexttile()
+    for curr_area =1:length(select_area)
+        % a4=nexttile(rightLayout)
+        hold on
+        temp_line=buf3_roi_mean{curr_group}{select_area(curr_area)}(:,2);
+        ap.errorfill(use_t,buf3_roi_mean{curr_group}{select_area(curr_area)}(:,2)-temp_line(1)-(curr_area-1)*thres_move,...
+            buf3_roi_error{curr_group}{select_area(curr_area)}(:,2),...
+            face_colors{curr_group}(round(curr_area/2),:),1,1,1)
+        plot(use_t,buf3_roi_mean{curr_group}{select_area(curr_area)}(:,2)-temp_line(1)-(curr_area-1)*thres_move,...
+            'Color',line_colors{curr_group}(round(curr_area/2),:))
+        xlim([-0.1 0.3])
+        ylim([-1.2 0.45])
+        % if ~isempty(used_line{curr_group}{select_area(curr_area)}{curr_stage})&...
+        %         any(use_t(zscore(temp_line)>2.55)<0.2 & use_t(zscore(temp_line)>2.55)>0)
+        %
+        %     xline(used_line{curr_group}{select_area(curr_area)}{curr_stage},'LineStyle',':')
+        % end
+        yline(-(curr_area-1)*thres_move,'LineStyle',':')
+        text(-0.1, 0.9-0.125*curr_area, roi1(select_area(curr_area)).name, ...
+            'Units','normalized', ...       % 使用归一化坐标，确保每个 tile 相对位置一致
+            'HorizontalAlignment','left', ...
+            'FontSize', 5, ...
+            'Color', [0.3 0.3 0.3]);
+        axis off
     end
+
+
 end
 
 
 
-
 % saveas(gcf,[Path 'figures\summary\figures\ fig1 images V&A pre&well trianed ' ], 'jpg');
+
+firing_peak=cellfun(@(x)  cellfun(@(y) permute( max(y,[],1),[2,3,1]) ,x,'UniformOutput',false),...
+    buf3_roi_single_trial,'UniformOutput',false )
+firng_peak_mean=cellfun(@(x) cell2mat( cellfun(@(y) nanmean(y,1) ,x,'UniformOutput',false )' ),...
+    firing_peak,'UniformOutput',false );
+
+firng_peak_mean1=cat(2,firng_peak_mean{:});
+
+
+firng_peak_error=cellfun(@(x)  cell2mat( cellfun(@(y) std(y,0,1,'omitmissing')/sqrt(size(y,1)) ,x,'UniformOutput',false)'),...
+    firing_peak,'UniformOutput',false );
+firng_peak_error1=cat(2,firng_peak_error{:})
+
+% [~,a]=max(diff (buf3_roi_single_trial{1}{1},1),[],1)
+figure('Position',[50 50 300 100])
+tiledlayout(2,1)
+title('responsive regions', 'FontWeight', 'normal', 'FontSize', 12)
+a5 = nexttile;
+seq = [7 8 9 10 1 2 3 4];
+hold on
+colors = {[0 0 1], [1 0 0]};
+group_defs = {
+    [1  5 7 8], [1   3 5 6];  % group 1: use_seq, use_seq1
+    [3 4 7 8],   [1 2 5 6];     % group 2: use_seq, use_seq1
+    };
+for curr_group = 1:2
+    use_seq = group_defs{curr_group, 1};
+    use_seq1 = group_defs{curr_group, 2};
+
+    used_area = seq(use_seq);
+    y_vals = use_seq1;
+    x_vals = firng_begin_mean{curr_group}{2}(used_area);
+    x_errs = firng_begin_error{curr_group}{2}(used_area);
+
+    % 水平误差线
+    line([x_vals - x_errs; x_vals + x_errs], [y_vals; y_vals], ...
+        'Color', colors{curr_group}, 'LineWidth', 1)
+
+    % 连线
+    plot(x_vals, y_vals, '-', 'Color', colors{curr_group}, 'LineWidth', 1)
+
+    % 散点
+    scatter(x_vals, y_vals, 40, colors{curr_group}, 'filled');
+
+    %     temp_data=cellfun(@(x)  mean(x),post_learn2_data1_stim2move{curr_group},'UniformOutput',true )
+    % rxt_mean=nanmean(temp_data);
+    % rxt_error=std(temp_data)/sqrt(length(temp_data));
+    %
+    %
+    % x_fill = [rxt_mean-rxt_error rxt_mean+rxt_error rxt_mean+rxt_error rxt_mean-rxt_error];   % x 的范围
+    % y_fill = [0 0 6.5 6.6];           % y 的范围
+    % fill(x_fill, y_fill, colors{curr_group}, 'EdgeColor', 'none','FaceAlpha',0.1)  % 填充颜色，可透明
+    %
+    % xline(rxt_mean,'Color',colors{curr_group})
+end
+
+ylim([0.5 6.5])
+yticks(1:6)
+yticklabels({'l-primary','r-primary', roi1(1).name, roi1(2).name, roi1(3).name, roi1(4).name})
+xlabel('firing initial time (s)')
+xlim([0.02 0.14])
+set(gca, 'YDir', 'reverse','FontSize',7)
+box off
+
+
+
+
+
+figure('Position',[50 50 150 300])
+for curr_group=1:2
+    a5=nexttile
+    seq=[ 1 2 3 4];
+    bar_colors = [
+        0.5 0.5 1;   % 红
+        0 0 1;   % 绿
+        1 0.5 0.5;   % 蓝
+        1 0 0    % 黄
+        ];
+    hold on
+    for curr_ii=1:2
+        errorbar( 1:4,firng_peak_mean1(seq,curr_ii+2*(curr_group-1)),firng_peak_error1(seq,curr_ii+2*(curr_group-1)),...
+            'Color',bar_colors(curr_ii+2*(curr_group-1),:),'CapSize',0,'LineWidth',1,'MarkerSize',20,'Marker','.')
+    end
+
+    xlim([0.5 4.5])
+    xticks([ 1:1:4])
+    xticklabels(arrayfun(@(idx) roi1(idx).name, seq,'UniformOutput',false  ))
+    ylabel('\Delta F/F')
+    % ylim([0 0.15])
+    box off
+end
+% saveas(gcf,[Path 'figures\summary\figures\ fig1 images V&A pre&well trianed compare' ], 'jpg');
+
+
 
 %%
 
@@ -594,100 +751,28 @@ empty_area(double(p_map_v>0.95)+double(p_map_a>0.95)==2)=3;
 empty_area(double(p_map_v>0.95)-double(p_map_a>0.95)==1)=2;
 empty_area(-double(p_map_v>0.95)+double(p_map_a>0.95)==1)=1;
 
-figure('Position',[50 50 500 200])
-t = tiledlayout(1, 3, 'TileSpacing', 'tight', 'Padding', 'tight');
-figure
+figure('Position',[50 50 200 200])
+% t = tiledlayout(1, 3, 'TileSpacing', 'tight', 'Padding', 'tight');
+
 a2=nexttile
 imagesc(empty_area)
 my_colormap1 = [1 1 1;    % 0 = white
-               1 0.5 0.5;    % 1 = blue
-               0.5 0.5 1;    % 2 = red
-               0.3 0.3 0.3];
+    1 0.5 0.5;    % 1 = blue
+    0.5 0.5 1;    % 2 = red
+    0.3 0.3 0.3];
 colormap(a2,my_colormap1);
-    ap.wf_draw('ccf', [0.5 0.5 0.5]);
+ap.wf_draw('ccf', [0.5 0.5 0.5]);
 axis image off
-hold on 
-for i=1:4
-        boundaries1 = bwboundaries(roi1(i).data.mask  );
-        plot(boundaries1{1, 1} (:,2),boundaries1{1, 1} (:,1),'Color',[0 1 0])
-end
+% hold on
+% for i=1:4
+%         boundaries1 = bwboundaries(roi1(i).data.mask  );
+%         plot(boundaries1{1, 1} (:,2),boundaries1{1, 1} (:,1),'Color',[0 1 0])
+% end
 clim([0 3])
 ap.wf_draw('ccf', [0.5 0.5 0.5]);
 cb=colorbar('southoutside','Ticks', [0.375 1.125 1.875 2.625], ...
-         'TickLabels', {'none','auditory','visual','both'});  % 可自定义标签
+    'TickLabels', {'none','auditory','visual','both'});  % 可自定义标签
 %%
-
-firing_peak=cellfun(@(x)  cellfun(@(y) permute( max(y,[],1),[2,3,1]) ,x,'UniformOutput',false),...
-    buf3_roi_single_trial,'UniformOutput',false )
-firng_peak_mean=cellfun(@(x) cell2mat( cellfun(@(y) nanmean(y,1) ,x,'UniformOutput',false )' ),...
-    firing_peak,'UniformOutput',false );
-
-firng_peak_mean1=cat(2,firng_peak_mean{:});
-
-
-firng_peak_error=cellfun(@(x)  cell2mat( cellfun(@(y) std(y,0,1,'omitmissing')/sqrt(size(y,1)) ,x,'UniformOutput',false)'),...
-    firing_peak,'UniformOutput',false );
-firng_peak_error1=cat(2,firng_peak_error{:})
-
-% [~,a]=max(diff (buf3_roi_single_trial{1}{1},1),[],1)
-figure
-tiledlayout(2,1)
-title('responsive regions','FontWeight','normal','FontSize',12)
-
-   a5=nexttile
-seq=[ 7 9 1 2 3 4]
-hold on
-colors={[0 0 1],[1 0 0]}
-for curr_group=1:2
-switch curr_group
-    case 1
-        use_seq=[1   3 5 6];
-    case 2
-        use_seq=[2  5 6];
-end
-        used_area=seq(use_seq)
-
-errorbar( use_seq,firng_begin_mean{curr_group}{2}(used_area),firng_begin_error{curr_group}{2}(used_area),...
-    'LineWidth',1,'Color',colors{curr_group},'CapSize',3)
-end
-
-xlim([0.5 6.5])
-xticks([1:7])
-xticklabels(arrayfun(@(idx) roi1(idx).name, seq,'UniformOutput',false  ))
-ylabel('firing initial time (s)')
-ylim([0 0.15])
-box off
-
-    a5=nexttile
-seq=[ 1 2 3 4];
-bar_colors = [
-    0.5 0.5 1;   % 红
-    0 0 1;   % 绿
-    1 0.5 0.5;   % 蓝
-    1 0 0    % 黄
-];
-hold on
-  for  use_seq=1:4
-    used_area=seq(use_seq)
-   b= bar(use_seq*4-4+[1:4],firng_peak_mean1(used_area,:),0.5,'FaceColor','flat','EdgeColor','none')
-   b.CData = bar_colors;
-
- errorbar( use_seq*4-4+[1:4],firng_peak_mean1(used_area,:),firng_peak_error1(used_area,:),...
-        'LineStyle','none','Color','k','CapSize',1)
-
-
-
-end
-
-xlim([0.5 16.5])
-xticks([2.5:4:14.5])
-xticklabels(arrayfun(@(idx) roi1(idx).name, seq,'UniformOutput',false  ))
- ylabel('\Delta F/F')
-% ylim([0 0.15])
-box off
-% saveas(gcf,[Path 'figures\summary\figures\ fig1 images V&A pre&well trianed compare' ], 'jpg');
-
-
 
 
 
@@ -696,31 +781,31 @@ buf3_roi=cell(2,1);
 buf3_roi_peak=cell(2,1);
 buf_image=cell(2,1);
 for curr_group=1:2
-temp_data=cat(1,all_data_cross_day{curr_group}{2}{1}{:});
-temp_data2=arrayfun(@(x) cat(4,temp_data{:,x}), 1:size(temp_data,2),'UniformOutput',false );
-buf_image{curr_group}=temp_data2;
-% figure;
-scale=0.0003;
-temp_image=arrayfun(@(x) mean(max(temp_data2{x}(:,:,period_kernels,:,:),[],3),4,'omitnan'),1:26,'UniformOutput',false );
+    temp_data=cat(1,all_data_cross_day{curr_group}{2}{1}{:});
+    temp_data2=arrayfun(@(x) cat(4,temp_data{:,x}), 1:size(temp_data,2),'UniformOutput',false );
+    buf_image{curr_group}=temp_data2;
+    % figure;
+    scale=0.0003;
+    temp_image=arrayfun(@(x) mean(max(temp_data2{x}(:,:,period_kernels,:,:),[],3),4,'omitnan'),1:26,'UniformOutput',false );
 
-% ap.imscroll(cat(3,temp_image{:}))
-% axis image off;
-% ap.wf_draw('ccf', 'black');
-% clim(scale .* [0,1]);
-% colormap( ap.colormap(['W' Color{curr_group}]  ));
+    % ap.imscroll(cat(3,temp_image{:}))
+    % axis image off;
+    % ap.wf_draw('ccf', 'black');
+    % clim(scale .* [0,1]);
+    % colormap( ap.colormap(['W' Color{curr_group}]  ));
 
 
-buf1=cellfun(@(z) reshape(z,size(z,1)*size(z,2),size(z,3),size(z,4)) ,...
-    temp_data2, 'UniformOutput', false);
-for curr_roi= 1:6
-    buf3_roi{curr_group}{curr_roi}= cellfun(@(z) permute(mean(z(roi1(curr_roi).data.mask(:),:,:),1,'omitnan'),[2,3,1]),...
-        buf1, 'UniformOutput', false);
-    buf3_roi_peak{curr_group}{curr_roi}=cell2mat(cellfun(@(x) double(max(x(use_period,:),[],1) )',buf3_roi{curr_group}{curr_roi}, 'UniformOutput', false));
+    buf1=cellfun(@(z) reshape(z,size(z,1)*size(z,2),size(z,3),size(z,4)) ,...
+        temp_data2, 'UniformOutput', false);
+    for curr_roi= 1:6
+        buf3_roi{curr_group}{curr_roi}= cellfun(@(z) permute(mean(z(roi1(curr_roi).data.mask(:),:,:),1,'omitnan'),[2,3,1]),...
+            buf1, 'UniformOutput', false);
+        buf3_roi_peak{curr_group}{curr_roi}=cell2mat(cellfun(@(x) double(max(x(use_period,:),[],1) )',buf3_roi{curr_group}{curr_roi}, 'UniformOutput', false));
+    end
 end
-end
 
-save([Path 'summary_data\task kernels of images crossday.mat'],'buf3_roi',...
-    'buf3_roi_peak','-v7.3')
+% save([Path 'summary_data\task kernels of images crossday.mat'],'buf3_roi',...
+%     'buf3_roi_peak','-v7.3')
 
 
 
@@ -738,7 +823,7 @@ for curr_roi=[1 3]
     for curr_group=1:2
         temp_image=permute(mean(cat(3,buf3_roi{curr_group}{used_area(curr_roi)}{:}),2,'omitnan'),[1,3,2]);
         a1=nexttile(1.5*curr_roi-1.5+curr_group)
-                % a1=nexttile(3*curr_roi-15+curr_group)
+        % a1=nexttile(3*curr_roi-15+curr_group)
 
         imagesc(t_kernels,[], temp_image')
         ylim([1.5 8.5])
@@ -753,12 +838,12 @@ for curr_roi=[1 3]
         yline(15.5);
         yline(18.5);
         yline(21.5);
-    xlim([-0.2,0.5])
+        xlim([-0.2,0.5])
         xticks([[-0.2,0,0.5]])
 
         colormap(a1, ap.colormap(['W' Color{curr_group}]));
         xlabel('time (s)')
-        
+
         if curr_group==1& curr_roi==1
             yticks([2.5  6 ]);
             yticklabels(title_images); % 设置对应的标签
@@ -769,7 +854,7 @@ for curr_roi=[1 3]
 
         title(title_area(used_area(curr_roi)),'Fontweight','normal')
         a2= nexttile(1.5*curr_roi+1.5)
-                % a2= nexttile(3*curr_roi-12)
+        % a2= nexttile(3*curr_roi-12)
 
         temp_mean=mean(buf3_roi_peak{curr_group}{used_area(curr_roi)},1,'omitnan');
         temp_error=std(buf3_roi_peak{curr_group}{used_area(curr_roi)},0,1,'omitmissing')/sqrt(size(buf3_roi_peak{curr_group}{used_area(curr_roi)},1));
@@ -783,7 +868,7 @@ for curr_roi=[1 3]
         xline(10.5);
         xline(15.5);
         xline(18.5);
-                xline(21.5);
+        xline(21.5);
 
         ylim(scale1 .* [0, 1]);
 
@@ -792,7 +877,7 @@ for curr_roi=[1 3]
         ylabel('\Delta F/F')
     end
 end
- 
+
 
 % saveas(gcf,[Path 'figures\summary\figures\fig 2 task kernels images across day ' ], 'jpg');
 
@@ -801,47 +886,47 @@ Color={'B','R'};
 group_name={'visual','auditory'}
 row_labels={'pre learn','post learn'}
 for curr_group=1:2
-curr_video=permute(mean(all_data_image2{curr_group}{2}(:,:,:,1,:,[1 4]),5,'omitnan'),[1,2,3,6,5,4]);
-scale=0.0003;
-time_period=[-0.05 0.3]
-figure('Position', [50 50 70*length(find(use_t>=time_period(1)& use_t<=time_period(2))) 160]);
-t1 = tiledlayout(size(curr_video,4), length(find(use_t>=time_period(1)& use_t<=time_period(2))), 'TileSpacing', 'none', 'Padding', 'none');
+    curr_video=permute(mean(all_data_image2{curr_group}{2}(:,:,:,1,:,[1 4]),5,'omitnan'),[1,2,3,6,5,4]);
+    scale=0.0003;
+    time_period=[-0.05 0.3]
+    figure('Position', [50 50 70*length(find(use_t>=time_period(1)& use_t<=time_period(2))) 160]);
+    t1 = tiledlayout(size(curr_video,4), length(find(use_t>=time_period(1)& use_t<=time_period(2))), 'TileSpacing', 'none', 'Padding', 'none');
 
-for curr_stage=2:size(curr_video,4)
-    for curr_time =find(use_t>=time_period(1)& use_t<time_period(2))
+    for curr_stage=2:size(curr_video,4)
+        for curr_time =find(use_t>=time_period(1)& use_t<time_period(2))
 
-        a_1=nexttile
-        buff_image=curr_video(:,:,curr_time,curr_stage);
+            a_1=nexttile
+            buff_image=curr_video(:,:,curr_time,curr_stage);
 
-        imagesc(buff_image)
-        axis image off;
-        ap.wf_draw('ccf', [0.5 0.5 0.5]);
-        clim(scale .* [0,1]);
-        colormap( a_1, ap.colormap(['W' Color{curr_group}]  ));
-        % if curr_stage==1
+            imagesc(buff_image)
+            axis image off;
+            ap.wf_draw('ccf', [0.5 0.5 0.5]);
+            clim(scale .* [0,1]);
+            colormap( a_1, ap.colormap(['W' Color{curr_group}]  ));
+            % if curr_stage==1
             title(num2str(round(t_kernels(curr_time),2)),'FontWeight','normal')
-        % end
-        % if curr_time==find(use_t>=time_period(1)& use_t<time_period(2),1,'first')
-        %     text(-30, 100, row_labels(curr_stage), 'FontSize', 12, 'FontWeight', 'bold', ...
-        %         'HorizontalAlignment', 'right', 'VerticalAlignment', 'middle','Rotation', 90);
-        % end
-        if curr_time==find(use_t>=time_period(1)& use_t<time_period(2),1,'last')& curr_stage==size(curr_video,4)
-cb = colorbar( 'southoutside');
+            % end
+            % if curr_time==find(use_t>=time_period(1)& use_t<time_period(2),1,'first')
+            %     text(-30, 100, row_labels(curr_stage), 'FontSize', 12, 'FontWeight', 'bold', ...
+            %         'HorizontalAlignment', 'right', 'VerticalAlignment', 'middle','Rotation', 90);
+            % end
+            if curr_time==find(use_t>=time_period(1)& use_t<time_period(2),1,'last')& curr_stage==size(curr_video,4)
+                cb = colorbar( 'southoutside');
 
-% 紧贴图像 + 防止偏离窗口：手动微调位置
- % cb.Position(2) = cb.Position(2)-0.05;   % 下移 colorbar
-% cb.Position(4) = 0.02;    
+                % 紧贴图像 + 防止偏离窗口：手动微调位置
+                % cb.Position(2) = cb.Position(2)-0.05;   % 下移 colorbar
+                % cb.Position(4) = 0.02;
+            end
         end
+
     end
+    saveas(gcf,[Path 'figures\summary\figures\' group_name{curr_group}  ' task kernels images across time ' ], 'jpg');
 
 end
- saveas(gcf,[Path 'figures\summary\figures\' group_name{curr_group}  ' task kernels images across time ' ], 'jpg');
-
-end
 
 
 
-%% iti move 
+%% iti move
 % time_period=[-0.05 0.3]
 time_period=[-0.15 0.15]
 
@@ -855,39 +940,39 @@ t1 = tiledlayout(length(used_stage)*2+1, length(find(use_t>=time_period(1)& use_
 cmap = [ ...
     84 130 53  % #548235
     112  48 160  % #7030A0
-] / 255;
+    ] / 255;
 for curr_group=1:2
-curr_video=permute(mean(all_data_image2{curr_group}{2,3}(:,:,:,1,:,used_stage),5,'omitnan'),[1,2,3,6,5,4]);
-scale=0.0002;
+    curr_video=permute(mean(all_data_image2{curr_group}{2,3}(:,:,:,1,:,used_stage),5,'omitnan'),[1,2,3,6,5,4]);
+    scale=0.0002;
 
-for curr_stage=1:size(curr_video,4)
-    for curr_time =find(use_t>=time_period(1)& use_t<time_period(2))
+    for curr_stage=1:size(curr_video,4)
+        for curr_time =find(use_t>=time_period(1)& use_t<time_period(2))
 
-        a_1=nexttile
-        buff_image=curr_video(:,:,curr_time,curr_stage);
+            a_1=nexttile
+            buff_image=curr_video(:,:,curr_time,curr_stage);
 
-        imagesc(buff_image)
-        axis image off;
-        ap.wf_draw('ccf', 'black');
-        clim(scale .* [0,1]);
-        colormap( a_1, ap.colormap(['W' Color{curr_group}]  ));
-        if curr_stage==1
-            title(num2str(t_kernels(curr_time)))
+            imagesc(buff_image)
+            axis image off;
+            ap.wf_draw('ccf', 'black');
+            clim(scale .* [0,1]);
+            colormap( a_1, ap.colormap(['W' Color{curr_group}]  ));
+            if curr_stage==1
+                title(num2str(t_kernels(curr_time)))
+            end
+            % if curr_time==find(use_t>=time_period(1)& use_t<time_period(2),1,'first')
+            %     text(-30, 100, row_labels(curr_stage), 'FontSize', 12, 'FontWeight', 'bold', ...
+            %         'HorizontalAlignment', 'right', 'VerticalAlignment', 'middle','Rotation', 90);
+            % end
+            if curr_time==find(use_t>=time_period(1)& use_t<time_period(2),1,'last')& curr_stage==size(curr_video,4)
+                cb = colorbar( 'southoutside');
+
+                % 紧贴图像 + 防止偏离窗口：手动微调位置
+                % cb.Position(2) = cb.Position(2)-0.05;   % 下移 colorbar
+                % cb.Position(4) = 0.02;
+            end
         end
-        % if curr_time==find(use_t>=time_period(1)& use_t<time_period(2),1,'first')
-        %     text(-30, 100, row_labels(curr_stage), 'FontSize', 12, 'FontWeight', 'bold', ...
-        %         'HorizontalAlignment', 'right', 'VerticalAlignment', 'middle','Rotation', 90);
-        % end
-        if curr_time==find(use_t>=time_period(1)& use_t<time_period(2),1,'last')& curr_stage==size(curr_video,4)
-cb = colorbar( 'southoutside');
 
-% 紧贴图像 + 防止偏离窗口：手动微调位置
- % cb.Position(2) = cb.Position(2)-0.05;   % 下移 colorbar
-% cb.Position(4) = 0.02;    
-        end
     end
-
-end
 
 end
 
@@ -895,32 +980,32 @@ colors={[1 0 0],[0 0 1]}
 curr_roi=3
 for curr_stage=1:length(used_stage)
     nexttile
-for curr_group=1:2
-    
+    for curr_group=1:2
 
-temp_data=permute(all_data_image2{curr_group}{2,3}(:,:,:,1,:,used_stage),[1,2,3,5,6,4]);
-temp_data_1=reshape(temp_data,size(temp_data,1)*size(temp_data,2),size(temp_data,3),size(temp_data,4),size(temp_data,5));
-temp_data_2= permute(mean(temp_data_1(roi1(curr_roi).data.mask(:),:,:,:),1,'omitnan'),[2,4,3,1]);
-plot_mean=mean(temp_data_2,3,'omitnan');
-plot_error=std(temp_data_2,0,3,'omitmissing')/sqrt(size(temp_data_2,3));
 
- ap.errorfill(use_t,...
-    ( plot_mean(:,curr_stage)-min(plot_mean(:,curr_stage)))/max(plot_mean(:,curr_stage)-min(plot_mean(:,curr_stage))),...
-     ( plot_error(:,curr_stage)-min(plot_error(:,curr_stage)))/max(plot_mean(:,curr_stage)-min(plot_mean(:,curr_stage))),...
-cmap(curr_group,:),0.1,0.5);
-end
- xlim([-0.2 0.2])
-title('al-mPFC')
-ylabel('Normalized activity')
-xlabel('time (s)')
-nexttile
-axis off
+        temp_data=permute(all_data_image2{curr_group}{2,3}(:,:,:,1,:,used_stage),[1,2,3,5,6,4]);
+        temp_data_1=reshape(temp_data,size(temp_data,1)*size(temp_data,2),size(temp_data,3),size(temp_data,4),size(temp_data,5));
+        temp_data_2= permute(mean(temp_data_1(roi1(curr_roi).data.mask(:),:,:,:),1,'omitnan'),[2,4,3,1]);
+        plot_mean=mean(temp_data_2,3,'omitnan');
+        plot_error=std(temp_data_2,0,3,'omitmissing')/sqrt(size(temp_data_2,3));
+
+        ap.errorfill(use_t,...
+            ( plot_mean(:,curr_stage)-min(plot_mean(:,curr_stage)))/max(plot_mean(:,curr_stage)-min(plot_mean(:,curr_stage))),...
+            ( plot_error(:,curr_stage)-min(plot_error(:,curr_stage)))/max(plot_mean(:,curr_stage)-min(plot_mean(:,curr_stage))),...
+            cmap(curr_group,:),0.1,0.5);
+    end
+    xlim([-0.2 0.2])
+    title('al-mPFC')
+    ylabel('Normalized activity')
+    xlabel('time (s)')
+    nexttile
+    axis off
 end
 
 
 % saveas(gcf,[Path 'figures\summary\figures\ iti movement in task kernels images across time ' ], 'jpg');
 
-%% Task cross modality stage 1 & 2
+%% Task cross modality stage 1 & 2& mixed
 
 % curr_used_data=2;
 % use_period=period_kernels;
@@ -1009,8 +1094,8 @@ for curr_group=select_group
         all_buf_data_each{curr_group}{curr_image}=permute(max(all_data_image2{curr_group}{curr_used_data}(:,:,period_kernels,1,:,curr_image),[],3),[1 2 5 3 4]);
 
         %  all_buf_data{curr_group}{curr_image}=mean(max(all_data_image2{curr_group}{curr_used_data}(:,:,period_kernels,1,:,curr_image),[],3),5,'omitnan');
-         all_buf_data{curr_group}{curr_image}=mean(max(all_data_image2{curr_group}{curr_used_data}(:,:,use_period,1,:,curr_image),[],3),5,'omitnan');
-      
+        all_buf_data{curr_group}{curr_image}=mean(max(all_data_image2{curr_group}{curr_used_data}(:,:,use_period,1,:,curr_image),[],3),5,'omitnan');
+
 
         % figure
         % for ii=1:8
@@ -1022,7 +1107,7 @@ for curr_group=select_group
         % clim(scale .* [0, 1]);
         % end
 
-        
+
         % buf_data2=buf_data>0.25* max(buf_data,[],'all')
         imagesc(all_buf_data{curr_group}{curr_image})
         axis image off;
@@ -1053,8 +1138,8 @@ for curr_group=1:2
         112  48 160  % #7030A0
         ] / 255;
 
-    for i=[1  2 3  5]
-        switch i
+    for curr_area=[1  2 3  5]
+        switch curr_area
             case 1
                 ax1=nexttile(t,5)
                 title('l-mPFC')
@@ -1067,14 +1152,14 @@ for curr_group=1:2
             case 4
                 ax1=nexttile(t,12)
                 title('r-aPFC')
-                 case 5
+            case 5
                 ax1=nexttile(t,12)
                 title('l-PPC')
         end
 
 
-        ap.errorfill(1:8,all_peak_mean{curr_group}(1:8 ,i),all_peak_error{curr_group}(1:8,i) ,colors(curr_group,:),0.1,0.5);
-        ap.errorfill(9:13,all_peak_mean{curr_group}(22:26 ,i),all_peak_error{curr_group}(22:26,i) ,colors(curr_group,:),0.1,0.5);
+        ap.errorfill(1:8,all_peak_mean{curr_group}(1:8 ,curr_area),all_peak_error{curr_group}(1:8,curr_area) ,colors(curr_group,:),0.1,0.5);
+        ap.errorfill(9:13,all_peak_mean{curr_group}(22:26 ,curr_area),all_peak_error{curr_group}(22:26,curr_area) ,colors(curr_group,:),0.1,0.5);
         % ap.errorfill(14:16,buf3_roi_peak_mean(14:16 ,i),buf3_roi_peak_error(14:16,i) ,colors(curr_group,:),0.1,0.5);
         % ap.errorfill(17:19,buf3_roi_peak_mean(17:19 ,i),buf3_roi_peak_error(17:19,i) ,colors(curr_group,:),0.1,0.5);
         xlim(ax1,[0.5 17.5])
@@ -1113,14 +1198,14 @@ for curr_area=[1 2 3 4 5]
     hold on;
     colors1=[[84 130 53]./255;[112  48 160]./255]
 
-    for i = 1:nGroups
+    for curr_area = 1:nGroups
         % 对每组数据加一点横向偏移
-        x_offset = x*2 + offsets(i)+12.5;
-        errorbar(x_offset, data(:, i), errors(:, i), ...
+        x_offset = x*2 + offsets(curr_area)+12.5;
+        errorbar(x_offset, data(:, curr_area), errors(:, curr_area), ...
             'o', 'LineWidth', 1.5, ...
             'MarkerSize', 2, ...
-            'Color', colors1(i, :), ...
-            'MarkerFaceColor', colors1(i, :), ...
+            'Color', colors1(curr_area, :), ...
+            'MarkerFaceColor', colors1(curr_area, :), ...
             'LineStyle', 'none');  % 不连接线
     end
     % 设置 x 轴
@@ -1137,7 +1222,7 @@ end
 
 drawnow
 
- % saveas(gcf,[Path 'figures\summary\figures\task kernels mod1-mod2-mixed'], 'jpg');
+% saveas(gcf,[Path 'figures\summary\figures\task kernels mod1-mod2-mixed'], 'jpg');
 % sgtitle('task kernels mod1-mod2')
 
 %% permutation test
@@ -1147,42 +1232,42 @@ p_map=cell(8,1);
 
 threshold=0.0001;
 for curr_overlay=1:8
-switch curr_overlay
-    case 1
-        A=all_buf_data_each{1}{4};
-        B=all_buf_data_each{2}{7};
-    case 2
-        A=all_buf_data_each{1}{7};
-        B=all_buf_data_each{2}{4};
-    case 3
-        A=all_buf_data_each{1}{4};
-        B=all_buf_data_each{1}{7};
-    case 4
-        A=all_buf_data_each{2}{4};
-        B=all_buf_data_each{2}{7};
-     case 5
-        A=all_buf_data_each{1}{8};
-        B=all_buf_data_each{2}{8};
-    case 6
-        A=all_buf_data_each{1}{9};
-        B=all_buf_data_each{2}{9};
-    case 7
-        A=all_buf_data_each{1}{8};
-        B=all_buf_data_each{1}{9};
-    case 8
-        A=all_buf_data_each{2}{8};
-        B=all_buf_data_each{2}{9};
-% ap.imscroll(B)
-end
-A(A<threshold)=0;
-B(B<threshold)=0;
-if curr_overlay==1|curr_overlay==2|curr_overlay==5|curr_overlay==6
- 
+    switch curr_overlay
+        case 1
+            A=all_buf_data_each{1}{4};
+            B=all_buf_data_each{2}{7};
+        case 2
+            A=all_buf_data_each{1}{7};
+            B=all_buf_data_each{2}{4};
+        case 3
+            A=all_buf_data_each{1}{4};
+            B=all_buf_data_each{1}{7};
+        case 4
+            A=all_buf_data_each{2}{4};
+            B=all_buf_data_each{2}{7};
+        case 5
+            A=all_buf_data_each{1}{8};
+            B=all_buf_data_each{2}{8};
+        case 6
+            A=all_buf_data_each{1}{9};
+            B=all_buf_data_each{2}{9};
+        case 7
+            A=all_buf_data_each{1}{8};
+            B=all_buf_data_each{1}{9};
+        case 8
+            A=all_buf_data_each{2}{8};
+            B=all_buf_data_each{2}{9};
+            % ap.imscroll(B)
+    end
+    A(A<threshold)=0;
+    B(B<threshold)=0;
+    if curr_overlay==1|curr_overlay==2|curr_overlay==5|curr_overlay==6
+
         p_map{curr_overlay}=ds.image_diff(A,B,0,1);
-else
+    else
         p_map{curr_overlay}=ds.image_diff(A,B,1,1);
-end
-p_vals{curr_overlay}= reshape(p_map{curr_overlay},[],size(p_map{curr_overlay},3));  
+    end
+    p_vals{curr_overlay}= reshape(p_map{curr_overlay},[],size(p_map{curr_overlay},3));
 
 end
 %
@@ -1191,14 +1276,14 @@ end
 test_scale=5:8; % mixed stage
 
 colors1 = [...
-   0.3 0.3 0.9;   % Group 1: 蓝色
+    0.3 0.3 0.9;   % Group 1: 蓝色
     0.9 0.4 0.4;   % Group 2: 绿色
     [84 130 53]./255;
-     [112  48 160]./255
-      0.3 0.3 0.9;   % Group 1: 蓝色
+    [112  48 160]./255
+    0.3 0.3 0.9;   % Group 1: 蓝色
     0.9 0.4 0.4;   % Group 2: 绿色
     [84 130 53]./255;
-     [112  48 160]./255];  % Group 3: 红色
+    [112  48 160]./255];  % Group 3: 红色
 
 figure('Position',[50 50 400 500])
 legend_name={'V', 'A', 'VA','AV','V', 'A', 'VA','AV'}
@@ -1206,13 +1291,13 @@ t2 = tiledlayout(3, 2, 'TileSpacing', 'none', 'Padding', 'none');
 
 
 
-for curr_i=test_scale
+for curr_area=test_scale
     % 重塑为图像
     aa=nexttile(t2)
-    imagesc(-1*(p_map{curr_i}<0.05)+(p_map{curr_i}>0.95));  axis image off
-        % imagesc(p_map{curr_i});  axis image off
+    imagesc(-1*(p_map{curr_area}<0.05)+(p_map{curr_area}>0.95));  axis image off
+    % imagesc(p_map{curr_i});  axis image off
 
-    switch curr_i
+    switch curr_area
         case {1,5}
             colormap(aa, ap.colormap(['GWP'] ));
         case {2,6}
@@ -1224,16 +1309,16 @@ for curr_i=test_scale
     end
     clim([-2 2])
     ap.wf_draw('ccf', [0.5 0.5 0.5]);
-    title(legend_name{curr_i},'Color',colors1(curr_i,:))
+    title(legend_name{curr_area},'Color',colors1(curr_area,:))
 end
 
- curr_roi=[1 2 3 4 5 6 8 12];
- p_thres_1=cellfun(@(x) x>0.95,p_vals,'UniformOutput',false);
- p_thres_roi_mean_1= cellfun(@(x) arrayfun(@(roi) mean(x(roi1(roi).data.mask(:),:,:),1,'omitnan'),...
+curr_roi=[1 2 3 4 5 6 8 12];
+p_thres_1=cellfun(@(x) x>0.95,p_vals,'UniformOutput',false);
+p_thres_roi_mean_1= cellfun(@(x) arrayfun(@(roi) mean(x(roi1(roi).data.mask(:),:,:),1,'omitnan'),...
     curr_roi,'UniformOutput',true),p_thres_1,'UniformOutput',false);
 
- p_thres_2=cellfun(@(x) x<0.05,p_vals,'UniformOutput',false);
- p_thres_roi_mean_2= cellfun(@(x) arrayfun(@(roi) mean(x(roi1(roi).data.mask(:),:,:),1,'omitnan'),...
+p_thres_2=cellfun(@(x) x<0.05,p_vals,'UniformOutput',false);
+p_thres_roi_mean_2= cellfun(@(x) arrayfun(@(roi) mean(x(roi1(roi).data.mask(:),:,:),1,'omitnan'),...
     curr_roi,'UniformOutput',true),p_thres_2,'UniformOutput',false);
 
 data = cell2mat(p_thres_roi_mean_1(test_scale))'+ cell2mat(p_thres_roi_mean_2(test_scale))';
@@ -1242,9 +1327,9 @@ nexttile(t2,[1,2])
 hBar = bar(data, 'grouped'); hold on;
 box off
 % 设置每组的颜色
-for i = 1:length(hBar)
-    hBar(i).FaceColor = colors1(i, :);
-         hBar(i).EdgeColor = 'none';       % 无边框线
+for curr_area = 1:length(hBar)
+    hBar(curr_area).FaceColor = colors1(curr_area, :);
+    hBar(curr_area).EdgeColor = 'none';       % 无边框线
 
 end
 
@@ -1252,10 +1337,10 @@ end
 set(gca, 'XTick', 1:8, 'XTickLabel', {'pl-mPFC', 'pr-mPFC', 'al-mPFC', 'ar-mPFC', 'l-PPC', 'r-PPC', 'auditory area', 'visual area'});
 
 % 图例和轴标签
- legend({'V', 'A', 'VA','AV'}, 'Location', 'northeastoutside','Box','off');
+legend({'V', 'A', 'VA','AV'}, 'Location', 'northeastoutside','Box','off');
 % xlabel('Category');
 ylabel('proportion of difference ');
- % saveas(gcf,[Path 'figures\summary\figures\task kernels mod1-mod2'], 'jpg');
+% saveas(gcf,[Path 'figures\summary\figures\task kernels mod1-mod2'], 'jpg');
 
 
 
@@ -1290,8 +1375,8 @@ all_scross_time_mean=cell(2,1);
 all_scross_time_error=cell(2,1);
 all_data=cell(2,1);
 
-figure('Position', [50 50 650 300]);
-t = tiledlayout(2, 5, 'TileSpacing', 'tight', 'Padding', 'none');
+figure('Position', [50 50 400 300]);
+t = tiledlayout(2, 3, 'TileSpacing', 'tight', 'Padding', 'none','TileIndexing','columnmajor');
 
 for curr_group=select_group
     % preload_vars=who;
@@ -1340,20 +1425,21 @@ for curr_group=select_group
 
 
     po_i=0;
-    for curr_image=[  8 22 26  ]
+    switch curr_group
+        case 1
+            oder=[8  26]
+        case 2
+            oder=[26  8]
+    end
+    for curr_image=oder
         po_i=po_i+1;
 
-        a1=nexttile(t,curr_group*5-5+po_i)
+        a1=nexttile()
+  
+        temp_images=arrayfun(@(mice) max( all_data_cross_day{curr_group}{curr_used_data}{1}{mice}{curr_image}(:,:,use_period),[],3),...
+            1:length(all_data_cross_day{curr_group}{curr_used_data}{1}),'UniformOutput',false);
+        all_buf_data{curr_group}{curr_image}=nanmean(cat(3,temp_images{:}),3);
 
-        % all_buf_data_each{curr_group}{curr_image}=permute(max(all_data_image2{curr_group}{curr_used_data}(:,:,period_kernels,1,:,curr_image),[],3),[1 2 5 3 4]);
-
-         % all_buf_data{curr_group}{curr_image}=mean(max(all_data_image2{curr_group}{curr_used_data}(:,:,use_period,1,:,curr_image),[],3),5,'omitnan');
-      
-
-temp_images=arrayfun(@(mice) max( all_data_cross_day{curr_group}{curr_used_data}{1}{mice}{curr_image}(:,:,use_period),[],3),...
-    1:length(all_data_cross_day{curr_group}{curr_used_data}{1}),'UniformOutput',false);
-all_buf_data{curr_group}{curr_image}=nanmean(cat(3,temp_images{:}),3);
-        
         % buf_data2=buf_data>0.25* max(buf_data,[],'all')
         imagesc(all_buf_data{curr_group}{curr_image})
         axis image off;
@@ -1378,40 +1464,41 @@ all_buf_data{curr_group}{curr_image}=nanmean(cat(3,temp_images{:}),3);
 
 end
 
-for curr_group=1:2
-    colors = [ ...
+colors = [ ...
         84 130 53  % #548235
         112  48 160  % #7030A0
         ] / 255;
 
-    for i=[1  2 3 4  ]
-        switch i
-            case 1
-                ax1=nexttile(t,4)
-                title('l-mPFC','FontWeight','normal')
-            case 2
-                ax1=nexttile(t,5)
-                title('r-mPFC','FontWeight','normal')
-            case 3
-                ax1=nexttile(t,9)
-                title('l-aPFC','FontWeight','normal')
-            case 4
-                ax1=nexttile(t,10)
-                title('r-aPFC','FontWeight','normal')
-        end
-
-
-        ap.errorfill(1:8,all_peak_mean{curr_group}(1:8 ,i),all_peak_error{curr_group}(1:8,i) ,colors(curr_group,:),0.1,0.5);
-        ap.errorfill(9:13,all_peak_mean{curr_group}(22:26 ,i),all_peak_error{curr_group}(22:26,i) ,colors(curr_group,:),0.1,0.5);
-        % ap.errorfill(14:16,buf3_roi_peak_mean(14:16 ,i),buf3_roi_peak_error(14:16,i) ,colors(curr_group,:),0.1,0.5);
-        % ap.errorfill(17:19,buf3_roi_peak_mean(17:19 ,i),buf3_roi_peak_error(17:19,i) ,colors(curr_group,:),0.1,0.5);
+for curr_area=[1 3]
+    ax1=nexttile(t)
+    for curr_group=1:2
+        ap.errorfill(1:8,all_peak_mean{curr_group}(1:8 ,curr_area),all_peak_error{curr_group}(1:8,curr_area) ,colors(curr_group,:),0.1,0.5);
+        ap.errorfill(9:13,all_peak_mean{curr_group}(22:26 ,curr_area),all_peak_error{curr_group}(22:26,curr_area) ,colors(curr_group,:),0.1,0.5);
         xlim(ax1,[0.5 13])
         xticks(ax1,[4.5 11 ]); % 设置 y 轴的刻度位置（2代表naive stage中间位置，8代表stage1中间位置）
         xticklabels(ax1,{'Mod1','Mod2'}); % 设置对应的标签
         ylim(ax1,[0 scale_plot])
         ylabel(ax1,'\Delta F/F')
-        % legend(ax1,{'','VA','','','','AV'},'Location','northwest','Box','off')
     end
+    set(gca,'Color','none')
+
+mainPos = get(ax1, 'Position');  % [left bottom width height]
+% 计算 inset 的位置（嵌在当前 tile 的左上角）
+inset_width = 0.3 * mainPos(3);    % inset 占 tile 宽度的 30%
+inset_height = 0.3 * mainPos(4);   % inset 占 tile 高度的 30%
+inset_left = mainPos(1) + 0.05 * mainPos(3);  % tile 左侧偏右一点
+inset_bottom = mainPos(2) + 0.65 * mainPos(4); % tile 底部偏上
+insetAx = axes('Position', [inset_left, inset_bottom, inset_width, inset_height]);
+imagesc(roi1(curr_area).data.mask )
+ap.wf_draw('ccf', [0.5 0.5 0.5]);
+axis image off
+ylim([0 200])
+xlim([20 220])
+clim( [ 0, 1]);
+colormap( insetAx,ap.colormap('WK'));
+uistack(insetAx, 'bottom');
+
+
 end
 
 
@@ -1478,11 +1565,11 @@ for curr_group=select_group
         all_buf_data_each{curr_group}{curr_image}=permute(max(all_data_image2{curr_group}{curr_used_data}(:,:,period_kernels,1,:,curr_image),[],3),[1 2 5 3 4]);
 
         %  all_buf_data{curr_group}{curr_image}=mean(max(all_data_image2{curr_group}{curr_used_data}(:,:,period_kernels,1,:,curr_image),[],3),5,'omitnan');
-         all_buf_data{curr_group}{curr_image}=mean(max(all_data_image2{curr_group}{curr_used_data}(:,:,use_period,1,:,curr_image),[],3),5,'omitnan');
-      
+        all_buf_data{curr_group}{curr_image}=mean(max(all_data_image2{curr_group}{curr_used_data}(:,:,use_period,1,:,curr_image),[],3),5,'omitnan');
 
 
-        
+
+
         % buf_data2=buf_data>0.25* max(buf_data,[],'all')
         imagesc(all_buf_data{curr_group}{curr_image})
         axis image off;
@@ -1534,22 +1621,22 @@ for curr_area=[1  3 ]
     hold on;
     colors1=[[84 130 53]./255;[112  48 160]./255]
 
-    for i = 1:nGroups
+    for curr_area = 1:nGroups
         % 对每组数据加一点横向偏移
-        x_offset = x*2 + offsets(i)-0.5;
-        errorbar(x_offset, data(:, i), errors(:, i), ...
+        x_offset = x*2 + offsets(curr_area)-0.5;
+        errorbar(x_offset, data(:, curr_area), errors(:, curr_area), ...
             'o', 'LineWidth', 1.5, ...
             'MarkerSize', 2, ...
-            'Color', colors1(i, :), ...
-            'MarkerFaceColor', colors1(i, :), ...
+            'Color', colors1(curr_area, :), ...
+            'MarkerFaceColor', colors1(curr_area, :), ...
             'LineStyle', 'none');  % 不连接线
     end
     % 设置 x 轴
-     set(gca, 'XTick', [1.5 3.5], 'XTickLabel', categories);
- 
+    set(gca, 'XTick', [1.5 3.5], 'XTickLabel', categories);
+
     ylabel('\Delta F/F')
-            ylim(ax1,[0 scale_plot])
-            xlim([0 5])
+    ylim(ax1,[0 scale_plot])
+    xlim([0 5])
 
     box off
     title(roi1(curr_area).name,'FontWeight','normal')

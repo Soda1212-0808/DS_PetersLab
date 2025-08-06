@@ -28,7 +28,7 @@ load('C:\Users\dsong\Documents\MATLAB\Da_Song\DS_scripts_ptereslab\General_infor
     %     'HA000','HA001','HA002'};
         animals={'HA009','HA010','HA011','HA012'};
 
-    for curr_passive=1
+    for curr_passive=2
         if curr_passive==1
             passive_workflow = 'hml_passive_audio';
         elseif curr_passive==2
@@ -195,44 +195,7 @@ load('C:\Users\dsong\Documents\MATLAB\Da_Song\DS_scripts_ptereslab\General_infor
                     stim2move_time(cellfun(@ isempty,stim2move_time))={1};
                     stim2move_time=cell2mat(stim2move_time)';
                     trial_stim_time{curr_recording}=stim2move_time;
-                    % % 定义距离值（通用）
-                    % distance_values = unique(align_category_all); % 确定 A 中的所有可能距离值
-                    % min_count = 5;               % 每种距离值的最小数量
-                    % % Step 1: 找到 B 中大于 3 的索引，并筛选 A
-                    % indices = find(stim2move_time > stim_window1(2));
-                    % A_filtered = align_category_all(indices);
-                    % B_filtered = stim2move_time(indices);
-                    % % 记录初始的筛选索引
-                    % selected_indices = indices;
-                    % % Step 2: 统计每种距离值的数量
-                    % counts = histc(A_filtered, distance_values);
-                    %
-                    % % Step 3: 找出缺失的距离值及需要补充的数量
-                    % missing_mask = counts < min_count;
-                    % missing_values = distance_values(missing_mask);
-                    % missing_counts = min_count - counts(missing_mask);
-                    % % Step 4: 按 B 降序排序，并筛选出补充的候选值
-                    % [~, sorted_idx] = sort(stim2move_time, 'descend');
-                    % sorted_A = align_category_all(sorted_idx);
-                    %
-                    % % 针对每种缺失值，直接补充
-                    % if any(missing_mask)
-                    %     % 创建补充矩阵
-                    %     supplement_mask = ismember(sorted_A, missing_values);
-                    %     supplement_A = sorted_A(supplement_mask);
-                    %     supplement_indices = sorted_idx(supplement_mask);
-                    %     % 按缺失值和需求数量生成补充列表
-                    %     supplement_values = repelem(missing_values', missing_counts');
-                    %     num_to_add = min(length(supplement_values), length(supplement_A));
-                    %     supplement_values = supplement_values(1:num_to_add);
-                    %     supplement_indices = supplement_indices(1:num_to_add);
-                    %     % 合并补充到 A_filtered 和索引
-                    %     A_filtered = [A_filtered; supplement_values'];
-                    %     selected_indices = [selected_indices, supplement_indices];
-                    % end
-                    % quiescent_trials = ismember(1:length(stimOn_times), selected_indices)';
-
-
+                 
 
 
                     align_times = stimOn_times(quiescent_trials);
@@ -366,9 +329,6 @@ load('C:\Users\dsong\Documents\MATLAB\Da_Song\DS_scripts_ptereslab\General_infor
 
 
 
-
-
-
                     % % Convert kernels V to pixels
                     % wf_px_kernels{curr_recording} = cellfun(@(x) permute(x,[3,2,1]),kernels,'uni',false);
                     wf_px_kernels{curr_recording} = kernels;
@@ -382,186 +342,13 @@ load('C:\Users\dsong\Documents\MATLAB\Da_Song\DS_scripts_ptereslab\General_infor
 
 
 
-                    %% 分析行为学
-
-                    % Grab pre-load vars
-                    preload_vars = who;
-
-                    task_day_index = find(strcmp({recordings_wf_training.day}, recordings_wf_passive(curr_recording).day));
-                    if isempty(task_day_index)
-                        workflow_type_name{curr_recording}='naive';
-                        workflow_type_name_merge{curr_recording}='naive';
-                        continue
-                    end
-                    rec_day=recordings_wf_passive(curr_recording).day;
-
-                    % Load data
-                    clear time
-                    if length(recordings_wf_training(task_day_index).index)>1
-                        for mm=1:length(recordings_wf_training(task_day_index).index)
-                            rec_time = recordings_wf_training(task_day_index).recording{mm};
-                            % verbose = true;
-                            % ap.load_timelite
-
-                            timelite_fn = plab.locations.filename('server',animal,rec_day,rec_time,'timelite.mat');
-                            timelite = load(timelite_fn);
-                            time(mm)=length(timelite.timestamps);
-                        end
-                        [~,index_real]=max(time);
-                    else index_real=1;
-                    end
-
-                    rec_time=recordings_wf_training(task_day_index).recording{index_real};
-
-                    workflow_type_name{curr_recording}=recordings_wf_training(task_day_index).workflow{index_real};
-
-                    if strcmp(recordings_wf_training(task_day_index).workflow{index_real},'stim_wheel_right_stage2_audio_volume')...
-                            || strcmp(recordings_wf_training(task_day_index).workflow{index_real},'stim_wheel_right_stage2_audio_frequency')...
-                            || strcmp(recordings_wf_training(task_day_index).workflow{index_real},'stim_wheel_right_stage1_audio_frequency')...
-                            || strcmp(recordings_wf_training(task_day_index).workflow{index_real},'stim_wheel_right_stage1_audio_volume')
-                        workflow_type(curr_recording)=2;
-
-                    elseif  strcmp(recordings_wf_training(task_day_index).workflow{index_real},'stim_wheel_right_stage1')...
-                            ||strcmp(recordings_wf_training(task_day_index).workflow{index_real},'stim_wheel_right_stage2')...
-                            ||strcmp(recordings_wf_training(task_day_index).workflow{index_real},'stim_wheel_right_stage1_opacity')...
-                            ||strcmp(recordings_wf_training(task_day_index).workflow{index_real},'stim_wheel_right_stage2_opacity')...
-                            ||strcmp(recordings_wf_training(task_day_index).workflow{index_real},'stim_wheel_right_stage1_size_up')...
-                            ||strcmp(recordings_wf_training(task_day_index).workflow{index_real},'stim_wheel_right_stage2_size_up')...
-                             ||strcmp(recordings_wf_training(task_day_index).workflow{index_real},'stim_wheel_right_stage1_angle')...
-                            ||strcmp(recordings_wf_training(task_day_index).workflow{index_real},'stim_wheel_right_stage2_angle')...
-                          ||strcmp(recordings_wf_training(task_day_index).workflow{index_real},'stim_wheel_right_stage2_angle_size60')...
-                            ||strcmp(recordings_wf_training(task_day_index).workflow{index_real},'stim_lick_right_stage1')...
-                            ||strcmp(recordings_wf_training(task_day_index).workflow{index_real},'stim_lick_right_stage2')
-                        workflow_type(curr_recording)=1;
-
-                    elseif  strcmp(recordings_wf_training(task_day_index).workflow{index_real},'stim_wheel_right_stage2_mixed_VA')...
-                            ||strcmp(recordings_wf_training(task_day_index).workflow{index_real},'stim_wheel_right_frequency_stage2_mixed_VA')
-                        workflow_type(curr_recording)=3;
-                    else                          workflow_type(curr_recording)=0;
-
-
-                    end
-
-
-                    if strcmp(recordings_wf_training(task_day_index).workflow{index_real},'stim_wheel_right_stage1_audio_volume')...
-                            ||strcmp(recordings_wf_training(task_day_index).workflow{index_real},'stim_wheel_right_stage2_audio_volume')
-                        workflow_type_name_merge{curr_recording}='audio volume';
-                    elseif strcmp(recordings_wf_training(task_day_index).workflow{index_real},'stim_wheel_right_stage1')...
-                            ||strcmp(recordings_wf_training(task_day_index).workflow{index_real},'stim_wheel_right_stage2')
-                        workflow_type_name_merge{curr_recording}='visual position';
-                    elseif strcmp(recordings_wf_training(task_day_index).workflow{index_real},'stim_wheel_right_stage1_size_up')...
-                            ||strcmp(recordings_wf_training(task_day_index).workflow{index_real},'stim_wheel_right_stage2_size_up')
-                        workflow_type_name_merge{curr_recording}='visual size up';
-                    elseif strcmp(recordings_wf_training(task_day_index).workflow{index_real},'stim_wheel_right_stage1_opacity')...
-                            ||strcmp(recordings_wf_training(task_day_index).workflow{index_real},'stim_wheel_right_stage2_opacity')
-                        workflow_type_name_merge{curr_recording}='visual opacity';
-                    elseif strcmp(recordings_wf_training(task_day_index).workflow{index_real},'stim_wheel_right_stage1_audio_frequency')...
-                            ||strcmp(recordings_wf_training(task_day_index).workflow{index_real},'stim_wheel_right_stage2_audio_frequency')
-                        workflow_type_name_merge{curr_recording}='audio frequency';
-                    elseif strcmp(recordings_wf_training(task_day_index).workflow{index_real},'stim_wheel_right_stage1_angle')...
-                            ||strcmp(recordings_wf_training(task_day_index).workflow{index_real},'stim_wheel_right_stage2_angle')...
-                            ||strcmp(recordings_wf_training(task_day_index).workflow{index_real},'stim_wheel_right_stage2_angle_size60')
-                        workflow_type_name_merge{curr_recording}='visual angle';
-                    elseif strcmp(recordings_wf_training(task_day_index).workflow{index_real},'stim_wheel_right_stage2_mixed_VA')...
-                            ||strcmp(recordings_wf_training(task_day_index).workflow{index_real},'stim_wheel_right_frequency_stage2_mixed_VA')
-                        workflow_type_name_merge{curr_recording}='mixed VA';
-                    else  workflow_type_name_merge{curr_recording}='none';
-                    end
-
-                    load_parts = struct;
-                    load_parts.behavior = true;
-                    ap.load_recording;
-
-
-                    if workflow_type(curr_recording)==1|workflow_type(curr_recording)==2
-
-                        % Get total trials/water
-                        n_trials_water(curr_recording,:) = [length(trial_events.timestamps), ...
-                            sum(([trial_events.values.Outcome] == 1)*6)];
-
-                        % Get median stim-outcome time
-                        n_trials = length([trial_events.timestamps.Outcome]);
-
-                        % rxn_med(curr_recording) = median(seconds([trial_events.timestamps(1:n_trials).Outcome] - ...
-                        %     cellfun(@(x) x(1),{trial_events.timestamps(1:n_trials).StimOn})));
-                        rxn_med(curr_recording) = median(stimOff_times(1:n_trials) - ...
-                            stimOn_times(1:n_trials)  );
-
-                        % Align wheel movement to stim onset
-                        align_times = stimOn_times;
-                        pull_times = align_times + surround_time_points;
-
-                        success(curr_recording)=sum(cat(1,trial_events.values.Outcome))/n_trials;
-                        frac_move_day(curr_recording) = nanmean(wheel_move);
-
-                        event_aligned_wheel_vel = interp1(timelite.timestamps, ...
-                            wheel_velocity,pull_times);
-                        event_aligned_wheel_move = interp1(timelite.timestamps, ...
-                            +wheel_move,pull_times,'previous');
-
-                        frac_move_stimalign(curr_recording,:) = nanmean(event_aligned_wheel_move,1);
-
-                        % Get association stat
-                        rxn_stat_p(curr_recording) = AP_stimwheel_association_pvalue( ...
-                            stimOn_times,trial_events,stim_to_move,'mean');
-
-                    elseif workflow_type(curr_recording)==3
-
-                        % Get total trials/water
-                        n_trials_water(curr_recording,:) = [length(trial_events.timestamps), ...
-                            sum(([trial_events.values.Outcome] == 1)*6)];
-
-                        % Get median stim-outcome time
-                        n_trials = length([trial_events.timestamps.Outcome]);
-                        reactivation_time=seconds([trial_events.timestamps(1:n_trials).Outcome] - ...
-                            cellfun(@(x) x(1),{trial_events.timestamps(1:n_trials).StimOn}));
-                        % Get task type
-                        curr_tasktype=cell2mat({trial_events.values.TaskType});
-                        visual_time=reactivation_time(find(curr_tasktype(1:n_trials)==0));
-                        audio_time=reactivation_time(find(curr_tasktype(1:n_trials)==1));
-
-                        n_trials_water_V(curr_recording)=length(visual_time);
-                        n_trials_water_A(curr_recording)=length(audio_time);
-
-
-
-                        % Align wheel movement to stim onset
-                        align_times = stimOn_times;
-                        pull_times = align_times + surround_time_points;
-
-                        success(curr_recording)=sum(cat(1,trial_events.values.Outcome))/n_trials;
-                        frac_move_day(curr_recording) = nanmean(wheel_move);
-                        event_aligned_wheel_vel = interp1(timelite.timestamps, ...
-                            wheel_velocity,pull_times);
-                        event_aligned_wheel_move = interp1(timelite.timestamps, ...
-                            +wheel_move,pull_times,'previous');
-
-                        frac_move_stimalign(curr_recording,:) = nanmean(event_aligned_wheel_move,1);
-                        frac_move_stimalign_V(curr_recording,:)= nanmean(event_aligned_wheel_move(curr_tasktype(1:n_trials)==0,:),1);
-                        frac_move_stimalign_A(curr_recording,:)= nanmean(event_aligned_wheel_move(curr_tasktype(1:n_trials)==1,:),1);
-                        % Get association stat
-                        buffer_p = AP_stimwheel_association_pvalue2( ...
-                            stimOn_times,trial_events,stim_to_move,curr_tasktype);
-
-                        if curr_passive==1
-                            rxn_stat_p(curr_recording)=buffer_p(3);
-                            rxn_med(curr_recording) = median(audio_time);
-                        elseif curr_passive==2
-                            rxn_stat_p(curr_recording)=buffer_p(2);
-                            rxn_med(curr_recording) = median(visual_time);
-                        end
-                    end
-
-                    % Clear vars except pre-load for next loop
-                    clearvars('-except',preload_vars{:});
-                    ap.print_progress_fraction(curr_recording,length(recordings_wf_passive));
 
                 end
                 buffer_learn= rxn_stat_p < 0.05 & rxn_med < 2;
                 learned_day(file_length:length(recordings_wf_passive)) =buffer_learn(file_length:length(recordings_wf_passive));
 
 
-                save([Path passive_workflow '\' animal '_' passive_workflow '.mat' ],'workflow_type','workflow_type_name','workflow_type_name_merge','learned_day','wf_px','wf_px_kernels','wf_px_kernels_encode','all_groups_name','img_size','workflow_day','-v7.3')
+                save([Path passive_workflow '\' animal '_' passive_workflow '.mat' ],'workflow_type','workflow_type_name','workflow_type_name_merge','wf_px','wf_px_kernels','wf_px_kernels_encode','all_groups_name','img_size','workflow_day','-v7.3')
                 save([Path passive_workflow '\' animal '_' passive_workflow '_single_trial.mat' ],'wf_px_all','trial_type','trial_state','-v7.3')
             
             end

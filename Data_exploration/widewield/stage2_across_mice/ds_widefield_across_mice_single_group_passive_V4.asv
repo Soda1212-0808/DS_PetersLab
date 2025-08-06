@@ -27,7 +27,6 @@ animals={};
 groups={'Vp-Av','Av-Vp','Vp-Av-n','Av-Vp-n','Vp-Af','Vo-n-Vp','Vs-Vp','Va-Vp'};
 select_group=1:2
 
-data_all_video=cell(2,1);
 data_all_days=cell(2,1);
 % used_data=1;% 1 raw data;2 kernels 
 data_type={'raw','kernels'};
@@ -55,7 +54,7 @@ for used_data=2
 
             end
 
-            used_id=1:3;
+            % used_id=1:3;
             all_data_video=cell(length(animals{curr_group}),1);
             all_data_workflow_name=cell(length(animals{curr_group}),1);
             all_data_learned_day=cell(length(animals{curr_group}),1);
@@ -194,28 +193,12 @@ for used_data=2
                 pre_learn_data2,post_learn1_data2,post_learn2_data2,data3,first_5day_data2,'UniformOutput',false);
 
 
-            data_list = {
-                naive_data, pre_learn_data0, pre_learn_data1, ...
-                post_learn1_data1, post_learn2_data1, ...
-                pre_learn_data2, post_learn1_data2, post_learn2_data2, ...
-                data3,first_5day_data2
-                };
-            combine_func = @(x) nanmean(cat(5, x{:}), 5);
-            all_data_image = cellfun(@(d) cellfun(combine_func, d, 'UniformOutput', false), data_list, 'UniformOutput', false);
-
-
-            all_data_image1= cellfun(@(x) cat(5,x{:}), all_data_image,'UniformOutput',false);
-            all_data_image2=cat(6,all_data_image1{:});
-            % data_all_video{workflow_idx}=permute(max(all_data_image2(:,:,use_period,:,:,:),[],3),[1 2 4 5 6 3]);
-
 
             data_all_days{curr_group}{used_data}{workflow_idx}=all_data_daybyday;
 
-            % data_all_images.(all_workflow{workflow_idx})=permute(max(all_data_image2(:,:,use_period,:,:,:),[],3),[1 2 4 5 6 3]);
 
-            data_all_video{curr_group}{used_data}{workflow_idx}=all_data_image2;
 
-            data_first5day_stage2{curr_group}{used_data}{workflow_idx}=first_5day_data2;
+            % data_first5day_stage2{curr_group}{used_data}{workflow_idx}=first_5day_data2;
 
             clearvars('-except',main_preload_vars{:});
 
@@ -421,32 +404,33 @@ saveas(gcf,[Path 'figures\summary\figures\auditory passive vs kernels' ], 'jpg')
 
 %%  cortical images of well trianed mice with selectivity and lateralization in the first task.
 scale=0.0003;
-
-
-% title_images={'naive','well trained'}
 xlabel_all={'left','center','right';'4k Hz','8k Hz','12k Hz'}
 line_colors={[0.5 0.5 0.5],[0.5 0.5 0.5],[0 0 1];[0.5 0.5 0.5],[1 0 0],[0.5 0.5 0.5]}
 buf3_roi_peak_mean=cell(2,1);
 buf3_roi_peak_error=cell(2,1);
+buf3_roi_stim1_mean=cell(2,1);
+buf3_roi_stim1_error=cell(2,1);
+figure('Position',[50 50 350 400])
+mainLayout = tiledlayout(3, 1, 'TileSpacing', 'none', 'Padding', 'none');
+oder={[3 1 2],[2 1 3]};
 for curr_group=1:2
     for   workflow_idx =curr_group;
 
         main_preload_vars = who;
-        figure('Position',[50 50 250 350])
-        mainLayout = tiledlayout(1, 3, 'TileSpacing', 'tight', 'Padding', 'tight');
-        leftLayout = tiledlayout(mainLayout, 3, 1, ...
+        imageLayout = tiledlayout(mainLayout, 1, 3, ...
             'TileSpacing', 'tight', 'Padding', 'tight');
-        leftLayout.Layout.Tile = 1;  % 明确放在主 layout 的第 1 个 tile
+        imageLayout.Layout.Tile = curr_group;  % 明确放在主 layout 的第 1 个 tile
         used_area=workflow_idx*2-1;
         used_stim=4-workflow_idx;
         scale=0.0003;
         Color={'B','R'};
         % darw iamge
-        buf_images_all1=permute(mean(max(data_all_video{curr_group}{2}{workflow_idx}(:,:,use_period,:,:,5),[],3),5,'omitnan'),[1 2 4 3]);
-        buf3_roi_stim1_mean=cell(3,1);
-            buf3_roi_stim1_error=cell(3,1);
-        for curr_day=1:3
-            a1=nexttile(leftLayout)
+        temp_image=cat(2,data_all_days{curr_group}{2}{workflow_idx}{:});
+        temp_image2= cat(5, temp_image{10:11,:});
+        buf_images_all1= permute(nanmean(max(temp_image2(:,:,use_period,:,:),[],3),5),[1,2,4,3,5]);
+
+        for curr_day=oder{curr_group}
+            a1=nexttile(imageLayout)
             imagesc(buf_images_all1(:,:,curr_day))
             axis image off;
             ap.wf_draw('ccf', [0.5 0.5 0.5]);
@@ -454,79 +438,22 @@ for curr_group=1:2
             colormap(a1, ap.colormap(['W' Color{workflow_idx}]));
             title(xlabel_all{workflow_idx,curr_day},'FontWeight','normal','FontSize',10)
 
-           
-
-            if curr_day==3
-                cb = colorbar(a1,'southoutside'); % 在下方添加 colorbar
-            end
-
-
-
-            % darw selectivity
-            buf3_roi_peak=cell(size(data_all_video{curr_group}{2}{workflow_idx}(:,:,:,:,:,5),5),1);
-            buf3_roi_stim=cell(size(data_all_video{curr_group}{2}{workflow_idx}(:,:,:,:,:,5),5),1);
-            for curr_animal=1:size(data_all_video{curr_group}{2}{workflow_idx}(:,:,:,:,:,5),5)
-
-                buf1=cellfun(@(z) reshape(z,size(z,1)*size(z,2),size(z,3),size(z,4)),...
-                    {data_all_video{curr_group}{2}{workflow_idx}(:,:,:,:,curr_animal,5)}, 'UniformOutput', false);
-                for curr_roi= 1:length(roi1)
-                    buf3_roi{curr_roi}=permute(nanmean(buf1{1}(roi1(curr_roi).data.mask(:),:,:),1),[2,3,1]);
-                    buf3_roi_peak{curr_animal}{curr_roi}=max(buf3_roi{curr_roi}(use_period,:),[],1) ;
-                    buf3_roi_stim{curr_animal}{curr_roi}= double(buf3_roi{curr_roi}(:,curr_day))';
-                end
-            end
-
-            buf3_roi_stim1= cellfun(@(x) cat(3,x{:}), buf3_roi_stim,'UniformOutput',false);
-            buf3_roi_stim2=permute(cat(4,buf3_roi_stim1{:}),[2 3 4 1]);
-            buf3_roi_stim1_mean{curr_day}=mean(buf3_roi_stim2,3,'omitnan');
-            buf3_roi_stim1_error{curr_day}=std(buf3_roi_stim2,0,3,'omitmissing')/sqrt(size(buf3_roi_stim2,3));
-
-            buf3_roi_peak1= cellfun(@(x) cat(3,x{:}), buf3_roi_peak,'UniformOutput',false);
-            buf3_roi_peak2=permute(cat(4,buf3_roi_peak1{:}),[2,3,4,1]);
-            buf3_roi_peak_mean{curr_group}=mean(buf3_roi_peak2,3,'omitnan');
-            buf3_roi_peak_error{curr_group}=std(buf3_roi_peak2,0,3,'omitmissing')./sqrt(size(buf3_roi_peak2,3));
-
-        end
-        
-        switch curr_group
-            case 1
-                select_area=[7 1 3];
-            case 2
-                select_area=[9 1 3];
         end
 
-        for curr_side=1:2
-            rightLayout = tiledlayout(mainLayout, length(select_area), 1, ...
-                'TileSpacing', 'none', 'Padding', 'none');
-            rightLayout.Layout.Tile = curr_side+1;  % 明确放在主 layout 的第 2 个 tile
+        buf1=cellfun(@(z) reshape(z,size(z,1)*size(z,2),size(z,3),size(z,4)),...
+            temp_image(10:11,:), 'UniformOutput', false);
 
-
-            for curr_area=select_area
-                nexttile(rightLayout)
-                hold on
-                  for curr_day=1:3
-                ap.errorfill(use_t,buf3_roi_stim1_mean{curr_day}(:,curr_area+curr_side-1),...
-                    buf3_roi_stim1_error{curr_day}(:,curr_area),line_colors{workflow_idx,curr_day},0.1,1,1)
-                   xlim([-0.1 0.5])
-                   if curr_area==7
-                       ylim(0.0001*[-2 5])
-                   else
-                       ylim(0.0001*[-0.5 2])
-                   end
-                  end
-                     text(0.95, 0.9, roi1(curr_area+curr_side-1).name, ...
-                    'Units','normalized', ...       % 使用归一化坐标，确保每个 tile 相对位置一致
-                    'HorizontalAlignment','right', ...
-                    'FontSize', 8, ...
-                    'Color', [0.3 0.3 0.3]);
-                   axis off
-            end
-
+        for curr_roi= 1:length(roi1)
+            buf3_roi{curr_roi}=cellfun(@(x) permute(nanmean(x(roi1(curr_roi).data.mask(:),:,:),1),[2,3,1]),buf1,'UniformOutput',false);
+            % buf3_roi_peak{curr_animal}{curr_roi}=max(buf3_roi{curr_roi}(use_period,:),[],1) ;
+            % buf3_roi_stim{curr_animal}{curr_roi}= double(buf3_roi{curr_roi}(:,curr_day))';
         end
 
-
-
-
+        buf3_roi_peak1= cellfun(@(x) cellfun(@(y) max(y(use_period,:),[],1),x,'UniformOutput',false) ,buf3_roi,'UniformOutput',false);
+        buf3_roi_peak_mean{curr_group}= cellfun(@(x)  nanmean(cat(3,x{:}),3), buf3_roi_peak1,'UniformOutput',false);
+        buf3_roi_peak_error{curr_group}=cellfun(@(x)   std(cat(3,x{:}),0,3,'omitmissing')./sqrt(size(x,2))  , buf3_roi_peak1,'UniformOutput',false);
+        buf3_roi_stim1_mean{curr_group}= cellfun(@(x) nanmean(cat(3,x{:}),3),buf3_roi,'UniformOutput',false   )
+        buf3_roi_stim1_error{curr_group}= cellfun(@(x) std(cat(3,x{:}),0,3,'omitmissing')./sqrt(size(x,2)),buf3_roi,'UniformOutput',false   )
         clearvars('-except',main_preload_vars{:});
 
 
@@ -534,37 +461,84 @@ for curr_group=1:2
 
 end
 
-saveas(gcf,[Path 'figures\summary\figures\fig1 passive images V&A pre&well trianed ' ], 'jpg');
 
 
-figure('Position',[50 50 300 150])
-t = tiledlayout(1, 2, 'TileSpacing', 'tight', 'Padding', 'tight');
-colors = { [0.5 0.5 1],[1 0.5 0.5]}; % 定义颜色
-scale=0.0002;
 
-for curr_area=[1 3]
-    nexttile
 
+% figure('Position',[50 50 350 200])
+plot_layout=tiledlayout(mainLayout,3,4, 'TileIndexing','columnmajor','TileSpacing','tight','Padding','tight')
+plot_layout.Layout.Tile = 3;  % 明确放在主 layout 的第 1 个 tile
+% plot_layout.Layout.TileSpan=[2 1]
+use_area=[1 3];
+colors={[0 0 1],[1 0 0]}
+for area_idx = 1:2  % 对应 curr_area = [1 3]
+    curr_area = use_area(area_idx);  % 显式编号
+    col_idx = area_idx;  % 当前是在第几列放置（因为 columnmajor）
+       tt=nexttile(plot_layout)
+       imagesc(roi1(curr_area).data.mask )
+       ap.wf_draw('ccf', [0.5 0.5 0.5]);
+               axis image off
+
+       ylim([0 200])
+       xlim([20 220])
+       clim( [ 0, 1]);
+       colormap( tt,ap.colormap('WK'));
+       title(roi1(curr_area).name,'FontWeight','normal')
+
+    for curr_group=1:2
+        
+        used_stim=4-curr_group;
+        nexttile(plot_layout)
+        hold on
+        for curr_day=1:3
+            ap.errorfill(use_t,buf3_roi_stim1_mean{curr_group}{curr_area}(:,curr_day),...
+                buf3_roi_stim1_error{curr_group}{curr_area}(:,curr_day),line_colors{curr_group,curr_day},0.1,1,1)
+            xlim([-0.1 0.5])
+            ylim(0.0001*[-0.5 2])
+        end
+        % if curr_group==1
+        % text(0.95, 0.9, roi1(curr_area).name, ...
+        %     'Units','normalized', ...       % 使用归一化坐标，确保每个 tile 相对位置一致
+        %     'HorizontalAlignment','right', ...
+        %     'FontSize', 8, ...
+        %     'Color', [0.3 0.3 0.3]);
+        %     set(gca,'Color','none')
+        % end
+        axis off
+    end
+
+    nexttile(plot_layout,area_idx*6-2,[3 1]);  % 在第2块区域的后面画一整栏（例如列3、列4）
     hold on
-
     for curr_group=1:2
         switch curr_group
             case 1
-                errorbar( 1:3 ,buf3_roi_peak_mean{curr_group}(:,curr_area),buf3_roi_peak_error{curr_group}(:,curr_area),'k','MarkerSize',20, 'LineWidth', 2,'Color',colors{curr_group})
+                errorbar( 1:3 ,buf3_roi_peak_mean{curr_group}{curr_area},buf3_roi_peak_error{curr_group}{curr_area}...
+                    ,'-o','MarkerSize',5, 'LineWidth', 2,'Color',colors{curr_group},'MarkerFaceColor',colors{curr_group},'CapSize',0)
             case 2
-                errorbar( 1:3 ,buf3_roi_peak_mean{curr_group}([1 3 2],curr_area),buf3_roi_peak_error{curr_group}([1 3 2],curr_area),'k','MarkerSize',20, 'LineWidth', 2,'Color',colors{curr_group})
+                errorbar( 1:3 ,buf3_roi_peak_mean{curr_group}{curr_area}([1 3 2]),...
+                    buf3_roi_peak_error{curr_group}{curr_area}([1 3 2]),'-o','MarkerSize',5,...
+                    'LineWidth', 2,'Color',colors{curr_group},'MarkerFaceColor',colors{curr_group},'CapSize',0)
         end
     end
-    hold on
     xticks([1:3]); % 设置 y 轴的刻度位置（2代表naive stage中间位置，8代表stage1中间位置）
     xticklabels({'L/4K','C/12K','R/8K'}); % 设置对应的标签
     xlim([0.5 3.5])
+    scale=0.00025;
+
     ylim(scale .* [-0, 1 ]);
-    title(roi1(curr_area).name,'FontWeight','normal','FontSize',10)
+    % title(roi1(curr_area).name,'FontWeight','normal','FontSize',10)
     ylabel('ΔF/F')
     % xlabel('stim types')
     box off
+    set(gca,'Color','none')
+
+
 end
+
+
+
+%%
+
 
 
 saveas(gcf,[Path 'figures\summary\figures\fig1 passive images V&A pre&well trianed compare' ], 'jpg');
@@ -929,17 +903,16 @@ cb=colorbar('southoutside'); % 在下方添加 colorbar
 %% passive cross modality of 2 stage images and selectivity without naive stage
 
 
-colors{1}={[0.5 0.5 0.5],              [  84 130 53 ]./255;...
-    [0.5 0.5 0.5],    [112  48 160]./255}
+colors{1}={  [  84 130 53 ]./255,[0.5 1 0.5];...
+       [112  48 160]./255,[0.5 0.5 0.5]}
 
-colors{2}={[0.5 0.5 0.5],  [  84 130 53 ]./255           ;...
-    [0.5 0.5 0.5], [112  48 160]./255   }
+colors{2}={  [  84 130 53 ]./255 ,[0.5 0.5 0.5];...
+     [112  48 160]./255,[0.5 0.5 0.5]   }
 scale=0.0002;
 type=2;
-figure('Position', [50 50 800 600]);
-t = tiledlayout(4, 6, 'TileSpacing', 'tight', 'Padding', 'none');
+
 Color={'G','P','P','P','P','P','P'};
-titles{1}='naive'; titles{11}='mod1'; titles{26}='mod2'; titles{22}='first day in mod2';
+titles{1}='naive'; titles{7}='first day in mod1'; titles{11}='mod1'; titles{26}='mod2'; titles{22}='first day in mod2';
 
 all_buf_data=cell(2,1);
 img_data1=cell(2,1)
@@ -953,73 +926,46 @@ all_data_passive=cell(2,1);
 all_buf_data_each=cell(2,1);
 legend_labels={{'L','C','R'},...
     {'4K','8K','12K'}};
-for curr_group=1:2
+
+figure('Position', [50 50 400 200]);
+t = tiledlayout(2, 4, 'TileSpacing', 'tight', 'Padding', 'none');
     for curr_passive=1:2
+        for curr_group=1:2
+
         if curr_passive==1
             use_stim=3;
         else
             use_stim=2;
         end
 
-        for curr_day=[7 11 22 26 ]
-            a1=nexttile
+        if (curr_group==1 & curr_passive==1) | (curr_group==2 & curr_passive==2)
+            use_day=11;
+        elseif (curr_group==1 & curr_passive==2) | (curr_group==2 & curr_passive==1)
+            use_day=26;
+        end
 
-            % all_buf_data_each{curr_group}{curr_passive}{curr_day}=...
-            %     permute(max(data_all_video{curr_group}{type}{curr_passive}...
-            %     (:,:,period_kernels,use_stim,:,curr_day),[],3),[1 2 5 3 4]);
-            % temp_data=nanmean(data_all_video{curr_group}{type}{curr_passive}(:,:,:,use_stim,:,curr_day),5);
-            % temp_image=max(temp_data(:,:,period_kernels),[],3);
+        for curr_day=use_day
+            a1=nexttile(t,curr_passive*4-4+curr_group)
 
             temp_data=arrayfun(@(idx) max(data_all_days{curr_group}{type}{curr_passive}{idx}{curr_day}(:,:,use_period,use_stim),[],3),...
                 1:length(data_all_days{curr_group}{type}{curr_passive}),'UniformOutput',false);
             temp_image=nanmean(cat(3,temp_data{:}),3);
 
-            % all_buf_data{curr_group}{curr_passive}{curr_day}=temp_image;
-
             imagesc(temp_image)
             axis image off;
             colormap(a1,ap.colormap(['W' Color{curr_group}] ));
-            clim(scale .* [0.3, 0.7]);
-
-            frame1 = getframe(gca);
-            img_data1{curr_group}{curr_passive}{curr_day} =im2double( imresize(frame1.cdata, size(temp_image)));
             ap.wf_draw('ccf', [0.5 0.5 0.5]);
             clim(scale .* [0, 1]);
 
-            if curr_group==1& curr_passive==1
-                title(titles{curr_day}, 'FontWeight', 'normal', 'FontSize', 12)
-            end
-
-            if curr_passive==1&curr_day==2
-                text(-50, 50,  'V passive', 'FontSize', 12, 'FontWeight', 'normal', ...
-                    'HorizontalAlignment', 'right', 'Rotation', 90);
-            elseif curr_passive==2&curr_day==2
-                text(-50, 50,  'A passive', 'FontSize', 12, 'FontWeight', 'normal', ...
-                    'HorizontalAlignment', 'right', 'Rotation', 90);
-            end
         end
 
-      curr_data=cat(2 ,data_all_days{curr_group}{type}{curr_passive}{:});
-        % curr_data=data_all_video{curr_group}{type}{curr_passive};
+        curr_data=cat(2 ,data_all_days{curr_group}{type}{curr_passive}{:});
         buf1= cellfun(@(x) reshape(x,size(x,1)*size(x,2),size(x,3),size(x,4)),curr_data,'UniformOutput',false) ;
         for curr_roi=1:length(roi1)
             buf3_roi_l_acrosstime=  cellfun(@(x) permute(nanmean(x(roi1(curr_roi).data.mask(:),:,:,:),1),[2,3,4,1]),buf1,'UniformOutput', false);
             buf3_roi_peak=cellfun(@(x) double(max(x(use_period,:),[],1) )',buf3_roi_l_acrosstime, 'UniformOutput', false);
-            
-            buf3_roi_peak_0= arrayfun(@(a) cellfun(@(x) x(a) ,buf3_roi_peak,'UniformOutput',true),1:3,'UniformOutput',false)
-            % buf3_roi_peak1= arrayfun(@(idx)...
-            %     [nanmean(buf3_roi_peak_0{idx}(1:3,:),1);...
-            %     nanmean(buf3_roi_peak_0{idx}(4,:),1);...
-            %     nanmean(buf3_roi_peak_0{idx}(5:6,:),1);...
-            %     nanmean(buf3_roi_peak_0{idx}(7:9,:),1);...
-            %     nanmean(buf3_roi_peak_0{idx}(10:11,:),1);...
-            %     nanmean(buf3_roi_peak_0{idx}(12:13,:),1);...
-            %     nanmean(buf3_roi_peak_0{idx}(14:15,:),1);...
-            %     nanmean(buf3_roi_peak_0{idx}(17:18,:),1);...
-            %     nanmean(buf3_roi_peak_0{idx}(19:21,:),1)],1:3,'UniformOutput',false)
 
-       
-
+            buf3_roi_peak_0= arrayfun(@(a) cellfun(@(x) x(a) ,buf3_roi_peak,'UniformOutput',true),1:3,'UniformOutput',false);
 
             buf3_roi_error_crossday{curr_group}{curr_passive}{curr_roi}=...
                 {
@@ -1030,68 +976,46 @@ for curr_group=1:2
 
             buf3_roi_mean_crossday{curr_group}{curr_passive}{curr_roi}= ...
                 {nanmean(buf3_roi_peak_0{use_stim},2),...
-               nanmean( cat(3,buf3_roi_peak_0{[1 5-use_stim]}),[2,3])};
+                nanmean( cat(3,buf3_roi_peak_0{[1 5-use_stim]}),[2,3])};
 
-              
-         
+
+
         end
 
-        for curr_roi = [1  3  ]
-            switch curr_roi
-                case 1
-                    nexttile(t,12*curr_group+6*curr_passive-13)
-                    hold on
-                case 2
-                    nexttile(t,10*curr_group+5*curr_passive-18)
-                    hold on
-                case 3
-                    nexttile(t,12*curr_group+6*curr_passive-12)
-                    hold on
-                case 4
-                    nexttile(t,10*curr_group+5*curr_passive-16)
-                    hold on
-            end
-
-            % curr_stim = 4-curr_passive
-
-            for curr_passivestim=1:2
-            % value_columns = [1 5 8 9];
-            curr_value = buf3_roi_mean_crossday{curr_group}{curr_passive}{curr_roi}{curr_passivestim};
-            curr_error = buf3_roi_error_crossday{curr_group}{curr_passive}{curr_roi}{curr_passivestim};
-             color = colors{curr_passive}{curr_group, curr_passivestim};
-            % errorbar(1:4, curr_value, curr_error, 'Color', color, 'CapSize', 6, 'LineStyle', '-','LineWidth',2);
-            ap.errorfill(1:8,curr_value(4:11),curr_error(4:11),color,0.1 )
-            end
-
-            % xlim([0.5 4.5])
-            % xticks([1 2 3 4])
-            % xticklabels({'naive','mod 1','mod 2','mixed'}); % 设置对应的标签
-            if curr_group==1& curr_passive==1
-                title(roi1(curr_roi).name, 'FontWeight', 'normal', 'FontSize', 10)
-                
-            end
-            if curr_roi==3 & curr_passive==1
-                legend({'other cue','task cue'},"Box","off")
-            end
-            ylim(scale*[0 1.2])
-            ylabel('\Delta F/F_0')
-            
+        if (curr_group==1 & curr_passive==1)
+            use_roi=1;  use_days=[7 :11]; stage=1;
+        elseif (curr_group==2 & curr_passive==2)
+            use_roi=3;use_days=[7: 11];stage=1;
+        elseif (curr_group==1 & curr_passive==2)
+            use_roi=3;  use_days=[22: 26];stage=2;
+        elseif (curr_group==2 & curr_passive==1)
+            use_roi=1;  use_days=[22 :26];stage=2;
         end
-    
-    
+
+
+        nexttile(t,curr_passive*4-4+3)
+        hold on
+        for curr_passivestim=1:2
+            curr_value = buf3_roi_mean_crossday{curr_group}{curr_passive}{use_roi}{curr_passivestim};
+            curr_error = buf3_roi_error_crossday{curr_group}{curr_passive}{use_roi}{curr_passivestim};
+            color = colors{curr_group, curr_passivestim};
+            % ap.errorfill(1:5,curr_value(7:11),curr_error(7:11),color,0.1 )
+            % ap.errorfill(6:10,curr_value(22:26),curr_error(22:26),color,0.1 )
+            ap.errorfill(1:5,curr_value(use_days),curr_error(use_days),color,0.1 )
+
+        end
+        ylim(scale*[0 1])
+        xlim([1 5])
+        xticks([3 8])
+        xticklabels({'mod 1','mod 2'})
+
     end
 end
 
 
-% saveas(gcf,[Path 'figures\summary\figures\passive of 3 stage images and selectivity 2'], 'jpg');
 
-%% permutation test
+%%
 
-% save([ Path 'summary_data\passive kernels of images crossday corsstime.mat'],...
-%     'buf3_roi_l_acrosstime','buf3_roi_l_error_crosstime','buf3_roi_l_mean_crosstime','buf3_roi_error_crossday',...
-%     'buf3_roi_mean_crossday', 'all_buf_data','all_data_passive','-v7.3')
-
-% Permutation test
 
 overlays{1}={[1 1 5],[2 1 8]};
 overlays{2}={[1 2 8],[2 2 5]};
@@ -1233,6 +1157,12 @@ for curr_group=1:2
 
         for curr_day=[ 1  5 8 ]
             a1=nexttile
+
+         temp_image=cat(2,data_all_days{curr_group}{2}{curr_passive}{:});
+        temp_image2= cat(5, temp_image{curr_day,:});
+        buf_images_all1= permute(nanmean(max(temp_image2(:,:,use_period,:,:),[],3),5),[1,2,4,3,5]);
+
+
             all_buf_data_each{curr_group}{curr_passive}{curr_day}=...
                 permute(max(data_all_video{curr_group}{type}{curr_passive}...
                 (:,:,period_kernels,use_stim,:,curr_day),[],3),[1 2 5 3 4]);

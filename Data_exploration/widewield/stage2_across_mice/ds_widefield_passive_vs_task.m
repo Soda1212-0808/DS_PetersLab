@@ -14,9 +14,19 @@ surround_samplerate = 35;
 surround_window_task = [-0.2,1];
 t_kernels=1/surround_samplerate*[-10:30];
 kernels_period=t_kernels>=-0.1& t_kernels<=0.3;
+
+
+surround_window_passive = [-0.5,1];
+t_passive = surround_window_passive(1):1/surround_samplerate:surround_window_passive(2);
+t_kernels=1/surround_samplerate*[-10:30];
+
+passive_boundary=0.2;
+period_passive=find(t_passive>0&t_passive<passive_boundary);
+period_kernels=find(t_kernels>0&t_kernels<passive_boundary);
+
 %% stage 1
 figure('Position',[50 50 1000 400])
-used_area=[1 2 3 4]
+used_area=[1  3 ]
 
 t1 = tiledlayout(length(used_area), 6, 'TileSpacing', 'tight', 'Padding', 'tight');
 
@@ -74,73 +84,257 @@ for curr_roi=1:length(used_area)
         end
 
 
-
-        a4= nexttile(6*curr_roi-6+3*curr_group-3+3)
-        hold on
-        % yyaxis left
-
-
-
-        temp_mean=nanmean(data_task.buf3_roi_peak{curr_group}{used_area(curr_roi)},1);
-        temp_error=std(data_task.buf3_roi_peak{curr_group}{used_area(curr_roi)},0,1,'omitmissing')/sqrt(size(data_task.buf3_roi_peak{curr_group}{used_area(curr_roi)},1));
+        % 
+        % a4= nexttile(6*curr_roi-6+3*curr_group-3+3)
+        % 
         % hold on
-        ap.errorfill(1:8,temp_mean(1:8),temp_error(1:8),colors{1}{curr_group},0.1,0.5)
-
-        temp_mean=permute(nanmean(data_passive.buf3_roi_peak{curr_group}{curr_group}{used_area(curr_roi)}(4-curr_group,:,:),2),[3,2,1]);
-        temp_error=permute(std(data_passive.buf3_roi_peak{curr_group}{curr_group}{used_area(curr_roi)}(4-curr_group,:,:),0,2,'omitmissing'),[3,2,1])./...
-            sqrt(size(data_passive.buf3_roi_peak{curr_group}{curr_group}{used_area(curr_roi)}(4-curr_group,:,:),2));
-        yyaxis left
-        % 激活左 y 轴
-        ap.errorfill(1:8,temp_mean(4:11),temp_error(4:11),colors{2}{curr_group},0.1,0.5)
-
-
-
-        xlim([1 8])
-        ylim(scale1 .* [0, 1]);
-        xticks([2 6]); % 设置 y 轴的刻度位置（2代表naive stage中间位置，8代表stage1中间位置）
-        xticklabels(title_images); % 设置对应的标签
-        ylabel('\Delta F/F')
-        xline(3.5);
-
-        yyaxis right
-        set(gca, 'YColor', [0.5 0.5 0.5])
-        temp_mean=nanmean(cat(3,performance{:}),3);
-        temp_error=std(cat(3,performance{:}),0,3,'omitmissing')./sqrt(size(performance,1));
-        ap.errorfill(1:8,temp_mean(1:8),temp_error(1:8),[0.8 0.8 0.8],0.1,0.5)
-        % ylim([0.2 0.8])
-        ylabel('performance')
-        yticks(ylim); % 设置 y 轴的刻度位置（2代表naive stage中间位置，8代表stage1中间位置）
-        if curr_roi==1
-            legend(a4,{'','task','','passive'},'Location','northeast','Box','off')
-        end
-
-        temp_task0=data_task.buf3_roi_peak{curr_group}{used_area(curr_roi)};
-
-        temp_passive0=permute(data_passive.buf3_roi_peak{curr_group}{curr_group}{used_area(curr_roi)}(4-curr_group,:,:),[2,3,1]);
-        temp_result=(temp_task0(:,1:8)-temp_passive0(:,4:11))./(temp_task0(:,1:8)+temp_passive0(:,4:11));
-        % .* ( ((temp_task0(:,1:8)+temp_passive0(:,4:11))).^1.1);
-        temp_diff_mean=nanmean(temp_result,1);
-        temp_diff_error=std(temp_result,0,1,'omitmissing')./sqrt(size(temp_result,1));
-
-
-        % % a4= nexttile(8*curr_roi-8+4*curr_group-4+4)
-        % a4= nexttile(4*curr_group-4+4)
-        % ap.errorfill(1:8,temp_diff_mean,temp_diff_error,color_roi{curr_roi},0.1,0.5)
-        % % ylim([-0.2 1.5]*0.0001)
-        %         ylim([-0.2 1])
+        % temp_mean=nanmean(data_task.buf3_roi_peak{curr_group}{used_area(curr_roi)},1);
+        % temp_error=std(data_task.buf3_roi_peak{curr_group}{used_area(curr_roi)},0,1,'omitmissing')/sqrt(size(data_task.buf3_roi_peak{curr_group}{used_area(curr_roi)},1));
+        % % hold on
+        % ap.errorfill(1:8,temp_mean(1:8),temp_error(1:8),colors{1}{curr_group},0.1,0.5)
+        % 
+        % temp_mean=permute(nanmean(data_passive.buf3_roi_peak{curr_group}{curr_group}{used_area(curr_roi)}(4-curr_group,:,:),2),[3,2,1]);
+        % temp_error=permute(std(data_passive.buf3_roi_peak{curr_group}{curr_group}{used_area(curr_roi)}(4-curr_group,:,:),0,2,'omitmissing'),[3,2,1])./...
+        %     sqrt(size(data_passive.buf3_roi_peak{curr_group}{curr_group}{used_area(curr_roi)}(4-curr_group,:,:),2));
+        % yyaxis left
+        % % 激活左 y 轴
+        % ap.errorfill(1:8,temp_mean(4:11),temp_error(4:11),colors{2}{curr_group},0.1,0.5)
         % 
         % xlim([1 8])
+        % ylim(scale1 .* [0, 1]);
         % xticks([2 6]); % 设置 y 轴的刻度位置（2代表naive stage中间位置，8代表stage1中间位置）
         % xticklabels(title_images); % 设置对应的标签
+        % ylabel('\Delta F/F')
         % xline(3.5);
-        % ylabel('context difference')
+        % 
+        % yyaxis right
+        % set(gca, 'YColor', [0.5 0.5 0.5])
+        % temp_mean=nanmean(cat(3,performance{:}),3);
+        % temp_error=std(cat(3,performance{:}),0,3,'omitmissing')./sqrt(size(performance,1));
+        % ap.errorfill(1:8,temp_mean(1:8),temp_error(1:8),[0.8 0.8 0.8],0.1,0.5)
+        % ylabel('performance')
+        % yticks(ylim); % 设置 y 轴的刻度位置（2代表naive stage中间位置，8代表stage1中间位置）
+        % if curr_roi==1
+        %     legend(a4,{'','task','','passive'},'Location','northeast','Box','off')
+        % end
+        % 
+        % temp_task0=data_task.buf3_roi_peak{curr_group}{used_area(curr_roi)};
+        % 
+        % temp_passive0=permute(data_passive.buf3_roi_peak{curr_group}{curr_group}{used_area(curr_roi)}(4-curr_group,:,:),[2,3,1]);
+        % temp_result=(temp_task0(:,1:8)-temp_passive0(:,4:11))./(temp_task0(:,1:8)+temp_passive0(:,4:11));
+        % temp_diff_mean=nanmean(temp_result,1);
+        % temp_diff_error=std(temp_result,0,1,'omitmissing')./sqrt(size(temp_result,1));
 
 
 
     end
+
+
+
+
 end
-% nexttile();axis off
-% nexttile();axis off
+
+    drawnow
+
+
+colors_1{1}=[[0 0 1];[0.5 0.5 1]];
+colors_1{2}=[[1 0 0];[1 0.5 0.5]];
+    
+curr_mod=1
+for curr_group=1:2
+    if curr_group==1
+        animals = {'DS007','DS010','AP019','AP021','DS011','AP022'};
+        group_name='VA';
+        % order=[1 2]
+    else
+        animals = {'DS000','DS004','DS014','DS015','DS016'};
+        group_name='AV';
+        % order=[2 1]
+    end
+    Mod_name={'Mod1','Mod2'}
+    roi_name={'l-mPFC','l-aPFC'}
+
+  
+
+    if  (curr_group==1 & curr_mod==1) | (curr_group==2 & curr_mod==2) 
+        passive='lcr_passive';
+        n1_name='visual position';
+        used_stim=3; 
+
+    elseif (curr_group==2 & curr_mod==1) | (curr_group==1 & curr_mod==2) 
+
+        passive='hml_passive_audio';
+        n1_name='audio volume';
+        used_stim=2;
+
+    end
+
+
+
+        tem_perform_passive=cell(length(animals),1);
+        tem_perform_task=cell(length(animals),1);
+
+        tem_mpfc_passive_data=cell(length(animals),1);
+        tem_mpfc_task_data=cell(length(animals),1);
+
+        tem_learned_day_passive=cell(length(animals),1);
+        tem_learned_day_task=cell(length(animals),1);
+        
+        tem_corr_task=cell(length(animals),1);
+        tem_corr_passive=cell(length(animals),1);
+
+
+        for curr_animal=1:length(animals)
+            animal=animals{curr_animal};
+            data_behavior_single=load([Path  '\behavior\' animal '_behavior.mat' ]);
+            data_passive_wf=load(fullfile(Path,passive,[animal '_' passive '.mat']));
+            data_task_wf=load(fullfile(Path,'task',[animal '_task.mat']));
+
+            wf_passive_kernels=...
+                cellfun(@(x)  plab.wf.svd2px(U_master(:,:,1:size(x,1)),x),data_passive_wf.wf_px_kernels,'UniformOutput',false);
+            image_all_passive_mean=cellfun(@(x) permute(max(x(:,:,period_kernels,:),[],3),[1,2,4,3]),wf_passive_kernels,'UniformOutput',false);
+            temp_passive=cellfun(@(z) reshape(z,size(z,1)*size(z,2),size(z,3)) , image_all_passive_mean, 'UniformOutput', false);
+            passive_mPFC=arrayfun(@(id) cellfun(@(z) mean(z(roi1(id).data.mask(:),:),1),...
+                temp_passive, 'UniformOutput', false),[1 3], 'UniformOutput', false);
+
+
+            wf_task_kernels=...
+                cellfun(@(x)  plab.wf.svd2px(U_master(:,:,1:size(x{1},1)),x{1}),data_task_wf.wf_px_task_kernels,'UniformOutput',false);
+
+            image_all_task_mean=cellfun(@(x) permute(max(x(:,:,period_kernels,:),[],3),[1,2,4,3]),wf_task_kernels,'UniformOutput',false);
+            temp_task=cellfun(@(z) reshape(z,size(z,1)*size(z,2),size(z,3)) , image_all_task_mean, 'UniformOutput', false);
+            task_mPFC=arrayfun(@(id) cellfun(@(z) mean(z(roi1(id).data.mask(:),1),1),...
+                temp_task, 'UniformOutput', true),[1 3], 'UniformOutput', false);
+
+
+
+
+
+            idx_0= cellfun(@(y) strcmp( y,n1_name),...
+                data_behavior_single.workflow_name, 'UniformOutput', true);
+            day_behavior = data_behavior_single.workflow_day(idx_0);
+            performance=(data_behavior_single.stim2lastmove_mad_null(idx_0)-data_behavior_single.stim2lastmove_mad(idx_0))./...
+                (data_behavior_single.stim2lastmove_mad_null(idx_0)+data_behavior_single.stim2lastmove_mad(idx_0));
+            day_learned=data_behavior_single.rxn_l_mad_p(idx_0)<0.01;
+           
+            temp_vel=data_behavior_single.frac_velocity_stimalign(idx_0,1)
+            temp_vel1= cellfun(@(x) corr(x(:,500:600)') ,temp_vel,'UniformOutput',false )
+            temp_corr =cellfun(@(x) nanmean(x(~eye(size(x)))) ,temp_vel1,'UniformOutput',true);
+
+
+            day_idx_passive = data_passive_wf.workflow_day( cellfun(@(y) strcmp( y,n1_name),...
+                data_passive_wf.workflow_type_name_merge, 'UniformOutput', true));
+            wf_passive=cellfun(@(x) x( cellfun(@(y) strcmp( y,n1_name),...
+                data_passive_wf.workflow_type_name_merge, 'UniformOutput', true))',passive_mPFC, 'UniformOutput', false);
+
+
+            [~, temp_idx_passive] = ismember( day_idx_passive,day_behavior);
+            performance_passive=performance(temp_idx_passive);
+            day_learned_passive=day_learned(temp_idx_passive);
+
+            corr_passive=temp_corr(temp_idx_passive);
+
+
+
+            day_idx_task = data_task_wf.workflow_day( cellfun(@(y) strcmp( y,n1_name),...
+                data_task_wf.workflow_type_name_merge, 'UniformOutput', true));
+            wf_task=cellfun(@(x) x( cellfun(@(y) strcmp( y,n1_name),...
+                data_task_wf.workflow_type_name_merge, 'UniformOutput', true))',task_mPFC, 'UniformOutput', false);
+
+
+            [~, temp_idx_task] = ismember( day_idx_task,day_behavior);
+            performance_task=performance(temp_idx_task);
+            day_learned_task=day_learned(temp_idx_task);
+
+            corr_task=temp_corr(temp_idx_task);
+
+
+            tem_mpfc_task_data{curr_animal}=wf_task;
+            tem_mpfc_passive_data{curr_animal}=cellfun(@(x) cat(1,x{:})  ,wf_passive,'UniformOutput',false);
+
+            tem_perform_task{curr_animal}=performance_task;
+            tem_perform_passive{curr_animal}=performance_passive;
+
+            tem_learned_day_passive{curr_animal}=day_learned_passive;
+            tem_learned_day_task{curr_animal}=day_learned_task;
+
+            tem_corr_task{curr_animal}=corr_task;
+            tem_corr_passive{curr_animal}=corr_passive;
+
+
+        end
+
+      
+        for curr_roi=1:2
+            tem_mpfc_passive_data1=   cellfun(@(x) x(curr_roi),tem_mpfc_passive_data,'UniformOutput',true);
+            tem_mpfc_task_data1=   cellfun(@(x) x(curr_roi),tem_mpfc_task_data,'UniformOutput',true);
+            data1_passive=cat(1,tem_mpfc_passive_data1{:});
+            data1_task=cat(1,tem_mpfc_task_data1{:});
+
+            performs_passive=cell2mat(tem_perform_passive);
+            performs_task=cell2mat(tem_perform_task);
+
+            corr_passive=cell2mat(tem_corr_passive);
+            corr_task=cell2mat(tem_corr_task);
+
+
+            % if curr_roi==1
+            %     nexttile(curr_group)
+            % else
+            %     nexttile(2+curr_group)
+            % end
+
+            nexttile(6*curr_roi-6+3*curr_group-3+3)
+            hold on
+
+            % p_task = polyfit(performs_task(cell2mat(tem_learned_day_task)==1), data1_task(cell2mat(tem_learned_day_task)==1)', 1);       % 一阶多项式拟合：y = p(1)*x + p(2)
+            % x_fit_task = linspace(0, 1, 100);
+            % y_fit_task = polyval(p_task, x_fit_task);
+            % plot(x_fit_task, y_fit_task, '-', 'LineWidth', 2,'Color',colors{curr_group}(1,:));
+            % 
+            % p_passive = polyfit(performs_passive(cell2mat(tem_learned_day_passive)==1),  data1_passive(cell2mat(tem_learned_day_passive)==1,used_stim)', 1);       % 一阶多项式拟合：y = p(1)*x + p(2)
+            % x_fit_passive = linspace(0, 1, 100);
+            % y_fit_passive = polyval(p_passive, x_fit_passive);
+            % plot(x_fit_passive, y_fit_passive, '-', 'LineWidth', 2,'Color',colors{curr_group}(2,:));
+
+            [R_task,P_task] = corr(performs_task(cell2mat(tem_learned_day_task)==1), data1_task(cell2mat(tem_learned_day_task)==1));
+            text(0.15, 0.00055, sprintf('R_t=%.2f;P_t=%.2f', R_task,P_task), ...
+                'FontSize', 8, 'Color', colors_1{curr_group}(1,:), 'FontWeight', 'normal');
+            [R_passive,P_passive] = corr(performs_passive(cell2mat(tem_learned_day_passive)==1),  data1_passive(cell2mat(tem_learned_day_passive)==1,used_stim));
+            text(0.15, 0.0005, sprintf('R_p=%.2f;P_p=%.2f', R_passive,P_passive), ...
+                'FontSize', 8, 'Color', colors_1{curr_group}(2,:), 'FontWeight', 'normal');
+
+
+            scatter(performs_task(cell2mat(tem_learned_day_task)==0),data1_task(cell2mat(tem_learned_day_task)==0)',...
+                'MarkerEdgeColor',[0.2 0.2 0.2],'LineWidth',1)
+            scatter(performs_task(cell2mat(tem_learned_day_task)==1),data1_task(cell2mat(tem_learned_day_task)==1)',...
+                'MarkerEdgeColor',colors_1{curr_group}(1,:),'LineWidth',1)
+
+            scatter(performs_passive(cell2mat(tem_learned_day_passive)==0),...
+                data1_passive(cell2mat(tem_learned_day_passive)==0,used_stim)','MarkerEdgeColor',[0.5 0.5 0.5])
+            scatter(performs_passive(cell2mat(tem_learned_day_passive)==1),...
+                data1_passive(cell2mat(tem_learned_day_passive)==1,used_stim)',...
+                'MarkerEdgeColor',colors_1{curr_group}(2,:))
+
+
+                   
+
+            ylim([0 0.0005])
+            xlim([-0.1 1])
+            % title(roi_name{curr_roi} ,'FontWeight','normal')
+            ylabel('\Delta F/F')
+
+            xlabel('performance')
+            axis square
+        end
+    
+
+end
+  
+
+
+
+
 %%  stage 2
 figure('Position',[50 50 1000 400])
 t1 = tiledlayout(2, 6, 'TileSpacing', 'tight', 'Padding', 'tight');
@@ -242,24 +436,43 @@ end
 % nexttile();axis off
 %%
 
-figure('Position',[50 50 800 200])
-t1 = tiledlayout(1, 4, 'TileSpacing', 'tight', 'Padding', 'tight');
+
 colors{2}={[0 0 1],[0.5 0.5 1];[1 0 0],[1 0.5 0.5 ]}
 colors{1}={[0 0 0  ],[0.5 0.5 0.5];[0 0 0],[0.5 0.5 0.5 ]}
 title_area={'mPFC','mPFC','aPFC','aPFC','l-PPC','r-PPC','all-PFC','auditory area','','','','V1'}
-context_diff=cell(2,1)
+context_diff=cell(2,1);
+
+figure('Position',[50 50 350 200])
+t1 = tiledlayout(2, 4, 'TileSpacing', 'tight', 'Padding', 'tight','TileIndexing','columnmajor');
 for curr_roi=[1 3]
-    for curr_group=1:2
+     tt=nexttile
+        imagesc(roi1(curr_roi).data.mask )
+       ap.wf_draw('ccf', [0.5 0.5 0.5]);
+               axis image off
+
+       ylim([0 200])
+       xlim([20 220])
+       clim( [ 0, 1]);
+       colormap( tt,ap.colormap('WK'));
+end
+
+ for curr_group=1:2
+       
         switch curr_group
             case 1
                 used_stim=3
             case 2
                 used_stim=2
         end
-        % nexttile()
-        temp_passive_peak=cell(4,1);
-        temp_task_peak=cell(4,1);
+        for curr_roi=[1 3]
 
+        % nexttile()
+        temp_passive_peak=cell(2,1);
+        temp_task_peak=cell(2,1);
+        temp_task_mean=cell(2,1);
+        temp_task_error=cell(2,1);
+        temp_pass_mean=cell(2,1);
+        temp_pass_error=cell(2,1);
         for curr_stage=1:2
             switch curr_stage
                 case 1
@@ -274,76 +487,47 @@ for curr_roi=[1 3]
             temp_passive=nanmean(cat(4,data_passive.buf3_roi{curr_group}{curr_group}{curr_roi}{used_passive}),4);
             temp_passive_peak{curr_stage}=permute(max(temp_passive(kernels_period,used_stim,:),[],1),[3 2 1]);
 
-            temp_passive_temp=nanmean(cat(4,data_passive.buf3_roi{curr_group}{curr_group}{curr_roi+1}{used_passive}),4);
-            temp_passive_peak{curr_stage+2}=permute(max(temp_passive_temp(kernels_period,used_stim,:),[],1),[3 2 1]);
+            % temp_passive_temp=nanmean(cat(4,data_passive.buf3_roi{curr_group}{curr_group}{curr_roi+1}{used_passive}),4);
+            % temp_passive_peak{curr_stage+2}=permute(max(temp_passive_temp(kernels_period,used_stim,:),[],1),[3 2 1]);
 
-            temp_pass_mean=nanmean(temp_passive(:,used_stim,:),3);
-            temp_pass_error=std(temp_passive(:,used_stim,:),0,3,'omitmissing')/sqrt(size(temp_passive,3));
+            temp_pass_mean{curr_stage}=nanmean(temp_passive(:,used_stim,:),3);
+            temp_pass_error{curr_stage}=std(temp_passive(:,used_stim,:),0,3,'omitmissing')/sqrt(size(temp_passive,3));
 
             temp_task=nanmean(cat(3,data_task.buf3_roi{curr_group}{curr_roi}{used_task}),3);
             temp_task_peak{curr_stage}=permute(max(temp_task(kernels_period,:),[],1),[ 2 1]);
-            temp_task_mean=nanmean(temp_task,2);
-            temp_task_error=std(temp_task,0,2,'omitmissing')/sqrt(size(temp_task,2));
+            temp_task_mean{curr_stage}=nanmean(temp_task,2);
+            temp_task_error{curr_stage}=std(temp_task,0,2,'omitmissing')/sqrt(size(temp_task,2));
 
-            temp_task_temp=nanmean(cat(3,data_task.buf3_roi{curr_group}{curr_roi+1}{used_task}),3);
-            temp_task_peak{curr_stage+2}=permute(max(temp_task_temp(kernels_period,:),[],1),[ 2 1]);
+            % temp_task_temp=nanmean(cat(3,data_task.buf3_roi{curr_group}{curr_roi+1}{used_task}),3);
+            % temp_task_peak{curr_stage+2}=permute(max(temp_task_temp(kernels_period,:),[],1),[ 2 1]);
 
 
         end
 
+        lineColors{1} = [[ 0 0 0];[0.5 0.5 0.5];[ 0 0 1];[0.5 0.5 1]]; % 浅蓝、浅红
+        lineColors{2} = [[ 0 0 0];[0.5 0.5 0.5];[ 1 0 0];[1 0.5 0.5]]; % 浅蓝、浅红
+      
+      nexttile
+        for curr_stage=1:2
+            hold on
+            ap.errorfill(t_kernels,temp_task_mean{curr_stage},temp_task_error{curr_stage},lineColors{curr_group}(curr_stage*2-1,:),0.1,1,1.5)
+            ap.errorfill(t_kernels,temp_pass_mean{curr_stage},temp_pass_error{curr_stage},lineColors{curr_group}(curr_stage*2,:),0.1,1,1.5)
+        end
+            ylim(scale*[-0.4 1.4])
+            xlim([-0.2 0.5])
+            xline(0,'LineStyle',':')
         scale=0.0003
-        % ylim(scale*[-0.4 1])
-        % xlim([-0.3 0.8])
-        % ylabel('\Delta F/F')
-        % title(title_area{curr_roi},'FontWeight','normal')
-        % % legend({'','pre passive','','pre task','','post passive','','post task'},'Box','off','Location','northeast')
-        nexttile
-        tem_peak=vertcat(temp_task_peak,temp_passive_peak)
-        % [~, p, ~, stats] = ttest(tem_peak{2}, tem_peak{4});
-
+        axis off
+      
+    
         context_diff{curr_roi}{curr_group}=cellfun(@(task,pass)  (task-pass)./(task+pass),temp_task_peak,temp_passive_peak,'UniformOutput',false   )
         % context_diff{curr_roi}{curr_group}=cellfun(@(task,pass)  (task-pass),temp_task_peak,temp_passive_peak,'UniformOutput',false   )
-
-        tem_peak_mean=cellfun(@nanmean,tem_peak);
-        tem_peak_error=cellfun(@(x) std(x,'omitmissing')./sqrt(length(x)),tem_peak);
-
-        hold on
-        barColors{1} = [[ 0 0 1];[0.5 0.5 1];[ 0 0 0];[0.5 0.5 0.5]]; % 浅蓝、浅红
-        barColors{2} = [[ 1 0 0];[1 0.5 0.5];[ 0 0 0];[0.5 0.5 0.5]]; % 浅蓝、浅红
-        % barColors{1} = [[ 0 0 1];[0.5 0.5 1];[ 0 0 0];[0.5 0.5 0.5];[ 0 0 1];[0.5 0.5 1];[ 0 0 0];[0.5 0.5 0.5]]; % 浅蓝、浅红
-        % barColors{2} = [[ 1 0 0];[1 0.5 0.5];[ 0 0 0];[0.5 0.5 0.5];[ 1 0 0];[1 0.5 0.5];[ 0 0 0];[0.5 0.5 0.5]]; % 浅蓝、浅红
-
-        hold on;
-        barHandle = bar(1:4, tem_peak_mean([2 6  4 8 ]), 0.5, 'FaceColor', 'flat'); % 'FaceColor' 只能用于单个柱子时指定
-        % barHandle = bar(1:8, tem_peak_mean([2 6 1 5 4 8 3 7]), 0.5, 'FaceColor', 'flat'); % 'FaceColor' 只能用于单个柱子时指定
-
-        % 逐个设置柱子的颜色
-        if length(barHandle) == 1  % 仅有一个 bar 对象时
-            barHandle.FaceColor = 'flat'; % 确保它接受颜色
-            barHandle.CData = barColors{curr_group}; % 为不同组设置不同颜色
-        else
-            for i = 1:2
-                barHandle(i).FaceColor = barColors{curr_group}(i, :);
-            end
-        end
-        % 添加误差条
-        errorbar(1:4,tem_peak_mean([2 6  4 8 ]),tem_peak_error([2 6  4 8 ]), 'k', 'LineStyle', 'none', 'LineWidth', 1.5); % 黑色误差条
-        % errorbar(1:8,tem_peak_mean([2 6 1 5 4 8 3 7]),tem_peak_error([2 6 1 5 4 8 3 7]), 'k', 'LineStyle', 'none', 'LineWidth', 1.5); % 黑色误差条
-
-        xticks([1:4])
-        % xticklabels({'L post task','L post passive','L pre task','L pre passive','R post task','R post passive','R pre task','R pre passive'})
-        xticklabels({'L post task','L post passive','R post task','R post passive'})
-        ylim(scale*[0 1.5])
-        xline(2.5,'LineStyle',':')
-        title(title_area{curr_roi},'FontWeight','normal')
-
     end
 end
 
 
 
 
-%%
 % saveas(gcf,[Path 'figures\summary\figures\fig2 kernels task vs passive' ], 'jpg');
 colors2=[ 0.5 0.5 1;1 0.5 0.5;0.5 0.5 1;1 0.5 0.5];
 colors1=[ 0 0 1;1 0 0;0 0 1;1 0 0];
@@ -357,12 +541,14 @@ temp_data_1=cat(2,temp_data{:});
 mean_1= cellfun(@(x)  nanmean(x) ,cat(2,temp_data{:}),'UniformOutput',true)
 error_1=  cellfun(@(x)  std(x,'omitmissing')/sqrt(length(x)) ,cat(2,temp_data{:}),'UniformOutput',true)
 
-fig = figure('Position',[50 50 150 250]);  % 图窗背景透明
-ax = axes('Parent', fig);
+% fig = figure('Position',[50 50 150 250]);  % 图窗背景透明
+ nexttile(t1,[2 1])
+ % ax = axes('Parent', fig);
+
 hold on
-barHandle= bar(1:4,mean_1, 0.5, 'FaceColor', 'flat','EdgeColor','none');
-barHandle.CData = colors2; % 为不同组设置不同颜色
-errorbar(1:4,mean_1,error_1, 'k', 'LineStyle', 'none', 'LineWidth', 1.5)
+barHandle= bar(1:4,mean_1, 0.7, 'FaceColor', 'flat','EdgeColor','none');
+barHandle.CData = colors1; % 为不同组设置不同颜色
+errorbar(1:4,mean_1,error_1, 'k', 'LineStyle', 'none', 'LineWidth', 1.5,'CapSize',0)
 
 % arrayfun(@(g) scatter(g*ones(length(temp_data_1{g}),1) + randn(size(temp_data_1{g},1),1)*0.05,...
 %          temp_data_1{g}, ...
@@ -372,13 +558,15 @@ xline(2.5,'LineStyle',':')
 
 xticks([1:4])
 xticklabels({'V-l-mPFC','A-l-mPFC','V-l-aPFC','A-l-aPFC'})
+ylim([0 1.5])
+ yticks([0 1])
 ylabel('context difference')
-set(ax, 'Color', 'none');        % 坐标轴背景透明
+set(gca, 'Color', 'none');        % 坐标轴背景透明
 
 
 
 % 添加 ranksum 检验及星号
-y_max = max(cellfun(@max, temp_data_1)) + 0.2; % 初始 y 值
+y_max = max(cellfun(@max, temp_data_1)) -0; % 初始 y 值
 h_offset = 0.15; % 每组比较向上偏移的高度
 star_count = 0; % 当前比较编号，用于偏移高度
 

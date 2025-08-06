@@ -175,46 +175,72 @@ for curr_animal=1 :length(animals)
             % define cell types
 
             if curr_task==3
-                spike_acg = nan(sum(striatal_units),2001);
-                spike_acg = cell2mat(arrayfun(@(x) ...
-                    ap.ephys_spike_cg(x),find(striatal_units),'uni',false));
-
-                % Get time to get to 90% steady-state value
-                acg_steadystate = nan(sum(striatal_units),1);
-                acg_steadystate(~any(isnan(spike_acg),2)) = arrayfun(@(x) ...
-                    find(spike_acg(x,ceil(size(spike_acg,2)/2):end) > ...
-                    mean(spike_acg(x,end-100:end),2)*0.9,1,'first'),find(~any(isnan(spike_acg),2)));
-
-                % (UNUSED: ACG RATIO)
-                acg_early = max(spike_acg(:,1001:1001+300),[],2);
-                acg_late = max(spike_acg(:,end-200:end-100),[],2);
-                acg_ratio = acg_late./acg_early;
-
-                % Get average firing rate from whole session
-                spike_rate = accumarray(spike_templates,1)/diff(prctile(spike_times_timelite,[0,100]));
-
-                % Define cell types
-                % (NOTE: Julie uses acg_steadystate of 40, seemed better here for 20)
-                striatum_celltypes = struct;
-
-                striatum_celltypes.msn = ... % striatal_single_units & ... % striatal single unit
-                    waveform_duration_peaktrough(striatal_units) >= 400 & ... wide waveform
-                    acg_steadystate < 20; % fast time to steady state
-
-                striatum_celltypes.fsi = ... % striatal_single_units & ... % striatal single unit
-                    waveform_duration_peaktrough(striatal_units) < 400 & ... % narrow waveform
-                    acg_steadystate < 20; % slow time to steady state
-
-                % striatum_celltypes.tan = striatal_single_units & ... % striatal single unit
-                %     spike_rate >= 4 & spike_rate <= 12 & ... % steady firing rate
-                %     waveform_duration_peaktrough >= 400 & ... wide waveform
+                %  %  old version
+                % spike_acg = nan(sum(striatal_units),2001);
+                % spike_acg = cell2mat(arrayfun(@(x) ...
+                %     ap.ephys_spike_cg(x),find(striatal_units),'uni',false));
+                % 
+                % % Get time to get to 90% steady-state value
+                % acg_steadystate = nan(sum(striatal_units),1);
+                % acg_steadystate(~any(isnan(spike_acg),2)) = arrayfun(@(x) ...
+                %     find(spike_acg(x,ceil(size(spike_acg,2)/2):end) > ...
+                %     mean(spike_acg(x,end-100:end),2)*0.9,1,'first'),find(~any(isnan(spike_acg),2)));
+                % 
+                % % (UNUSED: ACG RATIO)
+                % acg_early = max(spike_acg(:,1001:1001+300),[],2);
+                % acg_late = max(spike_acg(:,end-200:end-100),[],2);
+                % acg_ratio = acg_late./acg_early;
+                % 
+                % % Get average firing rate from whole session
+                % spike_rate = accumarray(spike_templates,1)/diff(prctile(spike_times_timelite,[0,100]));
+                % 
+                % % Define cell types
+                % % (NOTE: Julie uses acg_steadystate of 40, seemed better here for 20)
+                % striatum_celltypes = struct;
+                % 
+                % striatum_celltypes.msn = ... % striatal_single_units & ... % striatal single unit
+                %     waveform_duration_peaktrough(striatal_units) >= 400 & ... wide waveform
+                %     acg_steadystate < 20; % fast time to steady state
+                % 
+                % striatum_celltypes.fsi = ... % striatal_single_units & ... % striatal single unit
+                %     waveform_duration_peaktrough(striatal_units) < 400 & ... % narrow waveform
+                %     acg_steadystate < 20; % slow time to steady state
+                % 
+                % % !! NOT USING WAVEFORM DURATION HERE - some clear TANs with short wfs
+                % striatum_celltypes.tan = ... % striatal_single_units & ... % striatal single unit
+                %     spike_rate(striatal_units) >= 4 & spike_rate(striatal_units) <= 16 & ... % steady firing rate
                 %     acg_steadystate >= 20; % slow time to steady state
 
-                % !! NOT USING WAVEFORM DURATION HERE - some clear TANs with short wfs
-                striatum_celltypes.tan = ... % striatal_single_units & ... % striatal single unit
-                    spike_rate(striatal_units) >= 4 & spike_rate(striatal_units) <= 16 & ... % steady firing rate
-                    acg_steadystate >= 20; % slow time to steady state
+                ephysProperties = bc.ep.runAllEphysProperties(convertStringsToChars(kilosort_path), convertStringsToChars(qMetrics_path), false,[]);
+                ephysProperties = ephysProperties(good_templates,:);
+
+                striatum_celltypes = struct;
+
+                % Set cutoffs
+                spike_param_wide_narrow_wavelength = 400; % wide/narrow
+                spike_param_post_spike_suppression = 40; % bursty/regular
+
+                % MSN: long waveform, bursty spiking
+                temp_msn= striatal_units & ...
+                    ephysProperties.waveformDuration_peakTrough_us > spike_param_wide_narrow_wavelength &...
+                    ephysProperties.postSpikeSuppression_ms < spike_param_post_spike_suppression;
+                striatum_celltypes.msn=temp_msn(striatal_units);
+
+                % FSI: short waveform, bursty spiking, 1 peak (2-peak is likely axon)
+                temp_fsi = striatal_units & ...
+                    ephysProperties.waveformDuration_peakTrough_us <= spike_param_wide_narrow_wavelength &...
+                    ephysProperties.postSpikeSuppression_ms < spike_param_post_spike_suppression & ...
+                    ephysProperties.nPeaks == 1;
+                striatum_celltypes.fsi =temp_fsi(striatal_units);
+
+                % TAN: regular spiking
+                temp_tan = striatal_units & ...
+                    ephysProperties.postSpikeSuppression_ms >= spike_param_post_spike_suppression;
+
+                striatum_celltypes.tan=temp_tan(striatal_units);
+                        
                 all_celltypes{curr_day}=striatum_celltypes;
+
 
             end
 

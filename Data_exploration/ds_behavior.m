@@ -3,7 +3,7 @@ clear all
 Path = 'D:\Data process\wf_data\';
 
 % animals = {'DS007','DS010','AP019','AP021','DS011','AP022','DS001','AP018','AP020'};n1_name='visual position';n2_name='audio volume';
-animals = {'DS003','DS006','DS013','DS000','DS004','DS014','DS015','DS016'};n1_name='audio volume';n2_name='visual position';
+% animals = {'DS003','DS006','DS013','DS000','DS004','DS014','DS015','DS016'};n1_name='audio volume';n2_name='visual position';
 % % animals = {'DS005'} ;transfer_type='a_frequency_to_v_position';
 % animals = {'AP027','AP028','AP029'};n1_name='visual opacity';n2_name='visual position';
 % animals = {'AP027','AP028','AP029','DS019','DS020','DS021'};n1_name='visual position';n2_name='audio frequency';
@@ -11,7 +11,9 @@ animals = {'DS003','DS006','DS013','DS000','DS004','DS014','DS015','DS016'};n1_n
 % animals = {'HA000','HA001','HA002'};n1_name='visual angle';n2_name='visual position';
 % animals = {'DS019','DS020','DS021'};n1_name='visual size up';n2_name='visual position';
 
- 
+ animals = {'HA009','HA010','HA011','HA012'};
+ % animals = {'HA012'};
+
 
 reaction_time=2;
 % Grab learning day for each mouse
@@ -269,14 +271,14 @@ for curr_animal_idx = 1:length(animals)
         % rxn_stat_p(curr_recording) = AP_stimwheel_association_pvalue( ...
         %     stimOn_times,trial_events,stim_to_move);
         % Get association stat
-        [rxn_stat_p(curr_recording), stim2move_mean(curr_recording),stim2move_mean_null(curr_recording)] = AP_stimwheel_association_pvalue( ...
-            stimOn_times,trial_events,stim_to_move,'mean');
+        [useless_p, stim2move_mean(curr_recording),stim2move_mean_null(curr_recording)] = AP_stimwheel_association_pvalue( ...
+            stimOn_times,trial_events,stim_to_lastmove,'mean');
 
-        [useless_p, stim2move_mad(curr_recording),stim2move_mad_null(curr_recording)] = AP_stimwheel_association_pvalue( ...
-            stimOn_times,trial_events,stim_to_move,'mad');
+        [rxn_stat_p(curr_recording), stim2move_mad(curr_recording),stim2move_mad_null(curr_recording)] = AP_stimwheel_association_pvalue( ...
+            stimOn_times,trial_events,stim_to_lastmove,'mad');
 
         [useless_p, stim2move_med(curr_recording),stim2move_med_null(curr_recording)] = AP_stimwheel_association_pvalue( ...
-            stimOn_times,trial_events,stim_to_move,'median');
+            stimOn_times,trial_events,stim_to_lastmove,'median');
 
         % Clear vars except pre-load for next loop
         clearvars('-except',preload_vars{:});

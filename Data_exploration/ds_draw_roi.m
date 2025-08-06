@@ -3,7 +3,7 @@ load('C:\Users\dsong\Documents\MATLAB\Da_Song\DS_scripts_ptereslab\General_infor
 figure;
 % imagesc(roi1(1).data.mask );
  % imagesc(roi1(1).data.mask+roi1(3).data.mask ); 
-imagesc(roi1(3).data.mask+roi1(4).data.mask );
+imagesc(roi1(13).data.mask );
 % imagesc(roi1(1).data.mask+roi1(3).data.mask );
 ap.wf_draw('ccf', 'black');
 clim([0 2])

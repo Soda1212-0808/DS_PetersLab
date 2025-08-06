@@ -17,7 +17,7 @@ anterior_learned_idx_VnA_nA={[   ],  [   ],   [],    [   ],  [   ], [  ],   [2],
 anterior_learned_idx_all_nA={[   ],  [   ],   [],    [   ],  [   ], [ 2 4 ],   [2],    [],    [   ],  [  4 ],  [   ],  [  2 ],  [   ],  [   ],  [   ]};
 
 % anterior_learned_idx_AV={[ ],    [   ],    [],    [ ],    [ ],   [   ],    [ ],    [],    [ 2 4  ],  [ 2  ],  [  ],  [   ],  [ ],  [ ],  [ ]};
- anterior_learned_idx_AV={[ ],    [   ],    [],    [ ],    [ ],   [   ],    [],    [],    [  ],  [    ],  [ ],  [    ],  [2 4],  [2 4],  [2 4]};
+ anterior_learned_idx_AV={[ ],    [   ],    [],    [ ],    [ ],   [   ],    [],    [],    [  ],  [    ],  [2 4 ],  [    ],  [2 4],  [2 4],  [2 4]};
 
 anterior_learned_idx_AV_nA={[ ],    [   ],    [],    [ ],    [ ],   [   ],    [],    [],    [   ],  [ 4 ],  [  ],  [  2],  [   ],  [   ],  [  ]};
 anterior_learned_idx_AnV_nV={[ ],    [   ],    [],    [ ],    [ ],   [   ],    [],    [],    [2 4],  [ 2 ],  [  ],  [   ],  [   ],  [   ],  [  ]};
@@ -337,7 +337,7 @@ for curr_cell_type=1:3
 
         temp_idx=cell(length(used_animals),1);
         temp_single_plot=cell(length(used_animals),1);
-        temp_probe_position=cell(length(used_animals),1);
+        temp_cell_type=cell(length(used_animals),1);
         temp_response=cell(length(used_animals),1);
         temp_response_plot=cell(length(used_animals),1);
         %
@@ -349,7 +349,8 @@ for curr_cell_type=1:3
             temp_single_plot{curr_animal}=temp_file_name.plot_single(used_animals_idx{curr_animal},1);
             temp_idx{curr_animal}=temp_file_name.plot_idx(used_animals_idx{curr_animal},1);
 
-            temp_probe_position{curr_animal}=temp_file_name.all_celltypes(used_animals_idx{curr_animal},1);
+            temp_cell_type{curr_animal}=temp_file_name.all_celltypes(used_animals_idx{curr_animal},1);
+
             temp_response{curr_animal}=temp_file_name.all_event_response_idx(used_animals_idx{curr_animal},1);
             temp_response_plot{curr_animal}=temp_file_name.all_event_response_signle_neuron(used_animals_idx{curr_animal},1);
 
@@ -358,7 +359,7 @@ for curr_cell_type=1:3
 
         used_single_plot=vertcat(temp_single_plot{:});
         used_response_plot=vertcat(temp_response_plot{:});
-        used_cell_type=vertcat(temp_probe_position{:});
+        used_cell_type=vertcat(temp_cell_type{:});
         used_response=vertcat(temp_response{:});
         used_single_idx=vertcat(temp_idx{:});
 
@@ -422,9 +423,9 @@ for curr_cell_type=1:3
         [~,sort_idx_3]=sortrows(max_idx_a(data3),"ascend");
 
         % temp_idx_all_1=[data1(sort_idx_1);data2(sort_idx_2);data3(sort_idx_3);data4];
-        temp_idx_all_1=[data1(sort_idx_1);data2(sort_idx_2);data3(sort_idx_3)];
+        temp_idx_all_1=[data1(sort_idx_1);data2(sort_idx_2);data3(sort_idx_3);data4];
 
-        temp_idx_all=[data1(sort_idx_1);data2(sort_idx_2);data3(sort_idx_3)];
+        temp_idx_all=[data1(sort_idx_1);data2(sort_idx_2);data3(sort_idx_3);data4];
        % temp_idx_all=[data1(sort_idx_1);data2(sort_idx_2);data3(sort_idx_3);data4];
 
 
@@ -466,7 +467,7 @@ for curr_cell_type=1:3
             temp_mean= nanmean(used_plot_all_selected(temp_idx_all_1,:,curr_stim),1);
             temp_error=std(used_plot_all_selected(temp_idx_all_1,:,curr_stim),0,1,'omitmissing')./sqrt(size(used_plot_all_selected(temp_idx_all_1,:,curr_stim),1));
             ap.errorfill(t_bins,temp_mean,temp_error,colors{curr_group},0.5,0.1);
-            ylim([-0.5 4])
+            ylim([-0.5 1.5])
             xlim([-0.1 0.5])
             xline(0)
             axis off
@@ -488,7 +489,7 @@ for curr_cell_type=1:3
     end
     nexttile(t,7)
    temp_all= cell2mat(cellfun(@(x) sum(cat(3,x{:}),3) ,temp_group,'UniformOutput',false)')
-    h=bar(temp_all(:,1:3),'stacked')
+    h=bar(temp_all(:,1:4),'stacked')
     set(gca, 'XTick', 1:2, 'XTickLabel', {'VA', 'AV'},'Box','off');
     ylabel('numbers')
   
@@ -496,7 +497,8 @@ for curr_cell_type=1:3
 colors11 = [ ...
     0.4 0.4 1;   % 蓝色
     1 0.4 1;   % 红色
-    1 0.4 0.4];  % 绿色
+    1 0.4 0.4;
+    0.5 0.5 0.5];  % 绿色
 
 for i = 1:length(h)
     h(i).FaceColor = colors11(i, :);
@@ -529,10 +531,10 @@ end
 set(gca, 'XTick', 1:ngroups, 'XTickLabel', {'only V', 'V&A','only A'},'Box','off');
 ylabel('proportion');
 
-temp_o=cellfun(@(x) cat(1,x{:}),temp_mean0,'UniformOutput',false)
+temp_o=cellfun(@(x) cat(1,x{:}),temp_mean0,'UniformOutput',false);
 for curr_i=1:3
-    p=ranksum( temp_o{1}(:,curr_i) ,temp_o{2}(:,curr_i));
-
+    % p=ranksum( temp_o{1}(:,curr_i) ,temp_o{2}(:,curr_i));
+p=ds.shuffle_test_non_pair( temp_o{1}(:,curr_i) ,temp_o{2}(:,curr_i));
     y_sig = max([temp_o{1}(:,curr_i) ;temp_o{2}(:,curr_i)],[],'all') + 0.01;
     if p < 0.05
         stars = repmat('*',1,sum(p<[0.05 0.01 0.001]));
@@ -647,11 +649,6 @@ for iii=1:length(edges)-1
             used_filter_p_a=cellfun(@(x,y,z)  x{2}(y.(cell_type{curr_cell_type})),tem_p,used_cell_type ,used_response,'UniformOutput',false);
             used_filter_p_v_all=vertcat(used_filter_p_v{:});
             used_filter_p_a_all=vertcat(used_filter_p_a{:});
-
-
-
-
-
 
 
 
@@ -783,7 +780,7 @@ image_color={'G','P'};
 p_val=0.95;
 % % max_num=500;
 
-for curr_stim=[5]
+for curr_stim=[3 5]
     switch curr_stim
         case {3,5}
             max_num=750;
@@ -806,6 +803,7 @@ for curr_stim=[5]
     for curr_group=1:2
         switch curr_group
             case 1
+                % posterior_learned_idx_AV
                 used_animals=animals(~cellfun(@isempty, anterior_learned_idx_VA','UniformOutput',true));
                 used_animals_idx=anterior_learned_idx_VA(~cellfun(@isempty, anterior_learned_idx_VA','UniformOutput',true));
             case 2
@@ -845,7 +843,7 @@ for curr_stim=[5]
         used_response=vertcat(temp_response{:});
         % used_single_idx=vertcat(temp_idx{:});
 
-
+number(curr_group)= size(cat(1,used_response{:}),1);
 
         used_filter_plot=cellfun(@(x,y,z)  x(z(:,curr_stim)>p_val ,:,curr_stim)  ,...
             used_response_plot,used_cell_type,used_response,'UniformOutput',false);
@@ -878,8 +876,8 @@ for curr_stim=[5]
         % a1=nexttile(curr_group)
         ax=subplot(2,3,[curr_group,3+curr_group])
 
-        imagesc(t_bins,[],smoothdata(used_plot_all_selected(sort_idx,:),1,'gaussian',20))
-        % imagesc(t_bins,[],used_plot_all_selected(sort_idx,:))
+        % imagesc(t_bins,[],smoothdata(used_plot_all_selected(sort_idx,:),1,'gaussian',20))
+        imagesc(t_bins,[],used_plot_all_selected(sort_idx,:))
 
         % colorbar('southoutside')
         colormap(ax,ap.colormap(['W' image_color{curr_group}]));
@@ -992,8 +990,8 @@ for curr_stim=[3 5]
                 used_animals=animals(~cellfun(@isempty, anterior_learned_idx_VA','UniformOutput',true));
                 used_animals_idx=anterior_learned_idx_VA(~cellfun(@isempty, anterior_learned_idx_VA','UniformOutput',true));
             case 2
-                used_animals=animals(~cellfun(@isempty, anterior_learned_idx_AV','UniformOutput',true));
-                used_animals_idx=anterior_learned_idx_AV(~cellfun(@isempty, anterior_learned_idx_AV','UniformOutput',true));
+                used_animals=animals(~cellfun(@isempty, anterior_learned_idx_VA_nA','UniformOutput',true));
+                used_animals_idx=anterior_learned_idx_VA_nA(~cellfun(@isempty, anterior_learned_idx_VA_nA','UniformOutput',true));
         end
 
         temp_idx=cell(length(used_animals),1);
@@ -1164,6 +1162,8 @@ end
 
 %% 一维深度  group average
 groups={'VA','AV','VA_nA'}
+groups={'VA','VA_nA'}
+
 titles={'L','M','V passive','4k','A passive','12k','V task','A task','iti move'};
 p_val=0.95
 all_stim=[ 3 5 ];

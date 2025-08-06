@@ -236,7 +236,7 @@ for curr_group=1:2
 
         for curr_animal=1:length(animals)
             animal=animals{curr_animal};
-            data_behavior=load([Path  '\behavior\' animal '_behavior.mat' ]);
+            data_behavior_single=load([Path  '\behavior\' animal '_behavior.mat' ]);
             data_passive_wf=load(fullfile(Path,passive,[animal '_' passive '.mat']));
             data_task_wf=load(fullfile(Path,'task',[animal '_task.mat']));
 
@@ -261,13 +261,13 @@ for curr_group=1:2
 
 
             idx_0= cellfun(@(y) strcmp( y,n1_name),...
-                data_behavior.workflow_name, 'UniformOutput', true);
-            day_behavior = data_behavior.workflow_day(idx_0);
-            performance=(data_behavior.stim2lastmove_mad_null(idx_0)-data_behavior.stim2lastmove_mad(idx_0))./...
-                (data_behavior.stim2lastmove_mad_null(idx_0)+data_behavior.stim2lastmove_mad(idx_0));
-            day_learned=data_behavior.rxn_l_mad_p(idx_0)<0.01;
+                data_behavior_single.workflow_name, 'UniformOutput', true);
+            day_behavior = data_behavior_single.workflow_day(idx_0);
+            performance=(data_behavior_single.stim2lastmove_mad_null(idx_0)-data_behavior_single.stim2lastmove_mad(idx_0))./...
+                (data_behavior_single.stim2lastmove_mad_null(idx_0)+data_behavior_single.stim2lastmove_mad(idx_0));
+            day_learned=data_behavior_single.rxn_l_mad_p(idx_0)<0.01;
            
-            temp_vel=data_behavior.frac_velocity_stimalign(idx_0,1)
+            temp_vel=data_behavior_single.frac_velocity_stimalign(idx_0,1)
             temp_vel1= cellfun(@(x) corr(x(:,500:600)') ,temp_vel,'UniformOutput',false )
             temp_corr =cellfun(@(x) nanmean(x(~eye(size(x)))) ,temp_vel1,'UniformOutput',true);
 
@@ -378,7 +378,8 @@ for curr_group=1:2
     
 
 end
-  sgtitle(['mod ' num2str(curr_mod)])  
+  
+sgtitle(['mod ' num2str(curr_mod)])  
    % saveas(gcf,[Path 'figures\summary\figures\performace vs df mod ' num2str(curr_mod)], 'jpg');
 
 end
@@ -433,14 +434,14 @@ for curr_group=1:2
 
         for curr_animal=1:length(animals)
             animal=animals{curr_animal};
-            data_behavior=load([Path  '\behavior\' animal '_behavior.mat' ]);
+            data_behavior_single=load([Path  '\behavior\' animal '_behavior.mat' ]);
             data_passive_wf=load(fullfile(Path,passive,[animal '_' passive '.mat']));
             data_task_wf=load(fullfile(Path,'task',[animal '_task.mat']));
 
 idx_passive=ismember(data_passive_wf.workflow_day,data_task_wf.workflow_day)
 idx_task=ismember(data_task_wf.workflow_day,data_passive_wf.workflow_day)
 
-data_behavior = structfun(@(x) x(idx_task, :), data_behavior, 'UniformOutput', false);
+data_behavior_single = structfun(@(x) x(idx_task, :), data_behavior_single, 'UniformOutput', false);
 data_passive_wf= structfun(@(x) x(idx_passive), data_passive_wf, 'UniformOutput', false);
 data_task_wf= structfun(@(x) x(idx_task), data_task_wf, 'UniformOutput', false);
 
@@ -465,11 +466,11 @@ data_task_wf= structfun(@(x) x(idx_task), data_task_wf, 'UniformOutput', false);
 
 
             idx_0= cellfun(@(y) strcmp( y,n1_name),...
-                data_behavior.workflow_name, 'UniformOutput', true);
-            day_behavior = data_behavior.workflow_day(idx_0);
-            performance=(data_behavior.stim2move_mad_null(idx_0)-data_behavior.stim2move_mad(idx_0))./...
-                (data_behavior.stim2move_mad_null(idx_0)+data_behavior.stim2move_mad(idx_0));
-            day_learned=data_behavior.rxn_f_stat_p(idx_0)<0.01;
+                data_behavior_single.workflow_name, 'UniformOutput', true);
+            day_behavior = data_behavior_single.workflow_day(idx_0);
+            performance=(data_behavior_single.stim2move_mad_null(idx_0)-data_behavior_single.stim2move_mad(idx_0))./...
+                (data_behavior_single.stim2move_mad_null(idx_0)+data_behavior_single.stim2move_mad(idx_0));
+            day_learned=data_behavior_single.rxn_f_stat_p(idx_0)<0.01;
 
 
             day_idx_passive = data_passive_wf.workflow_day( cellfun(@(y) strcmp( y,n1_name),...

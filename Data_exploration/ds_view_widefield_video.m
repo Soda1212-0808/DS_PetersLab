@@ -5,7 +5,7 @@ Path = 'C:\Users\dsong\Documents\MATLAB\Da_Song\Data_analysis\mice\process\';
 %% Create across-day alignments
 
 % Define animal
- animal = 'AP029';
+ animal = 'HA009';
 % Create across-day alignments
 plab.wf.wf_align([],animal,[],'new_days');
 % Get and save VFS maps for animal

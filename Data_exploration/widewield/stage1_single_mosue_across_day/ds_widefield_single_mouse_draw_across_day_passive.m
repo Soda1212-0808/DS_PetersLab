@@ -17,8 +17,9 @@ passive_boundary=0.2;
 period_passive=find(t_passive>0&t_passive<passive_boundary);
 period_kernels=find(t_kernels>0&t_kernels<passive_boundary);
 
-animals={'DS010'}
+animals={'HA010'}
 % animals={'HA003','HA004','DS019','DS020','DS021'}
+  % animals={'AP027','AP028','AP029','DS019','DS020','DS021'}
 
 % animals={'DS005','AP027','AP028','DS019','DS020','DS021'}
 all_image=cell(size(animals,2),1)
@@ -26,7 +27,7 @@ for curr_animal=1:length(animals)
     animal=animals{curr_animal}
     all_workflow={'lcr_passive','hml_passive_audio','lcr_passive_size60'};
     % workflow_idx=1;
-    for workflow_idx=1
+    for workflow_idx=2
         wokrflow=all_workflow{workflow_idx};
 
         learn_name={'non-learned','learned'};
@@ -35,6 +36,7 @@ for curr_animal=1:length(animals)
         used_data=2;% 1 raw data;2 kernels
         data_type={'raw','kernels'};
         raw_data_lcr1=load([Path  wokrflow '\' animal '_' wokrflow '.mat']);
+raw_data_behavior=load([Path   'behavior\' animal '_behavior.mat']);
 
         if workflow_idx==1|workflow_idx==3
             used_id=3;used_roi=1;
@@ -67,11 +69,11 @@ for curr_animal=1:length(animals)
         clear image_all_mean workflow_name learned_day
         image_all_mean(idx)=cellfun(@(x) permute(max(x(:,:,use_period,:),[],3),[1,2,4,3]),image_all(idx),'UniformOutput',false);
         workflow_name(idx)=raw_data_lcr1.workflow_type_name_merge(idx);
-        learned_day(idx)=raw_data_lcr1.learned_day(idx);
-
-        all_image{curr_animal}=cellfun(@(x) x(:,:,used_id),...
-            image_all_mean(find((ismember(workflow_name,'visual angle')==1&learned_day(idx)==1)==1,2,'last')),...
-            'UniformOutput',false)
+        % learned_day(idx)=raw_data_lcr1.learned_day(idx);
+        % 
+        % all_image{curr_animal}=cellfun(@(x) x(:,:,used_id),...
+        %     image_all_mean(find((ismember(workflow_name,'visual angle')==1&learned_day(idx)==1)==1,2,'last')),...
+        %     'UniformOutput',false)
 
         buf1(idx)=cellfun(@(z) reshape(z,size(z,1)*size(z,2),size(z,3),size(z,4)) , image_all(idx), 'UniformOutput', false);
         % buf2= cell2mat(cellfun(@(z) permute(mean(z(roi1(1).data.mask(:),:,3),1),[2,3,1]) , buf1, 'UniformOutput', false));
@@ -83,6 +85,7 @@ for curr_animal=1:length(animals)
 
 
         figure('Position',[50 50 1000 800],'Name',['images of ' animal,' ', data_type{used_data}, ' ' strrep(wokrflow,'_','-')]);
+        
         for i=find(idx)
             nexttile
             % imagesc(image_all_mean{i}(:,:,3)-fliplr(image_all_mean{i}(:,:,3)))
@@ -95,7 +98,7 @@ for curr_animal=1:length(animals)
             clim(scale(used_data) .* [0, 1]);
             % xlim([0 213])
 
-            title(['day' num2str(i) ' ' raw_data_lcr1.workflow_day{i}],[raw_data_lcr1.workflow_type_name_merge{i} '-' learn_name{raw_data_lcr1.learned_day(i)+1} ])
+            % title(['day' num2str(i) ' ' raw_data_lcr1.workflow_day{i}],[raw_data_lcr1.workflow_type_name_merge{i} '-' learn_name{raw_data_lcr1.learned_day(i)+1} ])
 
         end
         sgtitle([animal,' ', data_type{used_data}, ' ' strrep(wokrflow,'_','-')])
