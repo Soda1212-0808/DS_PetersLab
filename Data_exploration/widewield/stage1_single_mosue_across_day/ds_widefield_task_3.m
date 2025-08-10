@@ -25,7 +25,7 @@ surround_time_points = surround_time(1):1/surround_sample_rate:surround_time(2);
 %                     'HA003','HA004','DS019','DS020','DS021',...
 %                     'HA000','HA001','HA002','DS005'};
 
-        animals={'HA009'};
+        animals={'HA009','HA010','HA011','HA012'};
 for curr_animal_idx=1:length(animals)
     animal=animals{curr_animal_idx};
     fprintf('%s\n', ['start  ' animal ]);

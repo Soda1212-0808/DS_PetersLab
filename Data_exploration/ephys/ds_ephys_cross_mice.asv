@@ -1475,10 +1475,9 @@ colors_image={'G','P'}
 z_min = 0;
 z_max = 250;
 bin_size_z = 25; % 单位：μm，根据实际尺度调整
-z_edges = [z_min:bin_size_z:z_max,inf];
 
 
-for curr_group=1
+for curr_group=1:2
 
     switch curr_group
         case 1
@@ -1547,11 +1546,11 @@ for curr_group=1
         neuron_count_map_all, neuron_count_map_v, neuron_count_map_a, neuron_count_map_overlay,'UniformOutput',false )
 
 
-% idxx=cellfun(@(a,b,c,d)  arrayfun(@(depth)   [ [ones(b(depth),1);zeros(c(depth)-d(depth),1) ]  ...
-%     [zeros(b(depth)-d(depth),1); ones(c(depth),1)  ]],...
-%     1:11,'UniformOutput',false),...
-%     {sum(cell2mat(neuron_count_map_all),1)}, {sum(cell2mat(neuron_count_map_v),1)}, ...
-%     {sum(cell2mat(neuron_count_map_a),1)}, {sum(cell2mat(neuron_count_map_overlay),1)},'UniformOutput',false )
+idxx=cellfun(@(a,b,c,d)  arrayfun(@(depth)   [ [ones(b(depth),1);zeros(c(depth)-d(depth),1) ]  ...
+    [zeros(b(depth)-d(depth),1); ones(c(depth),1)  ]],...
+    1:11,'UniformOutput',false),...
+    {sum(cell2mat(neuron_count_map_all),1)}, {sum(cell2mat(neuron_count_map_v),1)}, ...
+    {sum(cell2mat(neuron_count_map_a),1)}, {sum(cell2mat(neuron_count_map_overlay),1)},'UniformOutput',false )
 
 
 
@@ -1613,24 +1612,21 @@ numbers=length(unique(temp_shuffle{curr_depth}))
         histogram(temp_shuffle{curr_depth},numbers)
         xline(prctile(temp_shuffle{curr_depth},95),'b')
         xline(prctile(temp_shuffle{curr_depth},5),'b')
-        % xline(temp_real3(curr_depth),'r')
+        xline(temp_real3(curr_depth),'r')
                 xline(temp_real_mean(curr_depth)+temp_real_error(curr_depth),'g')
-                xline(temp_real_mean(curr_depth),'r')
 
 end
 
-figure('Position',[50 50 100 200 ]);
+figure;
 hold on 
-ap.errorfill(z_edges(1:end-1),temp_real_mean,temp_real_error ,[84 130 53]./255,0.1);
-ap.errorfill(z_edges(1:end-1),shuffle_mean,shuffle_error,[0.8 0.8 0.8],1 );
+ap.errorfill(z_edges(1:end-1),temp_real_mean,temp_real_error ,'r',0.1);
+ap.errorfill(z_edges(1:end-1),shuffle_mean,shuffle_error,[0.9 0.9 0.9],1 );
 xlim([z_edges(1) z_edges(end-1)+1])
 ylabel('fraction of overlay in A')
 xline(150,'LineStyle',':');
 xline(50,'LineStyle',':')
- xticks([z_edges(1) z_edges(end-1)]);
- yticks([0 0.5])
+ xticks([]);
 view(gca,90, 90);
-set(gca,'Color','none')
 
 %% overlay 
 groups={'VA','AV','VA_nA'}

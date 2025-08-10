@@ -28,7 +28,7 @@ load('C:\Users\dsong\Documents\MATLAB\Da_Song\DS_scripts_ptereslab\General_infor
     %     'HA000','HA001','HA002'};
         animals={'HA009','HA010','HA011','HA012'};
 
-    for curr_passive=1
+    for curr_passive=1:2
         if curr_passive==1
             passive_workflow = 'hml_passive_audio';
         elseif curr_passive==2

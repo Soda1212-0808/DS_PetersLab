@@ -836,6 +836,7 @@ x = bh.XData;
 
 errorbar(x,well_trained_each_mouse_median{curr_para},well_trained_each_mouse_error{curr_para}, 'k.', 'LineWidth', 1.5)
 % 添加散点（颜色与 bar 匹配但更深）
+
 for i = 1:2
     xi = x(i) + (rand(size(well_trained_each_mouse{curr_para}{i})) - 0.5) * 0.2;
     scatter(xi, well_trained_each_mouse{curr_para}{i}, 30, ...
@@ -843,6 +844,7 @@ for i = 1:2
         'MarkerEdgeColor', 'none', ...
         'MarkerFaceAlpha', 0.7);
 end
+
 switch curr_para
     case 1
   ylabel('reaction time (s)')

@@ -718,7 +718,7 @@ empty_area(double(p_map_v>0.95)+double(p_map_a>0.95)==2)=3;
 empty_area(double(p_map_v>0.95)-double(p_map_a>0.95)==1)=2;
 empty_area(-double(p_map_v>0.95)+double(p_map_a>0.95)==1)=1;
 
-figure('Position',[50 50 150 200])
+figure('Position',[50 50 200 200])
 
 imagesc(empty_area)
 my_colormap1 = [1 1 1;    % 0 = white
@@ -735,9 +735,10 @@ cb=colorbar('southoutside','Ticks', [0.375 1.125 1.875 2.625], ...
     'TickLabels', {'none','auditory','visual','both'});  % 可自定义标签
 pos = cb.Position;      % [x, y, width, height]
  pos(1) = 0.1;           % 右移 
-pos(2) = 0.15;  
+pos(2) = 0.2;  
 pos(3) = 0.8;           % 右移
- pos(4) = 0.05;           % 变窄
+
+ pos(4) = 0.02;           % 变窄
 cb.Position = pos;       % 应用修改
 
 %% images across day aligned to stim

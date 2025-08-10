@@ -903,10 +903,10 @@ cb=colorbar('southoutside'); % 在下方添加 colorbar
 %% passive cross modality of 2 stage images and selectivity without naive stage
 
 
-colors{1}={  [  84 130 53 ]./255,[0.5 1 0.5];...
-       [112  48 160]./255,[0.5 0.5 0.5]}
+% colors={  [  84 130 53 ]./255,[0.5 0.8 0.5];...
+%        [112  48 160]./255,[0.65 0.4 0.8]}
 
-colors{2}={  [  84 130 53 ]./255 ,[0.5 0.5 0.5];...
+colors={  [  84 130 53 ]./255 ,[0.5 0.5 0.5];...
      [112  48 160]./255,[0.5 0.5 0.5]   }
 scale=0.0002;
 type=2;
@@ -927,10 +927,10 @@ all_buf_data_each=cell(2,1);
 legend_labels={{'L','C','R'},...
     {'4K','8K','12K'}};
 
-figure('Position', [50 50 400 200]);
+figure('Position', [2250 50 500 300]);
 t = tiledlayout(2, 4, 'TileSpacing', 'tight', 'Padding', 'none');
-    for curr_passive=1:2
-        for curr_group=1:2
+for curr_passive=1:2
+    for curr_group=1:2
 
         if curr_passive==1
             use_stim=3;
@@ -959,6 +959,7 @@ t = tiledlayout(2, 4, 'TileSpacing', 'tight', 'Padding', 'none');
 
         end
 
+
         curr_data=cat(2 ,data_all_days{curr_group}{type}{curr_passive}{:});
         buf1= cellfun(@(x) reshape(x,size(x,1)*size(x,2),size(x,3),size(x,4)),curr_data,'UniformOutput',false) ;
         for curr_roi=1:length(roi1)
@@ -983,33 +984,56 @@ t = tiledlayout(2, 4, 'TileSpacing', 'tight', 'Padding', 'none');
         end
 
         if (curr_group==1 & curr_passive==1)
-            use_roi=1;  use_days=[7 :11]; stage=1;
+            use_roi=1;  use_days=[7 :11]; stage=1;use_x=[1:5]
         elseif (curr_group==2 & curr_passive==2)
-            use_roi=3;use_days=[7: 11];stage=1;
+            use_roi=3;use_days=[7: 11];stage=1;;use_x=[1:5]
         elseif (curr_group==1 & curr_passive==2)
-            use_roi=3;  use_days=[22: 26];stage=2;
+            use_roi=3;  use_days=[22: 26];stage=2;;use_x=[6:10]
         elseif (curr_group==2 & curr_passive==1)
-            use_roi=1;  use_days=[22 :26];stage=2;
+            use_roi=1;  use_days=[22 :26];stage=2;;use_x=[6:10]
         end
 
-
-        nexttile(t,curr_passive*4-4+3)
+        ax{curr_passive,curr_group}= nexttile(t,curr_group+2 +4*curr_passive-4)
         hold on
         for curr_passivestim=1:2
             curr_value = buf3_roi_mean_crossday{curr_group}{curr_passive}{use_roi}{curr_passivestim};
             curr_error = buf3_roi_error_crossday{curr_group}{curr_passive}{use_roi}{curr_passivestim};
-            color = colors{curr_passive}{curr_group, curr_passivestim};
-            % ap.errorfill(1:5,curr_value(7:11),curr_error(7:11),color,0.1 )
-            % ap.errorfill(6:10,curr_value(22:26),curr_error(22:26),color,0.1 )
-            ap.errorfill(1:5,curr_value(use_days),curr_error(use_days),color,0.1 )
+            color = colors{curr_group, curr_passivestim};
+            ap.errorfill(1:5,curr_value(7:11),curr_error(7:11),color,0.1 )
+            ap.errorfill(6:10,curr_value(22:26),curr_error(22:26),color,0.1 )
+            % ap.errorfill(use_x,curr_value(use_days),curr_error(use_days),color,0.1 )
 
         end
         ylim(scale*[0 1])
-        xlim([1 5])
+        xlim([0.5 10.5])
         xticks([3 8])
         xticklabels({'mod 1','mod 2'})
+    set(gca,'Color','none')
 
     end
+end
+
+for curr_passive=1:2
+    if curr_passive==1
+            use_roi=1;
+        else
+            use_roi=3;
+        end
+    mainPos = get(ax{curr_passive,1}, 'Position');  % [left bottom width height]
+    % 计算 inset 的位置（嵌在当前 tile 的左上角）
+    inset_width = 0.3 * mainPos(3);    % inset 占 tile 宽度的 30%
+    inset_height = 0.3 * mainPos(4);   % inset 占 tile 高度的 30%
+    inset_left = mainPos(1) - 0* mainPos(3);  % tile 左侧偏右一点
+    inset_bottom = mainPos(2) + 0.75 * mainPos(4); % tile 底部偏上
+    insetAx = axes('Position', [inset_left, inset_bottom, inset_width, inset_height]);
+    imagesc(roi1(use_roi).data.mask )
+    ap.wf_draw('ccf', [0.5 0.5 0.5]);
+    axis image off
+    ylim([0 200])
+    xlim([20 220])
+    clim( [ 0, 1]);
+    colormap( insetAx,ap.colormap('WK'));
+    uistack(insetAx, 'bottom');
 end
 
 
