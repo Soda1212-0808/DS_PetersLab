@@ -9,19 +9,6 @@ Path = 'D:\Data process\ephys\';
 animals= { 'DS007','DS010','AP021','DS011','AP022','DS001','AP018','DS003','DS006','DS013',...
     'DS000','DS004','DS014','DS015','DS016'};
 
-anterior_idx={[2 4],  [2 4],    2,    [2 4],  [2 4],  [2 4],    2,     2,     [2 4],  [2 4],  [2 4],  [2 4],  [2 4],  [2 4],  [2 4]};
-anterior_learned_idx={[2 4],  [2 4],    2,    [2 4],  [2 4],  [   ],    [],    [],    [   ],  [   ],  [2 4],  [  4],  [2 4],  [2 4],  [2 4]};
-anterior_learned_idx_VA={[2 4],  [2 4],    2,    [2 4],  [2 4],  [   ],    [],    [],    [   ],  [   ],  [   ],  [   ],  [   ],  [   ],  [   ]};
-anterior_learned_idx_VA_nA={[   ],  [   ],   [ ],    [   ],  [   ],  [2 4],    [],    [],    [   ],  [   ],  [   ],  [   ],  [   ],  [   ],  [   ]};
-anterior_learned_idx_VnA_nA={[   ],  [   ],   [],    [   ],  [   ], [  ],   [2],    [],    [   ],  [   ],  [   ],  [   ],  [   ],  [   ],  [   ]};
-
-anterior_learned_idx_AV={[ ],    [   ],    [],    [ ],    [ ],   [   ],    [],    [],    [   ],  [   ],  [2 4  ],  [   ],  [2 4],  [2 4],  [2 4]};
-anterior_learned_idx_AV_nA={[ ],    [   ],    [],    [ ],    [ ],   [   ],    [],    [],    [   ],  [ 4 ],  [  ],  [  2],  [   ],  [   ],  [  ]};
-anterior_learned_idx_AnV_nV={[ ],    [   ],    [],    [ ],    [ ],   [   ],    [],    [],    [2 4],  [ 2 ],  [  ],  [   ],  [   ],  [   ],  [  ]};
-
-posterior_learned_idx_VA={[ 1 3],  [1 3],  [1 ],    [1 3],  [1 3],  [   ],    [],    [],    [   ],  [   ],  [   ],  [   ],  [   ],  [   ],  [   ]};
-posterior_learned_idx_AV={[ ],    [   ],    [],    [ ],    [ ],   [   ],    [],    [],    [   ],  [   ],  [1 3 ],  [  3  ],  [1 3],  [1 3],  [1 3]};
-
 
 % Set times for PSTH
 raster_window = [-0.5,1];
@@ -288,44 +275,12 @@ for curr_animal=1 :length(animals)
                 use_align{3,1} = stim_move_time(TaskType_idx(1:n_trials)==0 );
                 use_align{4,1} = stim_move_time(TaskType_idx(1:n_trials)==1 );
 
-                wheel_starts = timelite.timestamps(diff([0;wheel_move]) == 1);
-                wheel_stops = timelite.timestamps(diff([0;wheel_move]) == -1);
-
-                wheel_starts_position=  wheel_position(diff([0;wheel_move]) == 1);
-                wheel_stops_position=  wheel_position(diff([0;wheel_move]) == -1);
-
-                % 找到 wheel 开始转动的索引
-                start_idx = find(diff([0;wheel_move]) == 1);
-                % 预分配时间数组 (提高效率)
-                time_to_90 = nan(size(start_idx));
-                % **优化的计算方式**
-                for i = 1:length(start_idx)
-                    % 直接找到第一个满足 wheel_position > pos_start + 90 的索引
-                    target_idx = find(wheel_position(start_idx(i):length(wheel_position)) < wheel_starts_position(i) - (30/360*1024), 1, 'first');
-                    % 计算所需时间 (以 ms 计算)
-                    if ~isempty(target_idx)
-                        time_to_90(i) = (target_idx - 1) * 1; % 1000Hz 采样率，每点 1ms
-                    end
-                end
-                wheel_move_less_than_200ms= time_to_90<200;
-                wheel_move_over_90=wheel_stops_position-wheel_starts_position<-(30/360*1024);
-
-                % (get wheel starts when no stim on screen: not sure this works yet)
-                iti_move_idx = interp1(photodiode_times, ...
-                    photodiode_values,wheel_starts,'previous') == 0;
-
-                % trial_move_idx = interp1(photodiode_times, ...
-                %     photodiode_values,wheel_starts,'previous')==1 ;
-                % wheel_move_time=wheel_stops-wheel_starts;
-                % trial_move_time=median(wheel_move_time(trial_move_idx))
-
-                use_align{5,1} =  wheel_starts(iti_move_idx & wheel_move_over_90 & wheel_move_less_than_200ms );
+                ds.load_iti_move
+                use_align{5,1} =  iti_move_time;
 
             end
 
-            % all_unit_psth=...
-            %     cellfun(@(x) ap.psth(spike_times_timelite,x,spike_templates),use_align','UniformOutput',false);
-            %
+         
             [all_unit_psth_smooth_norm,temp_raster,t]=...
                 cellfun(@(x) ap.psth(spike_times_timelite,x,spike_templates,...
                 'smoothing',100,'norm_window',[-0.5,0],'softnorm',1),use_align,'UniformOutput',false);
@@ -509,29 +464,14 @@ for curr_animal=1 :length(animals)
      'all_event_response_signle_neuron_h2','all_celltypes','all_cell_ccf_position_sorted','striatal_surface_position',...
      'plot_single','plot_idx','-v7.3')
 
- % animals_raster{curr_animal}=raster;
- % animals_all_cell_sorted{curr_animal}=all_cell_sorted;
- % animals_all_cell_deepth_sorted{curr_animal}=all_cell_deepth_sorted;
- % animals_probe_positions{curr_animal}=probe_positions;
- % animals_all_event_response{curr_animal}=all_event_response_idx;
- % animals_all_event_plot{curr_animal}=all_event_response_plot;
- % animals_all_event_single_plot{curr_animal}=all_event_response_signle_neuron;
- % animals_all_event_single_plot_h1{curr_animal}=all_event_response_signle_neuron_h1;
- % animals_all_event_single_plot_h2{curr_animal}=all_event_response_signle_neuron_h2;
- % animals_all_celltypes{curr_animal}=all_celltypes;
- % animals_all_cell_ccf_position_sorted{curr_animal}=all_cell_ccf_position_sorted;
- % animals_plot_single{curr_animal}=plot_single;
- % animals_plot_idx{curr_animal}=plot_idx;
 
 end
 
-% save([Path 'mat_data\ephys_all_data.mat'],'animals',...
-%     'animals_probe_positions','animals_all_cell_sorted','animals_all_cell_deepth_sorted',...
-%     'animals_all_cell_ccf_position_sorted','animals_all_event_response',...
-%     'animals_all_event_plot','animals_all_event_single_plot','animals_all_celltypes',...
-%     'animals_all_event_single_plot_h1','animals_all_event_single_plot_h2','-v7.3')
-% 
-% save([Path 'mat_data\ephys_single_trial.mat'],'animals','animals_plot_single','animals_plot_idx','-v7.3')
+
+
+
+
+
 
 %% load data
 load([Path 'mat_data\ephys_all_data.mat'])

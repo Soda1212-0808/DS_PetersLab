@@ -1,5 +1,5 @@
 
-%% reaction time vs performance cross modality
+%% reaction time , performance, iti move cross modality
 clear all
 Path = 'D:\Data process\wf_data\';
 p_thres=0.01;
@@ -11,14 +11,21 @@ rxt_3=cell(2,1);
 perform_3=cell(2,1);
 p_all=cell(2,1);
 performance_align=cell(2,1);
+
+itimove_mod1_all=cell(2,1);
+itimove_mod2_all=cell(2,1);
+itimove_mix_all=cell(2,1);
 for curr_group=1:2
     switch curr_group
         case 1
             animals = {'DS007','DS010','AP019','AP021','DS011','AP022'};n1_name='visual position';n2_name='audio volume';
             % va_idx=[1 1 1 1 1 1 0 0 0];
+
         case 2
             animals = {'DS000','DS004','DS014','DS015','DS016'};n1_name='audio volume';n2_name='visual position';
             % va_idx=[0 0 0 1 1 1 1 1];
+             % animals = {'HA009','HA010','HA011','HA012'};n1_name='visual position';n2_name='audio volume';
+
     end
 
     p_val=cell(length(animals),1);
@@ -28,6 +35,11 @@ for curr_group=1:2
 
     workflow_name=cell(length(animals),1);
     performance=cell(length(animals),1);
+
+    itimove=cell(2,1);
+    itimove_all=cell(2,1);
+
+
     for curr_animal =1:length(animals)
         animal=animals{curr_animal};
         raw_data_behavior=load([Path   'behavior\' animal '_behavior'  '.mat']);
@@ -64,15 +76,15 @@ for curr_group=1:2
 
 
         temp_reaction_time_mad=nan(length(raw_data_behavior.workflow_day),2);
-        temp_reaction_time_mad(idx_v)= raw_data_behavior.stim2move_mad(idx_v,1);
+        temp_reaction_time_mad(idx_v)= raw_data_behavior.stim2lastmove_mad(idx_v,1);
         temp_reaction_time_mad(idx_a)=raw_data_behavior.stim2lastmove_mad(idx_a,1);
-        temp_reaction_time_mad(idx_m,:)= [raw_data_behavior.stim2move_mad(idx_m,2)...
+        temp_reaction_time_mad(idx_m,:)= [raw_data_behavior.stim2lastmove_mad(idx_m,2)...
             raw_data_behavior.stim2lastmove_mad(idx_m,3)];
 
         temp_reaction_time_mad_null=nan(length(raw_data_behavior.workflow_day),2);
-        temp_reaction_time_mad_null(idx_v)= raw_data_behavior.stim2move_mad_null(idx_v,1);
+        temp_reaction_time_mad_null(idx_v)= raw_data_behavior.stim2lastmove_mad_null(idx_v,1);
         temp_reaction_time_mad_null(idx_a)=raw_data_behavior.stim2lastmove_mad_null(idx_a,1);
-        temp_reaction_time_mad_null(idx_m,:)= [raw_data_behavior.stim2move_mad_null(idx_m,2)...
+        temp_reaction_time_mad_null(idx_m,:)= [raw_data_behavior.stim2lastmove_mad_null(idx_m,2)...
             raw_data_behavior.stim2lastmove_mad_null(idx_m,3)];
 
 
@@ -83,6 +95,11 @@ for curr_group=1:2
 
         reward_time{curr_animal}=cellfun(@mean ,raw_data_behavior.stim_on2off_times,'UniformOutput',true);
         workflow_name{curr_animal}=raw_data_behavior.workflow_name ;
+    
+     itimove{curr_animal}=cellfun(@(x,y) length(x)/length(y),raw_data_behavior.iti_move,  raw_data_behavior.stim2move_times(:,1),'UniformOutput',true);
+        itimove_all{curr_animal}=cellfun(@(x,y) length(x)/length(y),raw_data_behavior.all_iti_move,  raw_data_behavior.stim2move_times(:,1),'UniformOutput',true);
+
+    
     end
     p_all{curr_group}= p_val;
     % task_name=unique(workflow_name{1},'stable');
@@ -132,6 +149,29 @@ for curr_group=1:2
     rxt_3{curr_group}=cellfun(@(x)  nanmean(x) , vertcat(rxt_mean_3{:}),'UniformOutput',true);
     perform_3{curr_group}=cellfun(@(x)  nanmean(x) , vertcat(performance_3{:}),'UniformOutput',true);
 
+% iti move
+
+    temp_itimove_mod1=  cellfun(@(x,y,p)  x(find(ismember(y,n1_name) )) ,...
+        itimove,workflow_name,p_val,'UniformOutput',false);
+    temp_itimove_mod1=cellfun(@(x) x(1: min(max_l1,length(x))),temp_itimove_mod1,'UniformOutput',false);
+    itimove_mod1_all{curr_group}=cellfun(@(x) [ nan(max_l1-length(x),1);  x],temp_itimove_mod1,'UniformOutput',false);
+
+    temp_itimove_mod2=  cellfun(@(x,y,p)  x(find(ismember(y,n2_name) )) ,...
+        itimove,workflow_name,p_val,'UniformOutput',false);
+    temp_itimove_mod2=cellfun(@(x) x(1: min(max_l1,length(x))),temp_itimove_mod2,'UniformOutput',false);
+    itimove_mod2_all{curr_group}=cellfun(@(x) [ x ;nan(max_l1-length(x),1)],temp_itimove_mod2,'UniformOutput',false);
+
+    n3_name='mixed VA';
+    mixed_idx=cellfun(@(x) any(strcmp(n3_name, x)),workflow_name ,'UniformOutput',true);
+    temp_itimove_mix=cell(length(animals{curr_group}),1);
+    temp_itimove_mix(mixed_idx,1) = cellfun(@(x,y,z) x(find(ismember(y,n3_name)&z(:,1)<0.01,3,"first" )) ,...
+        itimove(mixed_idx) ,workflow_name(mixed_idx) ,p_val(mixed_idx) ,'UniformOutput',false);
+
+
+    temp_itimove_mix(mixed_idx,1)=cellfun(@(x) ...
+        [x; nan(3-length(x),1)],temp_itimove_mix(mixed_idx,1),'UniformOutput',false);
+    temp_itimove_mix(~mixed_idx) ={nan(3,1)};
+    itimove_mix_all{curr_group}=temp_itimove_mix;
 
 
 % aligned to learning stages
@@ -186,12 +226,15 @@ performance_align{curr_group}=cellfun(@(a1,a2,a3,a4,a5,a6,a7,a8)  [a1;a2;a3;a4;a
     performance_post3_a,performance_2,'UniformOutput',false);
 
 end
+
+
+
 save([Path 'summary_data\behavior.mat'],'performance_align','-v7.3')
 %
 legned_name={'VA';'AV'};
 
-figure('Position', [50 50 400 200]);
-t1 = tiledlayout(1,2, 'TileSpacing', 'loose', 'Padding', 'loose');
+figure('Position', [50 50 200 400]);
+t1 = tiledlayout(3,1, 'TileSpacing', 'loose', 'Padding', 'loose');
 corlors={[84 130 53]./255,[112  48 160]./255}
 barColors = [[   187 205 174]./255;[ 198 172 217]./255]; % 浅蓝、浅红
 scatterColors = [[84 130 53]./255; [112  48 160 ]./255]; % 深蓝、深红
@@ -209,17 +252,18 @@ xticks([max_l1/2+0.5 max_l1+max_l2/2+0.5 max_l1+max_l2+1.5  max_l1+max_l2+3.5])
 xticklabels({'mod1','mod2','mixed V','mixed A'})
 xline(max_l1+0.5,'LineStyle','--','LineWidth',1,'Color',[0.5 0.5 0.5])
 xline(max_l1+max_l2+0.5,'LineStyle','--','LineWidth',1,'Color',[0.5 0.5 0.5])
-ylabel('reaction time(s)')
+ylabel('reaction time (s)')
  ylim([0  0.5])
 yticks([ 0  0.5])
  % set(gca, 'YScale', 'log');
+set(gca,'Color','none')
 
 nexttile
 for curr_group=1:2
     hold on
-    ap.errorfill(1:max_l1, median(perform_1{curr_group},1,'omitmissing'),...
+    ap.errorfill(1:max_l1, mean(perform_1{curr_group},1,'omitmissing'),...
         std(perform_1{curr_group},0,1,'omitmissing')/sqrt(size(perform_1{curr_group},1)),corlors{curr_group},0.1,0.5)
-    ap.errorfill(max_l1+1:max_l1+max_l2, median(perform_2{curr_group},1,'omitmissing'),...
+    ap.errorfill(max_l1+1:max_l1+max_l2, mean(perform_2{curr_group},1,'omitmissing'),...
         std(perform_2{curr_group},0,1,'omitmissing')/sqrt(size(perform_2{curr_group},1)),corlors{curr_group},0.1,0.5)
 end
 
@@ -231,72 +275,116 @@ xticks([max_l1/2+0.5 max_l1+max_l2/2+0.5 max_l1+max_l2+1.5  max_l1+max_l2+3.5])
 xticklabels({'mod1','mod2','mixed V','mixed A'})
 ylabel('performance')
 % legend({'',legned_name{1},'','','','','',legned_name{2}},'Location','northoutside','Box','off','Orientation','horizontal')
-ylim([0 0.8])
+ylim([-0.1 0.8])
 yticks([0 0.8])
      % saveas(gcf,[Path 'figures\summary\figures\behavioral performance' ], 'jpg');
+set(gca,'Color','none')
 
 
 
-     figure
+%      figure
+% for curr_group=1:2
+% 
+%     temp_mean=nanmean(cat(2,performance_align{curr_group}{:}),2)
+%     temp_error=std(cat(3,performance_align{curr_group}{:}),0,3,'omitmissing')./sqrt(size(performance_align{curr_group},1))
+% 
+% hold on
+% ap.errorfill(1:8, temp_mean(1:8),temp_error(1:8),corlors{curr_group},0.1,0.5)
+% ap.errorfill(9:13, temp_mean(22:26),temp_error(22:26),corlors{curr_group},0.1,0.5)
+% 
+% end
+
+
+itimove_temp_mix_peak_mean=cellfun(@(x)  nanmean(cellfun(@(a)  nanmean(a) ,x,'UniformOutput',true ) ) ,itimove_mix_all,'UniformOutput',false)
+itimove_temp_mix_peak_error=cellfun(@(x)  std(cellfun(@(a)  nanmean(a) ,x,'UniformOutput',true ),'omitmissing')/sqrt(length(x))  ,itimove_mix_all,'UniformOutput',false)
+nexttile
 for curr_group=1:2
+vel_mod1_plot_mean=nanmean(cat(2,itimove_mod1_all{curr_group}{:}),2);
+vel_mod1_plot_error=std(cat(2,itimove_mod1_all{curr_group}{:}),0,2,'omitmissing')./sqrt(size(cat(2,itimove_mod1_all{curr_group}{:}),2));
 
-    temp_mean=nanmean(cat(3,performance_align{curr_group}{:}),3)
-    temp_error=std(cat(3,performance_align{curr_group}{:}),0,3,'omitmissing')./sqrt(size(performance_align{curr_group},1))
+vel_mod2_plot_mean=nanmean(cat(2,itimove_mod2_all{curr_group}{:}),2);
+vel_mod2_plot_error=std(cat(2,itimove_mod2_all{curr_group}{:}),0,2,'omitmissing')./sqrt(size(cat(2,itimove_mod2_all{curr_group}{:}),2));
 
-hold on
-ap.errorfill(1:8, temp_mean(1:8),temp_error(1:8),corlors{curr_group},0.1,0.5)
-ap.errorfill(9:13, temp_mean(22:26),temp_error(22:26),corlors{curr_group},0.1,0.5)
+ap.errorfill(1:8,vel_mod1_plot_mean,vel_mod1_plot_error,corlors{curr_group},0.1,0.5)
+ap.errorfill(9:16,vel_mod2_plot_mean,vel_mod2_plot_error,corlors{curr_group},0.1,0.5)
+
+
+xlim([ 1  16])
+xticks([4.5 12.5 17.5])
+xticklabels({'mod1','mod2','mixed'})
+xline(8.5,'LineStyle',':')
+ylim([0 5])
+yticks([0 5])
+ylabel('relative move')
+% title('iti move','FontWeight','normal')
 
 end
+set(gca,'Color','none')
 
 
 
 
-%%
-     figure('Position', [50 50 350 200]);
-     t1 = tiledlayout(1,2, 'TileSpacing', 'loose', 'Padding', 'loose');
+
+
+%% mixed task
+     figure('Position', [50 50 450 250]);
+     t1 = tiledlayout(1,3, 'TileSpacing', 'loose', 'Padding', 'loose');
      nexttile()
      hold on
      for curr_group=1:2
          errorbar([0 2]+curr_group, median(rxt_3{curr_group},1,'omitmissing'), std(rxt_3{curr_group},0,1,'omitmissing')./sqrt(size(rxt_3{curr_group},1)),...
              'o','LineStyle', 'none',...
-             'CapSize', 5,...
+             'CapSize', 0,...
              'MarkerEdgeColor', scatterColors(curr_group,:), ...
              'MarkerFaceColor', scatterColors(curr_group,:), ...
              'Color', scatterColors(curr_group,:),...
-             'LineWidth',2,'MarkerSize',5)
+             'LineWidth',1.5,'MarkerSize',4.5)
      end
      xlim([0 5])
      ylabel('reaction time(s)')
-     ylim([0.05  10])
+     ylim([0 0.5])
+     yticks([0 0.5])
      xticks([1.5 3.5])
      xticklabels({'mixed V','mixed A'})
-     set(gca, 'YScale', 'log', 'Color', 'none');
+     % set(gca, 'YScale', 'log', 'Color', 'none');
+     set(gca, 'Color', 'none');
 
      nexttile
      hold on
      for curr_group=1:2
          errorbar([0 2]+curr_group, median(perform_3{curr_group},1,'omitmissing'), std(perform_3{curr_group},0,1,'omitmissing')./sqrt(size(rxt_3{curr_group},1)),...
              'o','LineStyle', 'none',...
-             'CapSize', 5,...
+             'CapSize', 0,...
              'MarkerEdgeColor', scatterColors(curr_group,:), ...
              'MarkerFaceColor', scatterColors(curr_group,:), ...
              'Color', scatterColors(curr_group,:),...
-             'LineWidth',2,'MarkerSize',5)
+             'LineWidth',1.5,'MarkerSize',4.5)
      end
-
-ylabel('performance')
+     ylabel('performance')
      xlim([0 5])
-
-ylim([0 0.8])
-xticks([1.5 3.5])
-xticklabels({'mixed V','mixed A'})
+     ylim([0 0.8])
+     xticks([1.5 3.5])
+     xticklabels({'mixed V','mixed A'})
+     yticks([0 0.8])
      set(gca, 'Color', 'none');
 
-
-
+     nexttile
+     hold on
+     for curr_group=1:2
+         hold on
+         errorbar(curr_group,itimove_temp_mix_peak_mean{curr_group},itimove_temp_mix_peak_error{curr_group},...
+             'o','Color',scatterColors(curr_group,:),'LineWidth',1.5,...
+             'MarkerFaceColor',scatterColors(curr_group,:),'MarkerSize',4.5,'CapSize',0);
+         % scatter(curr_group,itimove_temp_mix_peak_mean{curr_group},'MarkerFaceColor',scatterColors(curr_group,:),'MarkerEdgeColor','none');
+     end
+     ylabel('iti move')
+     xlim([0.5 2.5])
+      ylim([0 5])
+     xticks([1.5])
+     xticklabels({'mixed'})
+     set(gca, 'Color', 'none');
+ ap.prettyfig
 %%
-
 clear all
 Path = 'D:\Data process\wf_data\';
 
@@ -305,10 +393,12 @@ asso_day_mod2=cell(2,1);
 asso_day_mod2_learn=cell(2,1);
 reaction_time_mod1=cell(2,1);
 viaraility_mod1=cell(2,1);
+reaction_time_mod2=cell(2,1);
+viaraility_mod2=cell(2,1);
 for curr_group=1:2
     switch curr_group
         case 1
-            animals = {'DS007','DS010','AP019','AP021','DS011','AP022','AP018','AP020'};n1_name='visual position';n2_name='audio volume';
+            animals = {'DS007','DS010','AP019','AP021','DS011','AP022'};n1_name='visual position';n2_name='audio volume';
             % va_idx=[1 1 1 1 1 1 0 0 0];
         case 2
             animals = {'DS000','DS004','DS014','DS015','DS016','DS005'};n1_name={'audio volume','audio frequency'};n2_name='visual position';
@@ -381,18 +471,15 @@ for curr_group=1:2
     p_all{curr_group}= p_val;
     % task_name=unique(workflow_name{1},'stable');
 
-reaction_time_mod1{curr_group}=cellfun(@(rxt,name) rxt(find(ismember(name,n1_name),1,'last'))  ,reaction_time, workflow_name,'UniformOutput',true)
+    reaction_time_mod1{curr_group}=cellfun(@(rxt,name) rxt(find(ismember(name,n1_name),1,'last'))  ,reaction_time, workflow_name,'UniformOutput',true)
+    viaraility_mod1{curr_group}=cellfun(@(rxt,name) rxt(find(ismember(name,n1_name),1,'last'))  ,viarability, workflow_name,'UniformOutput',true)
+    asso_day_mod1{curr_group}=cellfun(@(p,name) sum(p(ismember(name,n1_name))>0.01,1) +1 ,p_val, workflow_name,'UniformOutput',true)
+   
+    asso_day_mod2{curr_group}=cellfun(@(p,name) sum(p( ismember(name,n2_name))>0.01,1)+1  ,p_val, workflow_name,'UniformOutput',true)
+    reaction_time_mod2{curr_group}=cellfun(@(rxt,name) rxt(find(ismember(name,n2_name),1,'last'))  ,reaction_time, workflow_name,'UniformOutput',true)
+    viaraility_mod2{curr_group}=cellfun(@(rxt,name) rxt(find(ismember(name,n2_name),1,'last'))  ,viarability, workflow_name,'UniformOutput',true)
 
-
-viaraility_mod1{curr_group}=cellfun(@(rxt,name) rxt(find(ismember(name,n1_name),1,'last'))  ,viarability, workflow_name,'UniformOutput',true)
- 
-
-   asso_day_mod1{curr_group}=cellfun(@(p,name) sum(p(ismember(name,n1_name))>0.01,1) +1 ,p_val, workflow_name,'UniformOutput',true)
-   asso_day_mod2{curr_group}=cellfun(@(p,name) sum(p( ismember(name,n2_name))>0.01,1)+1  ,p_val, workflow_name,'UniformOutput',true)
-
-   asso_day_mod2_learn{curr_group}=cellfun(@(p,name) sum(p(ismember(name,n1_name))<0.01,1)>3 ,p_val, workflow_name,'UniformOutput',true)
-
-
+    % asso_day_mod2_learn{curr_group}=cellfun(@(p,name) sum(p(ismember(name,n1_name))<0.01,1)>3 ,p_val, workflow_name,'UniformOutput',true)
 
 
 end
@@ -400,11 +487,11 @@ end
 %% Bar of first association day in stage1 & 2
 
 % 定义颜色
-% barColors = [[   187 205 174]./255;[ 198 172 217]./255]; % 浅蓝、浅红
-% scatterColors = [[84 130 53]./255; [112  48 160 ]./255]; % 深蓝、深红
+barColors = [[   187 205 174]./255;[ 198 172 217]./255]; % 浅蓝、浅红
+scatterColors = [[84 130 53]./255; [112  48 160 ]./255]; % 深蓝、深红
 
-barColors = [[0.5 0.5 1];[1 0.5 0.5]]; % 浅蓝、浅红
-scatterColors = [[0 0 1];[1 0 0]]; % 深蓝、深红
+% barColors = [[0.5 0.5 1];[1 0.5 0.5]]; % 浅蓝、浅红
+% scatterColors = [[0 0 1];[1 0 0]]; % 深蓝、深红
 yscale={[1 9],[0 0.3 ],[0 0.1]}
 % num_stage = {asso_day_mod1,...
 %     cellfun(@(x,y) x(y),asso_day_mod2,asso_day_mod2_learn,'UniformOutput',false)};
@@ -416,11 +503,11 @@ tiledlayout(1,3)
 for curr_stage=1:3
     switch  curr_stage
         case 1
-            temp_dat=asso_day_mod1;
+            temp_dat=asso_day_mod2;
         case 2
-          temp_dat=  reaction_time_mod1;
+          temp_dat=  reaction_time_mod2;
         case 3
-           temp_dat=  viaraility_mod1;
+           temp_dat=  viaraility_mod2;
     end
 
 
@@ -481,7 +568,7 @@ yticks([yl(1) yl(2) ])
 y_offset = (yl(2) - yl(1)) * 0.05;  % 横线高度偏移比例
 % 横线和星号 y 位置
 y_star = max([temp_dat{1}; temp_dat{2}]) + y_offset;
-  [~,p]=  ttest2(temp_dat{1}, temp_dat{2})
+  p=  ranksum(temp_dat{1}, temp_dat{2})
 % 判定星号数量
 if p < 0.001
     stars = '***';
@@ -491,6 +578,7 @@ elseif p < 0.05
     stars = '*';
 else
     stars = 'ns';  % 可选
+     % stars = num2str(p);  % 可选
 end
   % 添加横线和星号
 plot([1 2], [y_star y_star], 'k-', 'LineWidth', 1.2);  % 横线
@@ -509,7 +597,7 @@ end
  %%  wheel velocity
  clear all
 Path = 'D:\Data process\wf_data\';
-barColors = [[84 130 53]./255; [112  48 160 ]./255]; % 深蓝、深红
+barColors = [[84 130 53]./255; [112  48 160 ]./255;[0 1 0]]; % 深蓝、深红
 
 surround_time = [-5,5];
 surround_sample_rate = 100;
@@ -530,14 +618,22 @@ vel_all=cell(2,1);
 
 vel_mod1_all=cell(2,1);
 vel_mod2_all=cell(2,1);
+vel_mod3_all_v=cell(2,1);
+
+vel_mod3_all_a=cell(2,1);
+
 for curr_group=1:2
     switch curr_group
         case 1
-            animals = {'DS007','DS010','AP019','AP021','DS011','AP022'};n1_name='visual position';n2_name='audio volume';
+             animals = {'DS007','DS010','AP019','AP021','DS011','AP022'};n1_name='visual position';n2_name='audio volume';
+
             % va_idx=[1 1 1 1 1 1 0 0 0];
         case 2
             animals = {'DS000','DS004','DS014','DS015','DS016'};n1_name='audio volume';n2_name='visual position';
             % va_idx=[0 0 0 1 1 1 1 1];
+        case 3
+                       animals = {'HA009','HA010','HA011','HA012'};n1_name='visual position';n2_name='audio volume';
+
     end
 
     p_val=cell(length(animals),1);
@@ -566,7 +662,6 @@ for curr_group=1:2
         velocity{curr_animal}=raw_data_behavior.frac_velocity_stimalign;
         workflow_name{curr_animal}=raw_data_behavior.workflow_name ;
 
-
     end
     
     
@@ -575,8 +670,7 @@ for curr_group=1:2
         velocity,workflow_name,p_val,'UniformOutput',false);
     temp_vel_mod1=  cellfun(@(x) cellfun(@(a) nanmean(a,1),x,'UniformOutput',false ) ,...
         temp_vel_mod1,'UniformOutput',false);
-
-    temp_vel_mod1=cellfun(@(x) x(1: min(max_l1,length(x))),temp_vel_mod1,'UniformOutput',false);
+    temp_vel_mod1=cellfun(@(x) x(max(1,end-max_l1+1):end),temp_vel_mod1,'UniformOutput',false);
     vel_mod1_all{curr_group}=cellfun(@(x) [ nan(max_l1-length(x),1001); cell2mat(x)],temp_vel_mod1,'UniformOutput',false);
 
     
@@ -587,9 +681,34 @@ for curr_group=1:2
         temp_vel_mod2,'UniformOutput',false);
     temp_vel_mod2=cellfun(@(x) x(1: min(max_l1,length(x))),temp_vel_mod2,'UniformOutput',false);
     vel_mod2_all{curr_group}=cellfun(@(x) [ cell2mat(x); nan(max_l1-length(x),1001)],temp_vel_mod2,'UniformOutput',false);
+    
+            n3_name='mixed VA';
+    max_l1=6
+
+            mixed_idx=cellfun(@(x) any(strcmp(n3_name, x)),workflow_name ,'UniformOutput',true);
+            temp_vel_mod3_v=cell(length(animals),1);
+            temp_vel_mod3_v(mixed_idx)=  cellfun(@(x,y,p)  x(find(ismember(y,n3_name)&p(:,1)<0.01 ),2) ,...
+                velocity(mixed_idx),workflow_name(mixed_idx),p_val(mixed_idx),'UniformOutput',false);
+            temp_vel_mod3_v(mixed_idx)=  cellfun(@(x) cellfun(@(a) nanmean(a,1),x,'UniformOutput',false ) ,...
+                temp_vel_mod3_v(mixed_idx),'UniformOutput',false);
+            temp_vel_mod3_v(mixed_idx)=cellfun(@(x) x(1: min(max_l1,length(x))),temp_vel_mod3_v(mixed_idx),'UniformOutput',false);
+            temp_vel_mod3_v(~mixed_idx) =arrayfun(@(x)  repmat({nan(1,1001)},max_l1,1),...
+                (1:length(find(~mixed_idx)))', 'UniformOutput', false);
+            vel_mod3_all_v{curr_group}=cellfun(@(x) [ cell2mat(x); nan(max_l1-length(x),1001)],temp_vel_mod3_v,'UniformOutput',false);
+
+            temp_vel_mod3_a=cell(length(animals),1);
+            temp_vel_mod3_a(mixed_idx)=  cellfun(@(x,y,p)  x(find(ismember(y,n3_name)&p(:,1)<0.01 ),3) ,...
+                velocity(mixed_idx),workflow_name(mixed_idx),p_val(mixed_idx),'UniformOutput',false);
+            temp_vel_mod3_a(mixed_idx)=  cellfun(@(x) cellfun(@(a) nanmean(a,1),x,'UniformOutput',false ) ,...
+                temp_vel_mod3_a(mixed_idx),'UniformOutput',false);
+            temp_vel_mod3_a(mixed_idx)=cellfun(@(x) x(1: min(max_l1,length(x))),temp_vel_mod3_a(mixed_idx),'UniformOutput',false);
+            temp_vel_mod3_a(~mixed_idx) =arrayfun(@(x)  repmat({nan(1,1001)},max_l1,1),...
+                (1:length(find(~mixed_idx)))', 'UniformOutput', false);
+
+            vel_mod3_all_a{curr_group}=cellfun(@(x) [ cell2mat(x); nan(max_l1-length(x),1001)],temp_vel_mod3_a,'UniformOutput',false);
 
 
-    temp_vel_pre0=cell(length(animals{curr_group}),1);
+    temp_vel_pre0=cell(length(animals),1);
     temp_vel_pre0=  cellfun(@(x,y,p)  x(find(ismember(y,n1_name)&p(:,1)>=0.01 ),1) ,...
         velocity,workflow_name,p_val,'UniformOutput',false);
     temp_vel_pre0 = cellfun(@(x) x(1:end-2),temp_vel_pre0,'UniformOutput',false);
@@ -597,21 +716,21 @@ for curr_group=1:2
     temp_vel_pre0= cellfun(@(x) ...
         [x; repmat({nan(1,1001)},1-length(x),1)],temp_vel_pre0,'UniformOutput',false);
 
-    temp_vel_pre1=cell(length(animals{curr_group}),1);
+    temp_vel_pre1=cell(length(animals),1);
     temp_vel_pre1=  cellfun(@(x,y,p)  x(find(ismember(y,n1_name)&p(:,1)>=0.01,2,"last" ),1) ,...
         velocity,workflow_name,p_val,'UniformOutput',false);
     temp_vel_pre1 = cellfun(@(x) cellfun(@(a) nanmean(a,1)  ,x,'UniformOutput',false),temp_vel_pre1,'UniformOutput',false);
     temp_vel_pre1= cellfun(@(x) ...
         [x; repmat({nan(1,1001)},2-length(x),1)],temp_vel_pre1,'UniformOutput',false);
 
-    temp_vel_post1=cell(length(animals{curr_group}),1);
+    temp_vel_post1=cell(length(animals),1);
     temp_vel_post1=  cellfun(@(x,y,p)  x(find(ismember(y,n1_name)&p(:,1)<0.01,5,"first" ),1) ,...
         velocity,workflow_name,p_val,'UniformOutput',false);
     temp_vel_post1 = cellfun(@(x) cellfun(@(a) nanmean(a,1)  ,x,'UniformOutput',false),temp_vel_post1,'UniformOutput',false);
     temp_vel_post1= cellfun(@(x) ...
         [x; repmat({nan(1,1001)},5-length(x),1)],temp_vel_post1,'UniformOutput',false);
 
-    temp_vel_pre2=cell(length(animals{curr_group}),1);
+    temp_vel_pre2=cell(length(animals),1);
     temp_vel_pre2=  cellfun(@(x,y,p)  x(find(ismember(y,n2_name)&p(:,1)>=0.01,2,"first" ),1) ,...
         velocity,workflow_name,p_val,'UniformOutput',false);
     temp_vel_pre2 = cellfun(@(x) cellfun(@(a) nanmean(a,1)  ,x,'UniformOutput',false),temp_vel_pre2,'UniformOutput',false);
@@ -625,19 +744,18 @@ for curr_group=1:2
     temp_vel_post2= cellfun(@(x) ...
         [x; repmat({nan(1,1001)},5-length(x),1)],temp_vel_post2,'UniformOutput',false);
 
-    n3_name='mixed VA';
     mixed_idx=cellfun(@(x) any(strcmp(n3_name, x)),workflow_name ,'UniformOutput',true);
-    temp_itimove_mix=cell(length(animals{curr_group}),1);
-    temp_itimove_mix(mixed_idx,1) = cellfun(@(x,y,z) x(find(ismember(y,n3_name)&z(:,1)<0.01,3,"first" ),2) ,...
+    temp_vel_mix_v=cell(length(animals),1);
+    temp_vel_mix_v(mixed_idx,1) = cellfun(@(x,y,z) x(find(ismember(y,n3_name)&z(:,1)<0.01,3,"first" ),2) ,...
         velocity(mixed_idx) ,workflow_name(mixed_idx) ,p_val(mixed_idx) ,'UniformOutput',false);
-    temp_itimove_mix(mixed_idx,1) =cellfun(@(x) cellfun(@(a) nanmean(a,1)  ,x,'UniformOutput',false), temp_itimove_mix(mixed_idx,1),'UniformOutput',false);
+    temp_vel_mix_v(mixed_idx,1) =cellfun(@(x) cellfun(@(a) nanmean(a,1)  ,x,'UniformOutput',false), temp_vel_mix_v(mixed_idx,1),'UniformOutput',false);
 
-    temp_itimove_mix(mixed_idx,1)=cellfun(@(x) ...
-        [x; repmat({nan(1,1001)},3-length(x),1)],temp_itimove_mix(mixed_idx,1),'UniformOutput',false);
-    temp_itimove_mix(~mixed_idx) =arrayfun(@(x)  repmat({nan(1,1001)},3,1),...
+    temp_vel_mix_v(mixed_idx,1)=cellfun(@(x) ...
+        [x; repmat({nan(1,1001)},3-length(x),1)],temp_vel_mix_v(mixed_idx,1),'UniformOutput',false);
+    temp_vel_mix_v(~mixed_idx) =arrayfun(@(x)  repmat({nan(1,1001)},3,1),...
         (1:length(find(~mixed_idx)))', 'UniformOutput', false);
 
-    temp_vel_mix_a=cell(length(animals{curr_group}),1);
+    temp_vel_mix_a=cell(length(animals),1);
     temp_vel_mix_a(mixed_idx,1) = cellfun(@(x,y,z) x(find(ismember(y,n3_name)&z(:,2)<0.01,3,"first" ),3) ,...
         velocity(mixed_idx) ,workflow_name(mixed_idx) ,p_val(mixed_idx) ,'UniformOutput',false);
     temp_vel_mix_a(mixed_idx,1) =cellfun(@(x) cellfun(@(a) nanmean(a,1)  ,x,'UniformOutput',false), temp_vel_mix_a(mixed_idx,1),'UniformOutput',false);
@@ -647,7 +765,7 @@ for curr_group=1:2
         (1:length(find(~mixed_idx)))', 'UniformOutput', false);
 
     vel_all{curr_group}=cellfun(@(a0,a,b,c,d,e,f) cell2mat([a0 ;a; b; c; d; e ;f]),temp_vel_pre0, temp_vel_pre1,temp_vel_post1,temp_vel_pre2,...
-        temp_vel_post2,temp_itimove_mix,temp_vel_mix_a,'UniformOutput',false);
+        temp_vel_post2,temp_vel_mix_v,temp_vel_mix_a,'UniformOutput',false);
 
 
 end
@@ -670,8 +788,8 @@ vel_temp_mix_peak=cellfun(@(x) [permute( min(nanmean(x(16:18,:,:),1),[],2) ,[3,2
 vel_temp_mix_peak_mean=cellfun(@(x)  -nanmean(x,1),vel_temp_mix_peak,'UniformOutput',false);
 vel_temp_mix_peak_error=cellfun(@(x)  std(x,0,1,'omitmissing')./sqrt(size(x,1)),vel_temp_mix_peak,'UniformOutput',false);
 
-figure('Position',[50 50 1000 200]);
-t1 = tiledlayout(1,5, 'TileSpacing', 'compact', 'Padding', 'compact');
+figure('Position',[50 50 200 200]);
+% t1 = tiledlayout(1,5, 'TileSpacing', 'compact', 'Padding', 'compact');
 
 for curr_group=1:2
     nexttile(1)
@@ -696,7 +814,8 @@ xline(8.5,'LineStyle',':')
 ylim([0 3500])
 yticks([0 3500])
 yticklabels({'0','max'})
-title('velocity','FontWeight','normal')
+ylabel('velocity')
+% title('velocity','FontWeight','normal')
 set(gca,'Color','none')
 
 
@@ -705,165 +824,81 @@ vel_min_error_1=std(cat(3,vel_mod1_all{curr_group}{:}),0,3,'omitmissing')./sqrt(
 vel_min_mean_2=nanmean(cat(3,vel_mod2_all{curr_group}{:}),3);
 vel_min_error_2=std(cat(3,vel_mod2_all{curr_group}{:}),0,3,'omitmissing')./sqrt(size(cat(3,vel_mod2_all{curr_group}{:}),3));
 
-nexttile(2)
-ap.errorfill(surround_time_points, vel_min_mean_1(8,:), vel_min_error_1(8,:),barColors(curr_group,:),0.1,0.5);
-xlim([-1 2])
-ylim([-3500 100])
-yticks([-3500 0])
-yticklabels({'max','0'})
-xlabel('time (s)')
-title('mod1','FontWeight','normal')
-set(gca,'Color','none')
-
-nexttile(3)
-ap.errorfill(surround_time_points, vel_min_mean_2(5,:),vel_min_error_2(5,:),barColors(curr_group,:),0.1,0.5);
-xlim([-1 2])
-ylim([-3500 100])
-yticks([-3500 0])
-yticklabels({'max','0'})
-xlabel('time (s)')
-title('mod2','FontWeight','normal')
-set(gca,'Color','none')
-
-nexttile(4)
-ap.errorfill(surround_time_points, vel_temp_mix_mean{curr_group}{1} ,vel_temp_mix_error{curr_group}{1},barColors(curr_group,:),0.1,0.5);
-xlim([-1 2])
-ylim([-3500 100])
-yticks([-3500 0])
-yticklabels({'max','0'})
-xlabel('time (s)')
-title('mixed V','FontWeight','normal')
-set(gca,'Color','none')
-
-nexttile(5)
-ap.errorfill(surround_time_points, vel_temp_mix_mean{curr_group}{2} ,vel_temp_mix_error{curr_group}{2},barColors(curr_group,:),0.1,0.5);
-xlim([-1 2])
-ylim([-3500 100])
-yticks([-3500 0])
-yticklabels({'max','0'})
-xlabel('time (s)')
-title('mixed A','FontWeight','normal')
-set(gca,'Color','none')
-
-end
-
-
- %%  iti move
- clear all
-Path = 'D:\Data process\wf_data\';
-barColors = [[84 130 53]./255; [112  48 160 ]./255]; % 深蓝、深红
-
-surround_time = [-5,5];
-surround_sample_rate = 100;
-surround_time_points = surround_time(1):1/surround_sample_rate:surround_time(2);
-
-
-itimove_mod1_all=cell(2,1);
-itimove_mod2_all=cell(2,1);
-itimove_mix_all=cell(2,1);
-for curr_group=1:2
-    switch curr_group
-        case 1
-            animals = {'DS007','DS010','AP019','AP021','DS011','AP022'};n1_name='visual position';n2_name='audio volume';
-            % va_idx=[1 1 1 1 1 1 0 0 0];
-        case 2
-            animals = {'DS000','DS004','DS014','DS015','DS016'};n1_name='audio volume';n2_name='visual position';
-            % va_idx=[0 0 0 1 1 1 1 1];
-    end
-
-    p_val=cell(length(animals),1);
-    itimove=cell(2,1);
-        itimove_all=cell(2,1);
-
-    workflow_name=cell(length(animals),1);
-
-    for curr_animal =1:length(animals)
-        animal=animals{curr_animal};
-        raw_data_behavior=load([Path   'behavior\' animal '_behavior'  '.mat']);
-
-        tem_p=nan(length(raw_data_behavior.workflow_day),2);
-        idx_v=ismember(raw_data_behavior.workflow_name,'visual position');
-        idx_a=ismember(raw_data_behavior.workflow_name,'audio volume');
-        idx_m=ismember(raw_data_behavior.workflow_name,'mixed VA');
-
-        tem_p(idx_v,1)= raw_data_behavior.rxn_l_mad_p(idx_v,1);
-        tem_p(idx_a,1)=raw_data_behavior.rxn_l_mad_p(idx_a,1);
-        tem_p(idx_m,:)= [raw_data_behavior.rxn_l_mad_p(idx_m,2)...
-            raw_data_behavior.rxn_l_mad_p(idx_m,3)];
-
-        p_val{curr_animal}=tem_p;
-         itimove{curr_animal}=cellfun(@(x,y) length(x)/length(y),raw_data_behavior.iti_move,  raw_data_behavior.stim2move_times(:,1),'UniformOutput',true);
-        itimove_all{curr_animal}=cellfun(@(x,y) length(x)/length(y),raw_data_behavior.all_iti_move,  raw_data_behavior.stim2move_times(:,1),'UniformOutput',true);
-
-        workflow_name{curr_animal}=raw_data_behavior.workflow_name;
-    end
-    
-    
-    max_l1=8
-    temp_itimove_mod1=  cellfun(@(x,y,p)  x(find(ismember(y,n1_name) )) ,...
-        itimove,workflow_name,p_val,'UniformOutput',false);
-    temp_itimove_mod1=cellfun(@(x) x(1: min(max_l1,length(x))),temp_itimove_mod1,'UniformOutput',false);
-    itimove_mod1_all{curr_group}=cellfun(@(x) [ nan(max_l1-length(x),1);  x],temp_itimove_mod1,'UniformOutput',false);
-
-
-    temp_itimove_mod2=  cellfun(@(x,y,p)  x(find(ismember(y,n2_name) )) ,...
-        itimove,workflow_name,p_val,'UniformOutput',false);
- 
-    temp_itimove_mod2=cellfun(@(x) x(1: min(max_l1,length(x))),temp_itimove_mod2,'UniformOutput',false);
-    itimove_mod2_all{curr_group}=cellfun(@(x) [ x ;nan(max_l1-length(x),1)],temp_itimove_mod2,'UniformOutput',false);
-
-    n3_name='mixed VA';
-    mixed_idx=cellfun(@(x) any(strcmp(n3_name, x)),workflow_name ,'UniformOutput',true);
-    temp_itimove_mix=cell(length(animals{curr_group}),1);
-    temp_itimove_mix(mixed_idx,1) = cellfun(@(x,y,z) x(find(ismember(y,n3_name)&z(:,1)<0.01,3,"first" )) ,...
-        itimove(mixed_idx) ,workflow_name(mixed_idx) ,p_val(mixed_idx) ,'UniformOutput',false);
-
-
-
-    temp_itimove_mix(mixed_idx,1)=cellfun(@(x) ...
-        [x; nan(3-length(x),1)],temp_itimove_mix(mixed_idx,1),'UniformOutput',false);
-    temp_itimove_mix(~mixed_idx) ={nan(3,1)};
-    itimove_mix_all{curr_group}=temp_itimove_mix;
+% nexttile(2)
+% ap.errorfill(surround_time_points, vel_min_mean_1(8,:), vel_min_error_1(8,:),barColors(curr_group,:),0.1,0.5);
+% xlim([-1 2])
+% ylim([-3500 100])
+% yticks([-3500 0])
+% yticklabels({'max','0'})
+% xlabel('time (s)')
+% title('mod1','FontWeight','normal')
+% set(gca,'Color','none')
+% 
+% nexttile(3)
+% ap.errorfill(surround_time_points, vel_min_mean_2(5,:),vel_min_error_2(5,:),barColors(curr_group,:),0.1,0.5);
+% xlim([-1 2])
+% ylim([-3500 100])
+% yticks([-3500 0])
+% yticklabels({'max','0'})
+% xlabel('time (s)')
+% title('mod2','FontWeight','normal')
+% set(gca,'Color','none')
+% 
+% nexttile(4)
+% ap.errorfill(surround_time_points, vel_temp_mix_mean{curr_group}{1} ,vel_temp_mix_error{curr_group}{1},barColors(curr_group,:),0.1,0.5);
+% xlim([-1 2])
+% ylim([-3500 100])
+% yticks([-3500 0])
+% yticklabels({'max','0'})
+% xlabel('time (s)')
+% title('mixed V','FontWeight','normal')
+% set(gca,'Color','none')
+% 
+% nexttile(5)
+% ap.errorfill(surround_time_points, vel_temp_mix_mean{curr_group}{2} ,vel_temp_mix_error{curr_group}{2},barColors(curr_group,:),0.1,0.5);
+% xlim([-1 2])
+% ylim([-3500 100])
+% yticks([-3500 0])
+% yticklabels({'max','0'})
+% xlabel('time (s)')
+% title('mixed A','FontWeight','normal')
+% set(gca,'Color','none')
 
 end
 
 
-% t1 = tiledlayout(1,5, 'TileSpacing', 'compact', 'Padding', 'compact');
-itimove_temp_mix_peak_mean=cellfun(@(x)  nanmean(cellfun(@(a)  nanmean(a) ,x,'UniformOutput',true ) ) ,itimove_mix_all,'UniformOutput',false)
-itimove_temp_mix_peak_error=cellfun(@(x)  std(cellfun(@(a)  nanmean(a) ,x,'UniformOutput',true ),'omitmissing')/sqrt(length(x))  ,itimove_mix_all,'UniformOutput',false)
- figure('Position',[50 50 200 200]);
+figure('Position',[50 50 200 200]);
 for curr_group=1:2
     nexttile(1)
-vel_mod1_plot_mean=nanmean(cat(2,itimove_mod1_all{curr_group}{:}),2);
-vel_mod1_plot_error=std(cat(2,itimove_mod1_all{curr_group}{:}),0,2,'omitmissing')./sqrt(size(cat(2,itimove_mod1_all{curr_group}{:}),2));
+vel_mod1_plot_mean=-nanmean(min(cat(3,vel_mod1_all{curr_group}{:}),[],2),3);
+vel_mod1_plot_error=std(min(cat(3,vel_mod1_all{curr_group}{:}),[],2),0,3,'omitmissing')./sqrt(size(min(cat(3,vel_mod1_all{curr_group}{:}),[],2),3));
 
-vel_mod2_plot_mean=nanmean(cat(2,itimove_mod2_all{curr_group}{:}),2);
-vel_mod2_plot_error=std(cat(2,itimove_mod2_all{curr_group}{:}),0,2,'omitmissing')./sqrt(size(cat(2,itimove_mod2_all{curr_group}{:}),2));
+vel_mod2_plot_mean=-nanmean(min(cat(3,vel_mod2_all{curr_group}{:}),[],2),3);
+vel_mod2_plot_error=std(min(cat(3,vel_mod2_all{curr_group}{:}),[],2),0,3,'omitmissing')./sqrt(size(min(cat(3,vel_mod2_all{curr_group}{:}),[],2),3));
+
+vel_mod3_v_plot_mean=-nanmean(min(cat(3,vel_mod3_all_v{curr_group}{:}),[],2),3);
+vel_mod3_v_plot_error=std(min(cat(3,vel_mod3_all_v{curr_group}{:}),[],2),0,3,'omitmissing')./sqrt(size(min(cat(3,vel_mod3_all_v{curr_group}{:}),[],2),3));
+
+vel_mod3_a_plot_mean=-nanmean(min(cat(3,vel_mod3_all_a{curr_group}{:}),[],2),3);
+vel_mod3_a_plot_error=std(min(cat(3,vel_mod3_all_a{curr_group}{:}),[],2),0,3,'omitmissing')./sqrt(size(min(cat(3,vel_mod3_all_a{curr_group}{:}),[],2),3));
+
 
 ap.errorfill(1:8,vel_mod1_plot_mean,vel_mod1_plot_error,barColors(curr_group,:),0.1,0.5)
-ap.errorfill(9:16,vel_mod2_plot_mean,vel_mod2_plot_error,barColors(curr_group,:),0.1,0.5)
+ap.errorfill(9:13,vel_mod2_plot_mean(1:5),vel_mod2_plot_error(1:5),barColors(curr_group,:),0.1,0.5)
 
-hold on
-errorbar(16 +curr_group,itimove_temp_mix_peak_mean{curr_group},itimove_temp_mix_peak_error{curr_group},...
-    'LineStyle','none','Color',barColors(curr_group,:),'LineWidth',1.5);
-scatter(16 +curr_group,itimove_temp_mix_peak_mean{curr_group},'MarkerFaceColor',barColors(curr_group,:),'MarkerEdgeColor','none');
+ap.errorfill(14:19,vel_mod3_v_plot_mean,vel_mod3_v_plot_error,barColors(curr_group,:),0.1,0.5)
+ap.errorfill(20:25,vel_mod3_a_plot_mean,vel_mod3_a_plot_error,barColors(curr_group,:),0.1,0.5)
 
-xlim([ 1  18])
-xticks([4.5 12.5 17.5])
-xticklabels({'mod1','mod2','mixed'})
-xline(8.5,'LineStyle',':')
-ylim([0 5])
-yticks([0 5])
-ylabel('relative move')
-title('iti move','FontWeight','normal')
 
 end
-set(gca,'Color','none')
+
+
+
 
 %% example behavior trace
 
     animal ='DS019'
-    rec_day='2025-01-18'
+    rec_day='2025-01-10'
     rec = plab.find_recordings(animal,rec_day,'*wheel*');
     rec_time = rec.recording{end};
     load_parts = struct;
@@ -873,7 +908,7 @@ set(gca,'Color','none')
 
 %
     time_period=[  min(find(timelite.timestamps-(photodiode_on_times(16)-0.2)>0)),...
-        min(find(timelite.timestamps-(photodiode_off_times(16)+0.5)>0))]
+        min(find(timelite.timestamps-(photodiode_off_times(18)+0.5)>0))]
 
     reward_timeline =reward_thresh(time_period(1):time_period(2));  % 示例数据
     % 找出所有为 1 的索引
@@ -948,8 +983,26 @@ xlim([-190 length(reward_timeline)])
 
     % legend({'stim','reward','wheel move','wheel velocity','lick'},'Location','eastoutside','Box','off')
 
-    
-   saveas(gcf,[Path 'figures\summary\figures\figure 1 example behavioral trace' ], 'jpg');
+
+
+    figure('Position',[50 50 100 50]);
+    t1 = tiledlayout(4, 1, 'TileSpacing', 'none', 'Padding', 'none');
+    nexttile
+    plot( photodiode_trace(time_period(1)-1000:time_period(2))>3,'LineWidth',line_width,'Color','k')
+        ylim([0 1.3])
+
+    axis off
+    nexttile
+        plot(wheel_move(time_period(1)-1000:time_period(2)),'LineWidth',line_width,'Color','k')
+        ylim([0 1.3])
+
+    axis off
+    nexttile
+    plot(lick_thresh(time_period(1)-1000:time_period(2)),'LineWidth',line_width,'Color','k')
+    axis off
+    ylim([0 1.3])
+
+   % saveas(gcf,[Path 'figures\summary\figures\figure 1 example behavioral trace' ], 'jpg');
 %% single mice behavior
 clear all
 Path = 'D:\Data process\wf_data\';
@@ -1171,6 +1224,44 @@ end
 end
 
 
+%% test
 
+
+
+task_type=[trial_events.values.TaskType]
+
+pairs={[0 0 0 1],[1],[0],[0 1]}
+vel_all=cell(length(pairs),1)
+for curr_pair_idx=1:length(pairs)
+    curr_pair=pairs{curr_pair_idx};
+    v=cell(length(curr_pair),1)
+    for curr_i=1:length(curr_pair)
+    v{curr_i} = task_type(curr_i:end-length(curr_pair)+curr_i);
+    end
+    % idx = find(v1==curr_pair(1) & v2==curr_pair(2)&v3==curr_pair(3) & v4==curr_pair(4)) + 1;
+
+ temp=  cell2mat( cellfun(@(x,y)  x==y   ,  v, num2cell(curr_pair)','UniformOutput',false ));
+    idx = find(all(temp == 1, 1));  % 找每列是否全为0
+
+    idx_last = idx + length(curr_pair) - 1;
+
+curr_time=stim_move_time(idx_last);
+
+
+    pull_times = curr_time + surround_time_points;
+    event_aligned_wheel_vel = interp1(timelite.timestamps, ...
+        wheel_velocity,pull_times);
+    vel_all{curr_pair_idx}=event_aligned_wheel_vel;
+end
+
+C_str = cellfun(@(x) sprintf('%d', x), pairs, 'UniformOutput', false);
+
+
+
+
+figure;
+hold on
+cellfun(@(x) plot(nanmean(x,1)) , vel_all,'UniformOutput',false)
+legend(C_str)
 
 

@@ -1,0 +1,199 @@
+function out = classify_striatal_unit_opt(spike_times, sens_times, move_times, T_total, varargin)
+% 与“严谨版”等价功能：block K-fold + 固定λ + S→M残差化 + Shapley ΔLL + 双侧置换(早停)
+% 但支持：
+%   - Precomp 复用（多单元共享XS/XM/XC、folds、λ、每折μ/σ）
+%   - 置换批并行（PermBatch）
+%   - 卷积GPU/FFT（当未传Precomp时生效）
+%
+% 额外 Name-Value：
+%   'Precomp'     : []  % 由 make_striatal_precomp 生成，传入即可极速
+%   'NumPerm'     : 200
+%   'AlphaSig'    : 0.01
+%   'TwoSided'    : true
+%   'PermBatch'   : 16  % 每批并行个数（建议 8~32）
+
+p=inputParser;
+addParameter(p,'Precomp',[]);
+addParameter(p,'NumPerm',200);
+addParameter(p,'AlphaSig',0.01);
+addParameter(p,'TwoSided',true);
+addParameter(p,'PermBatch',16);
+
+% 当不提供 Precomp 时，需要下面这些
+addParameter(p,'BinSize',0.02);
+addParameter(p,'SensLags',[0 0.20]);
+addParameter(p,'MoveLags',[-0.05 0.20]);
+addParameter(p,'NumBases',6);
+addParameter(p,'Alpha',0.5);
+addParameter(p,'Kfold',5);
+addParameter(p,'GapBins',2);
+addParameter(p,'UseParallel',true);
+addParameter(p,'UseGPUConv',false);
+addParameter(p,'UseFFTConv',false);
+addParameter(p,'Seed',42);
+parse(p,varargin{:});
+opt=p.Results;
+
+% -------- 预计算 or 现场构建 --------
+P=opt.Precomp;
+if isempty(P)
+    P = make_striatal_precomp(sens_times, move_times, T_total, ...
+        'BinSize',opt.BinSize,'SensLags',opt.SensLags,'MoveLags',opt.MoveLags, ...
+        'NumBases',opt.NumBases,'Alpha',opt.Alpha,'Kfold',opt.Kfold, ...
+        'GapBins',opt.GapBins,'UseParallel',opt.UseParallel, ...
+        'UseGPUConv',opt.UseGPUConv,'UseFFTConv',opt.UseFFTConv,'Seed',opt.Seed);
+end
+T = P.T;
+
+% -------- y ----------
+st = double(spike_times(:));                        % 确保是 double 向量
+y  = histcounts(st, 'BinEdges', double(P(1).edges))';  % 显式指定 BinEdges
+
+% === 选 lambda（对当前神经元，基于 FULL 设计一次选择）===
+opts   = statset('UseParallel', logical(P.UseParallel));
+Xall   = [P.XS P.XM P.XC];
+mu_all = P.mu{1}; sd_all = P.sd{1}; sd_all(sd_all==0 | isnan(sd_all)) = 1;
+Xz_all = (Xall - mu_all) ./ sd_all;
+
+[~, FitCV] = lassoglm(Xz_all, y, 'poisson', 'Alpha', P.Alpha, ...
+    'CV', 5, 'Standardize', false, 'Link', 'log', 'Options', opts);
+
+P.lambda = FitCV.Lambda(FitCV.IndexMinDeviance);   % ← 写回 λ
+
+% -------- Shapley ΔLL（FULL/部分模型） --------
+LL_C  = cv_poiss_ll(P.XC,        y, P, P.lambda);
+LL_S  = cv_poiss_ll([P.XS P.XC], y, P, P.lambda);
+LL_M  = cv_poiss_ll([P.XM P.XC], y, P, P.lambda);
+LL_SM = cv_poiss_ll([P.XS P.XM P.XC], y, P, P.lambda);
+dLL_S = 0.5*((LL_S-LL_C)+(LL_SM-LL_M));
+dLL_M = 0.5*((LL_M-LL_C)+(LL_SM-LL_S));
+
+% -------- ★新增：整体效应 dLL_full 与其置换 p_full --------
+dLL_full = LL_SM - LL_C;
+p_full = perm_two_sided_batch(@(sh) dLL_full_perm(sh, y, P), ...
+          T, opt.NumPerm, opt.AlphaSig, true, opt.PermBatch);
+
+% -------- 置换（批并行 + 早停） --------
+p_S = perm_two_sided_batch(@(sh) dLL_perm('S', sh, y, P), T, opt.NumPerm, opt.AlphaSig, opt.TwoSided, opt.PermBatch);
+p_M = perm_two_sided_batch(@(sh) dLL_perm('M', sh, y, P), T, opt.NumPerm, opt.AlphaSig, opt.TwoSided, opt.PermBatch);
+
+% -------- 标签（加入共享型 mixed 的兜底） --------
+alpha=opt.AlphaSig;
+ratioThr = 0.4;  % ★新增：两者量级相近的阈值（0.4~0.7 可调）
+if (p_S<alpha)&&(dLL_S>dLL_M)
+    label='sensory-driven';
+elseif (p_M<alpha)&&(dLL_M>dLL_S)
+    label='movement-driven';
+elseif (p_S<alpha)&&(p_M<alpha)&& (abs(dLL_S-dLL_M)<=0.1*(dLL_S+dLL_M+eps))
+    label='mixed';
+elseif (p_full<alpha) && (dLL_S>0) && (dLL_M>0) && ...
+       (min(dLL_S,dLL_M) / max(dLL_S,dLL_M+eps) >= ratioThr)        % ★新增
+    label='mixed';   % 也可改成 'shared-mixed'
+else
+    label='unclassified';
+end
+
+% -------- 全数据下系数（仅用于核形可视化） --------
+opts = statset('UseParallel',logical(P.UseParallel));
+Xall = [P.XS P.XM P.XC];
+Xz = (Xall - P.mu{1})./P.sd{1};    % 仅为得到β；训练/测试一体，和LL无关
+[B,Fit] = lassoglm(Xz, y, 'poisson', 'Alpha', P.Alpha, ...
+    'Lambda', P.lambda, 'Standardize', false, 'Link','log','Options',opts);
+beta_all = [Fit.Intercept; B];
+beta_S = beta_all(1+P.grpS); beta_M = beta_all(1+P.grpM);
+
+% -------- 输出 --------
+out = struct('label',label,'dLL_S',dLL_S,'dLL_M',dLL_M,'p_S',p_S,'p_M',p_M, ...
+             'beta_S',beta_S,'beta_M',beta_M);
+info = struct();
+info.lambda   = P.lambda;
+info.folds    = P.folds;    % 这是 5x1，但作为字段没问题
+info.Alpha    = P.Alpha;
+info.dLL_full = dLL_full;   % 新增，给你看整体效应量
+info.p_full   = p_full;     % 新增，整体效应的置换p
+info.ratioThr = ratioThr;   % 新增，记录当前阈值
+out.info = info;
+end
+
+% ================== 内部函数 ==================
+function LL = cv_poiss_ll(X, y, P, lambda)
+K=numel(P.folds); LL=0;
+for k=1:K
+    tr=P.folds{k}.train; te=P.folds{k}.test;
+    mu=P.mu{k}; sd=P.sd{k}; sd(sd==0|isnan(sd))=1;
+    % 仅取对应列，并用 FULL 的 μ/σ 子集（避免重复统计）
+    Xz_tr = (X(tr,:) - mu(1,size(X,2))) ./ sd(1,size(X,2)); %#ok<NBRAK>
+    Xz_te = (X(te,:) - mu(1,size(X,2))) ./ sd(1,size(X,2));
+    [B,Fit] = lassoglm(Xz_tr, y(tr), 'poisson', 'Alpha', P.Alpha, ...
+        'Lambda', lambda, 'Standardize', false, 'Link','log', ...
+        'Options', statset('UseParallel',logical(P.UseParallel)));
+    bh0=Fit.Intercept; bh=B;
+    mu_hat = exp(bh0 + Xz_te*bh);
+    LL = LL + sum(y(te).*log(mu_hat+eps) - mu_hat - gammaln(y(te)+1));
+end
+end
+
+function d = dLL_perm(which, shift, y, P)
+% 根据 shift 对 S 或 M 的事件列做环移，然后重建 XS/XM（含S优先残差化），再算 Shapley ΔLL
+if which=='S'
+    XSp = circshift(P.XS, shift, 1);
+    [Q,~]=qr(XSp,0); XMp = P.XM - Q*(Q'*P.XM);
+    LL_C  = cv_poiss_ll(P.XC,            y, P, P.lambda);
+    LL_S  = cv_poiss_ll([XSp P.XC],      y, P, P.lambda);
+    LL_M  = cv_poiss_ll([XMp P.XC],      y, P, P.lambda);
+    LL_SM = cv_poiss_ll([XSp XMp P.XC],  y, P, P.lambda);
+else
+    XMp = circshift(P.XM, shift, 1);
+    [Q,~]=qr(P.XS,0); XMp = XMp - Q*(Q'*XMp);
+    LL_C  = cv_poiss_ll(P.XC,            y, P, P.lambda);
+    LL_S  = cv_poiss_ll([P.XS P.XC],     y, P, P.lambda);
+    LL_M  = cv_poiss_ll([XMp P.XC],      y, P, P.lambda);
+    LL_SM = cv_poiss_ll([P.XS XMp P.XC], y, P, P.lambda);
+end
+dS = 0.5*((LL_S-LL_C)+(LL_SM-LL_M));
+dM = 0.5*((LL_M-LL_C)+(LL_SM-LL_S));
+d = (which=='S')*dS + (which=='M')*dM;
+end
+
+function d = dLL_full_perm(shift, y, P)  % ★新增：full 的置换评估
+% 同时平移 S 与 M，保持它们的共线关系；再做一次 S→M 残差化
+XSp = circshift(P.XS, shift, 1);
+XMp = circshift(P.XM, shift, 1);
+[Q,~] = qr(XSp,0); XMp = XMp - Q*(Q'*XMp);
+X_C   = P.XC;
+LL_C  = cv_poiss_ll(X_C,              y, P, P.lambda);
+LL_SM = cv_poiss_ll([XSp XMp X_C],    y, P, P.lambda);
+d = LL_SM - LL_C;
+end
+
+function p = perm_two_sided_batch(funShift, T, B, alpha, twoSided, batch)
+% 批并行置换：每批生成若干随机shift并并行评估，批间检查早停
+s=0; b=0;
+while b < B
+    m = min(batch, B-b);
+    sh = randi(T, [m,1]) - 1;          % 0..T-1
+    vals = zeros(m,1);
+    parfor i=1:m
+        vals(i) = funShift(sh(i));
+    end
+    if twoSided
+        r = abs(vals);
+        if b==0
+            real_val = funShift(0);    % shift=0 为真值（等价于不移位）
+            thr = abs(real_val);
+        end
+        s = s + sum(r >= thr);
+    else
+        if b==0, thr = funShift(0); end
+        s = s + sum(vals >= thr);
+    end
+    b = b + m;
+
+    p_min = (s + 1) / (B + 1);
+    p_max = (s + (B - b) + 1) / (B + 1);
+    if p_min > alpha || p_max <= alpha
+        p = (s + 1) / (b + 1); return;
+    end
+end
+p = (s + 1) / (B + 1);
+end

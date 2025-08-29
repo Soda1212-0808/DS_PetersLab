@@ -12,11 +12,11 @@ surround_window_task = [-0.2,1];
 t_task = surround_window_task(1):1/surround_samplerate:surround_window_task(2);
 t_kernels=1/surround_samplerate*[-10:30];
 
-boundary=0.2;
-period_task=find(t_task>0&t_task<boundary);
+boundary=0.1;
+period_task=find(t_task>-0.1&t_task<boundary);
 period_kernels=find(t_kernels>0&t_kernels<boundary);
 
-animals={'HA011'}
+animals={'HA010'}
  % animals={'HA003','HA004','DS019','DS020'}
  % animals={'AP027','AP028','AP029','DS019','DS020','DS021'}
  % animals={'AP029'}
@@ -41,7 +41,7 @@ if used_data==1
     use_t=t_task;
 else
     idx=cellfun(@(x) ~(isempty(x)|| ~(size(x,3)==1)),raw_data_task.wf_px_task_kernels);
-    image_task(idx)=cellfun(@(x)  plab.wf.svd2px(U_master(:,:,1:size(x{1})),x{1}),raw_data_task.wf_px_task_kernels(idx),'UniformOutput',false);
+    image_task(idx)=cellfun(@(x)  plab.wf.svd2px(U_master(:,:,1:size(x{1})),x{5}),raw_data_task.wf_px_task_kernels(idx),'UniformOutput',false);
     temp_v=raw_data_Vpassive.wf_px_kernels(4:end);
     image_Vpassive(idx)=cellfun(@(x)  plab.wf.svd2px(U_master(:,:,1:size(x)),x),temp_v(idx),'UniformOutput',false);
     % image_Apassive(idx)=cellfun(@(x)  plab.wf.svd2px(U_master(:,:,1:size(x)),x),raw_data_Apassive.wf_px_kernels(idx),'UniformOutput',false);

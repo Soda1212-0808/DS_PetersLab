@@ -436,6 +436,7 @@ end
 % nexttile();axis off
 %%
 
+        scale=0.0003
 
 colors{2}={[0 0 1],[0.5 0.5 1];[1 0 0],[1 0.5 0.5 ]}
 colors{1}={[0 0 0  ],[0.5 0.5 0.5];[0 0 0],[0.5 0.5 0.5 ]}
@@ -516,7 +517,6 @@ end
             ylim(scale*[-0.4 1.4])
             xlim([-0.2 0.5])
             xline(0,'LineStyle',':')
-        scale=0.0003
         axis off
       
     
@@ -529,15 +529,15 @@ end
 
 
 % saveas(gcf,[Path 'figures\summary\figures\fig2 kernels task vs passive' ], 'jpg');
-colors2=[ 0.5 0.5 1;1 0.5 0.5;0.5 0.5 1;1 0.5 0.5];
-colors1=[ 0 0 1;1 0 0;0 0 1;1 0 0];
+% colors2=[ 0.5 0.5 1;1 0.5 0.5;0.5 0.5 1;1 0.5 0.5];
+colors1=[ 0 0 1;0 0 1;1 0 0;1 0 0];
 
-mean_1=[nanmean(context_diff{1}{1}{2}) nanmean(context_diff{1}{2}{2}) nanmean(context_diff{3}{1}{2}) nanmean(context_diff{3}{2}{2})]
-error_1=[std(context_diff{1}{1}{2}) nanmean(context_diff{1}{2}{2}) nanmean(context_diff{3}{1}{2}) nanmean(context_diff{3}{2}{2})]
+% mean_1=[nanmean(context_diff{1}{1}{2}) nanmean(context_diff{3}{1}{2}) nanmean(context_diff{1}{2}{2}) nanmean(context_diff{3}{2}{2})]
+% error_1=[std(context_diff{1}{1}{2}) nanmean(context_diff{3}{1}{2}) nanmean(context_diff{1}{2}{2}) nanmean(context_diff{3}{2}{2})]
 
 temp_data=cellfun(@(x) cellfun(@(a)  a{2},x,'UniformOutput',false ),context_diff([1 3]),'UniformOutput',false)
 temp_data_1=cat(2,temp_data{:});
-
+temp_data_1=temp_data_1([1 3 2 4])
 mean_1= cellfun(@(x)  nanmean(x) ,cat(2,temp_data{:}),'UniformOutput',true)
 error_1=  cellfun(@(x)  std(x,'omitmissing')/sqrt(length(x)) ,cat(2,temp_data{:}),'UniformOutput',true)
 
@@ -546,18 +546,14 @@ error_1=  cellfun(@(x)  std(x,'omitmissing')/sqrt(length(x)) ,cat(2,temp_data{:}
  % ax = axes('Parent', fig);
 
 hold on
-barHandle= bar(1:4,mean_1, 0.7, 'FaceColor', 'flat','EdgeColor','none');
+barHandle= bar(1:4,mean_1([1 3 2 4]), 0.7, 'FaceColor', 'flat','EdgeColor','none');
 barHandle.CData = colors1; % 为不同组设置不同颜色
-errorbar(1:4,mean_1,error_1, 'k', 'LineStyle', 'none', 'LineWidth', 1.5,'CapSize',0)
+errorbar(1:4,mean_1([1 3 2 4]),error_1([1 3 2 4]), 'k', 'LineStyle', 'none', 'LineWidth', 1.5,'CapSize',0)
 
-% arrayfun(@(g) scatter(g*ones(length(temp_data_1{g}),1) + randn(size(temp_data_1{g},1),1)*0.05,...
-%          temp_data_1{g}, ...
-%          20, 'filled', ...
-%          'MarkerFaceColor', colors1(g,:)), 1:4);
 xline(2.5,'LineStyle',':')
 
 xticks([1:4])
-xticklabels({'V-l-mPFC','A-l-mPFC','V-l-aPFC','A-l-aPFC'})
+xticklabels({'V-l-mPFC','V-l-aPFC','A-l-mPFC','A-l-aPFC'})
 ylim([0 1.5])
  yticks([0 1])
 ylabel('context difference')
@@ -570,10 +566,11 @@ y_max = max(cellfun(@max, temp_data_1)) -0; % 初始 y 值
 h_offset = 0.15; % 每组比较向上偏移的高度
 star_count = 0; % 当前比较编号，用于偏移高度
 
-
+p_all=nan(length(temp_data_1)-1,length(temp_data_1))
 for i = 1:length(temp_data_1)-1
     for j = i+1:length(temp_data_1)
         p = ranksum(temp_data_1{i}, temp_data_1{j});
+        p_all(i,j)=p;
 
         % 判断显著性等级
         if p < 0.05

@@ -4,8 +4,9 @@ Path = 'D:\Data process\ephys\';
 
 % animals={'DS010','AP021','DS011','AP022','DS001','AP018','DS003','DS004','DS000','DS006','DS013'}
 % animals={'DS007','DS010','DS011','AP021','AP022'}
-% animals={'DS007','DS014','DS015','DS016'}0
-animals= { 'DS007','DS010','AP021','DS011','AP022','DS001','AP018','DS003','DS006','DS013',...
+% animals={'DS007','DS014','DS015','DS016'}
+animals= { 'DS007','DS010','AP021','DS011','AP022','DS001','AP018','DS003',...
+    'DS006','DS013',...
     'DS000','DS004','DS014','DS015','DS016'};
 
 anterior_idx={[2 4],  [2 4],    2,    [2 4],  [2 4],  [2 4],    2,     2,     [2 4],  [2 4],  [2 4],  [2 4],  [2 4],  [2 4],  [2 4]};
@@ -317,8 +318,12 @@ colors={[84 130 53]./255,[112  48 160]./255,[112  48 160]./255};
 image_color={'G','P','G'};
 cell_type={'tan','msn','fsi','all'};
 
+% task or passive
+ states=[3 5]
+% states=[7 8]
+
 p_val=0.95;
-for curr_cell_type=1:3
+for curr_cell_type=1:4
     figure('Position',[50 50 200 500]);
     t= tiledlayout(4,2,"TileSpacing","tight",'Padding','tight'); % 创建一个1行2列的布局
 
@@ -369,18 +374,7 @@ for curr_cell_type=1:3
         [~,max_id]=cellfun(@(x)  cellfun(@(a) max(a(: ,psth_use_t_stim,:),[],2),x,'UniformOutput',false  ),used_single_plot,'UniformOutput',false);
         max_id= cellfun(@(x) cellfun(@(a) permute(a,[1 3 2]),x,'UniformOutput',false ),max_id,'UniformOutput',false);
 
-        % [tem_r,tem_p]=cellfun(@(x,y) cellfun(@(a,b)  corr(a, b, 'type', 'Spearman') ,  x,[y;y],'UniformOutput',false),...
-        %     max_id,used_single_idx,'UniformOutput',false );
-        %
-        % used_filter_r_v=cellfun(@(x,y,z)  x{1}(y.(cell_type{curr_cell_type})),tem_r,used_cell_type ,used_response,'UniformOutput',false);
-        % used_filter_r_a=cellfun(@(x,y,z)  x{2}(y.(cell_type{curr_cell_type})),tem_r,used_cell_type ,used_response,'UniformOutput',false);
-        % used_filter_r_v_all=vertcat(used_filter_r_v{:});
-        % used_filter_r_a_all=vertcat(used_filter_r_a{:});
-        %
-        % used_filter_p_v=cellfun(@(x,y,z)  x{1}(y.(cell_type{curr_cell_type})),tem_p,used_cell_type ,used_response,'UniformOutput',false);
-        % used_filter_p_a=cellfun(@(x,y,z)  x{2}(y.(cell_type{curr_cell_type})),tem_p,used_cell_type ,used_response,'UniformOutput',false);
-        % used_filter_p_v_all=vertcat(used_filter_p_v{:});
-        % used_filter_p_a_all=vertcat(used_filter_p_a{:});
+ 
 
 
         switch  curr_cell_type
@@ -401,16 +395,16 @@ for curr_cell_type=1:3
             length(find(x(:,1)==1 & x(:,2)==1))...
             length(find(x(:,1)==0 & x(:,2)==1))...
             length(find(x(:,1)==0 & x(:,2)==0)) ]...
-            , cellfun(@(a) a(:,[3 5 7 8])>p_val,used_filter_response_1,'UniformOutput',false),...
+            , cellfun(@(a) a(:,states)>p_val,used_filter_response_1,'UniformOutput',false),...
             'UniformOutput',false)
 
 
 
-        [~,max_idx_v]=max(used_plot_all_selected_1(: ,psth_use_t_stim,3),[],2);
-        [~,max_idx_a]=max(used_plot_all_selected_1(: ,psth_use_t_stim,5),[],2);
+        [~,max_idx_v]=max(used_plot_all_selected_1(: ,psth_use_t_stim,states(1)),[],2);
+        [~,max_idx_a]=max(used_plot_all_selected_1(: ,psth_use_t_stim,states(2)),[],2);
 
         used_response_all=vertcat(used_filter_response_1{:});
-        temp_response= used_response_all(:,[3 5 7 8])>p_val;
+        temp_response= used_response_all(:,states)>p_val;
 
         data1 = find(temp_response(:,1)==1 & temp_response(:,2)==0);
         data2 = find(temp_response(:,1)==1 & temp_response(:,2)==1);
@@ -433,7 +427,7 @@ for curr_cell_type=1:3
         % used_idx=used_response_all(sort_idx,:)
 
         curr_fig=0;
-        for curr_stim_now=[ 3  5]
+        for curr_stim_now=states
             curr_fig=curr_fig+1;
             a1=nexttile(t,2*curr_group-2+ curr_fig)
 
@@ -460,10 +454,7 @@ for curr_cell_type=1:3
             nexttile(t,4+curr_fig)
             hold on
 
-            % temp_each_rec=cell2mat(cellfun(@(x) permute(nanmean(x(:,:,curr_stim) ,1),[2,1,3]), used_filter_plot,'UniformOutput',false)');
-            % temp_mean=nanmean(temp_each_rec,2);
-            % temp_error=std(temp_each_rec,0,2,'omitmissing')./sqrt(length(used_filter_plot));
-
+     
             temp_mean= nanmean(used_plot_all_selected_1(temp_idx_all_1,:,curr_stim_now),1);
             temp_error=std(used_plot_all_selected_1(temp_idx_all_1,:,curr_stim_now),0,1,'omitmissing')./sqrt(size(used_plot_all_selected_1(temp_idx_all_1,:,curr_stim_now),1));
             ap.errorfill(t_bins,temp_mean,temp_error,colors{curr_group},0.5,0.1);
@@ -473,18 +464,6 @@ for curr_cell_type=1:3
             axis off
         end
 
-
-        % nexttile(t,6+curr_group)
-        %        p1=pie([length(data1) length(data2) length(data3) length(data4) ])
-        % set(p1(1), 'FaceColor', colors{curr_group},'FaceAlpha',0.9,'EdgeColor','none');
-        % set(p1(3), 'FaceColor', colors{curr_group},'FaceAlpha',0.5,'EdgeColor','none');
-        % set(p1(5), 'FaceColor', colors{curr_group},'FaceAlpha',0.3,'EdgeColor','none');
-        % set(p1(7), 'FaceColor', [0.8 0.8 .8],'EdgeColor','none');
-        % legend({'A only','A&V'},'Box','off','Location','northoutside')
-
-        % nexttile(t,6+curr_group)
-        % temp_mean1(curr_group,:)=nanmean(cat(3,response_per_recording{:}),3);
-        % temp_error1(curr_group,:)=std(cat(3,response_per_recording{:}),0,3,'omitmissing')./sqrt(length(response_per_recording));
         temp_group{curr_group}=response_per_recording;
     end
     nexttile(t,7)
@@ -773,19 +752,20 @@ for iii=1:length(edges)-1
 end
 
 
-%%  psth of all cell
+%%  psth of all cells 1
 
 colors={[84 130 53]./255,[112  48 160]./255};
 image_color={'G','P'};
 p_val=0.95;
 % % max_num=500;
-use_stim=[3 5];
+passive_stim=[3 5];
+task_stim=[3 5];
 figure('Position',[50 50 200 400]);
 
 for curr_stim=1:2
 
-    curr_stim_now=use_stim(curr_stim);
-
+    curr_stim_now=passive_stim(curr_stim);
+curr_task_stim=task_stim(curr_stim);
     switch curr_stim_now
         case {3,5}
             max_num=750;
@@ -846,7 +826,7 @@ for curr_stim=1:2
 
 
         used_response_plot=vertcat(temp_response_plot{:});
-        used_filter_plot_1=cellfun(@(x,y,z)  x(z(:,curr_stim_now)>p_val ,:,curr_stim_now)  ,...
+        used_filter_plot_1=cellfun(@(x,y,z)  x(z(:,curr_stim_now)>p_val ,:,curr_task_stim)  ,...
             used_response_plot,used_cell_type,used_response,'UniformOutput',false);
         used_filter_response_1=cellfun(@(x,y,z)  z(z(:,curr_stim_now)>p_val ,:)  ,...
             used_response_plot,used_cell_type,used_response,'UniformOutput',false);
@@ -854,7 +834,7 @@ for curr_stim=1:2
 
 
         used_response_plot_2=vertcat(temp_response_plot_2{:});
-        used_filter_plot_2=cellfun(@(x,y,z)  x(z(:,curr_stim_now)>p_val ,:,curr_stim_now)  ,...
+        used_filter_plot_2=cellfun(@(x,y,z)  x(z(:,curr_stim_now)>p_val ,:,curr_task_stim)  ,...
             used_response_plot_2,used_cell_type,used_response,'UniformOutput',false);
         used_filter_response_2=cellfun(@(x,y,z)  z(z(:,curr_stim_now)>p_val ,:)  ,...
             used_response_plot_2,used_cell_type,used_response,'UniformOutput',false);
@@ -862,7 +842,7 @@ for curr_stim=1:2
 
 
 
-        used_filter_plot_all=cellfun(@(x,y,z)  x(: ,:,curr_stim_now)  ,...
+        used_filter_plot_all=cellfun(@(x,y,z)  x(: ,:,curr_task_stim)  ,...
             used_response_plot,used_cell_type,used_response,'UniformOutput',false);
         used_plot_all=vertcat(used_filter_plot_all{:});
 
@@ -882,7 +862,7 @@ for curr_stim=1:2
         [~,sort_idx] = sortrows( max_idx,"ascend");
 
 
-        ax=subplot(5,2,[4*curr_group+curr_stim-4 ,4*curr_group+curr_stim-2])
+        ax=subplot(6,2,[4*curr_group+curr_stim-4 ,4*curr_group+curr_stim-2])
 
         % imagesc(t_bins,[],smoothdata(used_plot_all_selected(sort_idx,:),1,'gaussian',20))
         imagesc(t_bins,[],used_plot_all_selected_2(sort_idx,:))
@@ -902,17 +882,18 @@ for curr_stim=1:2
         ax.Position=subplotPosition;
         axis off
 
-        % ax=subplot(5,2,8+curr_stim)
-        % hold on
-        % temp_mean=nanmean(used_plot_all,1);
-        % temp_error=std(used_plot_all,0,1,'omitmissing')./sqrt(size(used_plot_all,1));
-        % ap.errorfill(t_bins,temp_mean,temp_error,colors{curr_group},0.5,0.1)
-        %
-        % ylim(yscale)
-        % xlim([-0.1 0.5])
-        % xline(0,'LineStyle',':')
-        %
-        % axis off
+        ax=subplot(6,2,8+curr_stim)
+        hold on
+        temp_plot=cell2mat(cellfun(@(x) nanmean(x,1)    ,used_filter_plot_all,'UniformOutput',false));
+        temp_mean=nanmean(temp_plot,1);
+        temp_error=std(temp_plot,0,1,'omitmissing')./sqrt(size(temp_plot,1));
+        ap.errorfill(t_bins,temp_mean,temp_error,colors{curr_group},0.5,0.1)
+
+        ylim(yscale)
+        xlim([-0.1 0.5])
+        xline(0,'LineStyle',':')
+
+        axis off
 
     end
 
@@ -922,7 +903,7 @@ for curr_stim=1:2
         std(proportion_response{2}, 0, 1,'omitmissing') ./ sqrt(size(proportion_response{2},1))]';
     p =  ranksum(proportion_response{1}, proportion_response{2})
 
-    ax=subplot(5,2,8+curr_stim);
+    ax=subplot(6,2,10+curr_stim);
     ax.Color = 'none';    % 设置背景透明
 
     hold on
@@ -953,6 +934,151 @@ for curr_stim=1:2
     saveas(gcf,[Path 'figures\Figure\ephys cell '  titles{curr_stim_now} ], 'jpg');
 end
 
+%%  psth of all cells 1
+
+colors={[84 130 53]./255,[112  48 160]./255};
+image_color={'G','P'};
+p_val=0.95;
+% % max_num=500;
+passive_stim=[3  5];
+task_stim=[3 5];
+figure('Position',[50 50 200 400]);
+
+for curr_stim=1:2
+
+    curr_stim_now=passive_stim(curr_stim);
+curr_task_stim=task_stim(curr_stim);
+    switch curr_stim_now
+        case {3,5}
+            max_num=750;
+            yscale=[-0.1 1.2];
+            bar_scale=[0 0.5];
+            clim_value=[0,5];
+
+        case{7,8}
+            max_num=1200;
+            yscale=[-0.1 2.5];
+            bar_scale=[0 1];
+            clim_value=[0,5];
+    end
+
+    proportion_response=cell(2,1);
+    proportion_response_overlay=cell(2,1);
+
+    for curr_group=1:2
+        switch curr_group
+            case 1
+                used_animals=animals(~cellfun(@isempty, anterior_learned_idx_VA','UniformOutput',true));
+                used_animals_idx=anterior_learned_idx_VA(~cellfun(@isempty, anterior_learned_idx_VA','UniformOutput',true));
+            case 2
+                used_animals=animals(~cellfun(@isempty, anterior_learned_idx_AV','UniformOutput',true));
+                used_animals_idx=anterior_learned_idx_AV(~cellfun(@isempty, anterior_learned_idx_AV','UniformOutput',true));
+
+        end
+
+        temp_idx=cell(length(used_animals),1);
+        temp_single_plot=cell(length(used_animals),1);
+        temp_probe_position=cell(length(used_animals),1);
+        temp_response=cell(length(used_animals),1);
+        temp_response_plot=cell(length(used_animals),1);
+        temp_response_plot_2=cell(length(used_animals),1);
+
+        %
+        for curr_animal=1:length(used_animals)
+
+            animal=used_animals{curr_animal};
+            temp_file_name=matfile([Path 'single_mouse\' animal '_ephys.mat']);
+
+            temp_single_plot{curr_animal}=temp_file_name.plot_single(used_animals_idx{curr_animal},1);
+            temp_idx{curr_animal}=temp_file_name.plot_idx(used_animals_idx{curr_animal},1);
+
+            temp_probe_position{curr_animal}=temp_file_name.all_celltypes(used_animals_idx{curr_animal},1);
+            temp_response{curr_animal}=temp_file_name.all_event_response_idx(used_animals_idx{curr_animal},1);
+            temp_response_plot{curr_animal}=temp_file_name.all_event_response_signle_neuron_h1(used_animals_idx{curr_animal},1);
+            temp_response_plot_2{curr_animal}=temp_file_name.all_event_response_signle_neuron_h2(used_animals_idx{curr_animal},1);
+
+
+        end
+
+        % used_single_plot=vertcat(temp_single_plot{:});
+        % used_single_idx=vertcat(temp_idx{:});
+
+        used_cell_type=vertcat(temp_probe_position{:});
+        used_response=vertcat(temp_response{:});
+
+
+
+
+
+        used_response_plot=vertcat(temp_response_plot{:});
+
+        stim_pref=cellfun(@(x)    max(x(:,psth_use_t_stim,curr_task_stim),[],2)< max(x(:,psth_use_t_stim,curr_stim+6),[],2),...
+            used_response_plot,'UniformOutput',false );
+        used_filter_plot_1=cellfun(@(x,y,z,pref)  x(z(:,curr_stim_now)>p_val&pref==1 ,:,curr_task_stim)  ,...
+            used_response_plot,used_cell_type,used_response,stim_pref,'UniformOutput',false);
+        used_filter_response_1=cellfun(@(x,y,z,pref)  z(z(:,curr_stim_now)>p_val&pref==1 ,:)  ,...
+            used_response_plot,used_cell_type,used_response,stim_pref,'UniformOutput',false);
+        used_plot_all_selected_1=vertcat(used_filter_plot_1{:});
+
+
+
+
+        used_response_plot_2=vertcat(temp_response_plot_2{:});
+        used_filter_plot_2=cellfun(@(x,y,z,pref)  x(z(:,curr_stim_now)>p_val&pref==1 ,:,curr_task_stim)  ,...
+            used_response_plot_2,used_cell_type,used_response,stim_pref,'UniformOutput',false);
+        used_filter_response_2=cellfun(@(x,y,z,pref)  z(z(:,curr_stim_now)>p_val&pref==1 ,:)  ,...
+            used_response_plot_2,used_cell_type,used_response,stim_pref,'UniformOutput',false);
+        used_plot_all_selected_2=vertcat(used_filter_plot_2{:});
+
+
+
+        used_filter_plot_all=cellfun(@(x,y,z)  x(: ,:,curr_task_stim)  ,...
+            used_response_plot,used_cell_type,used_response,'UniformOutput',false);
+        used_plot_all=vertcat(used_filter_plot_all{:});
+
+
+        used_filter_plot_overlay=cellfun(@(x,y,z)  x(z(:,3)>p_val &z(:,5)>p_val,:,curr_stim_now)  ,...
+            used_response_plot,used_cell_type,used_response,'UniformOutput',false);
+
+        proportion_response_overlay{curr_group}= cellfun(@(x) size(x,1) , used_filter_plot_overlay,'UniformOutput',true)./...
+            cellfun(@(x) size(x,1) , used_filter_plot_1,'UniformOutput',true);
+
+
+
+        proportion_response{curr_group}= cellfun(@(x) size(x,1) , used_filter_plot_1,'UniformOutput',true)./...
+            cellfun(@(x) size(x,1) , used_filter_plot_all,'UniformOutput',true);
+
+        [~,max_idx]=max(used_plot_all_selected_1(: ,psth_use_t_stim),[],2);
+        [~,sort_idx] = sortrows( max_idx,"ascend");
+
+
+        ax=subplot(6,2,[4*curr_group+curr_stim-4 ,4*curr_group+curr_stim-2])
+
+        % imagesc(t_bins,[],smoothdata(used_plot_all_selected(sort_idx,:),1,'gaussian',20))
+        imagesc(t_bins,[],used_plot_all_selected_2(sort_idx,:))
+
+        % colorbar('southoutside')
+        colormap(ax,ap.colormap(['W' image_color{curr_group}]));
+        clim(clim_value);
+        xlim([-0.1 0.5])
+        xline(0,'LineStyle',':')
+        currentAx = gca; % 获取当前轴
+        subplotPosition = currentAx.Position; % 获取位置和大小
+        maxh=subplotPosition(4);
+        maxb=subplotPosition(2);
+
+        subplotPosition(4)=maxh/max_num*size(used_plot_all_selected_1,1);
+        subplotPosition(2)=maxb+maxh-maxh/max_num*size(used_plot_all_selected_1,1);
+        ax.Position=subplotPosition;
+        axis off
+
+       
+
+    end
+
+ 
+end
+
 
 %%  psth of all cell all cells
 
@@ -961,10 +1087,10 @@ image_color={'G','P'};
 p_val=0.95;
 % max_num=500;
 figure('Position',[50 50 200 400]);
-use_stim=[3 5];
+passive_stim=[7 8];
 
 for curr_stim=1:2
-        curr_stim_now=use_stim(curr_stim);
+        curr_stim_now=passive_stim(curr_stim);
 
     switch curr_stim_now
         case {3,5}
@@ -1056,11 +1182,11 @@ for curr_stim=1:2
 
 
 
-        used_filter_plot_overlay=cellfun(@(x,y,z)  x(z(:,3)>p_val &z(:,5)>p_val,:,curr_stim_now)  ,...
-            used_response_plot,used_cell_type,used_response,'UniformOutput',false);
-
-        proportion_response_overlay{curr_group}= cellfun(@(x) size(x,1) , used_filter_plot_overlay,'UniformOutput',true)./...
-            cellfun(@(x) size(x,1) , used_filter_plot_1,'UniformOutput',true);
+        % used_filter_plot_overlay=cellfun(@(x,y,z)  x(z(:,3)>p_val &z(:,5)>p_val,:,curr_stim_now)  ,...
+        %     used_response_plot,used_cell_type,used_response,'UniformOutput',false);
+        % 
+        % proportion_response_overlay{curr_group}= cellfun(@(x) size(x,1) , used_filter_plot_overlay,'UniformOutput',true)./...
+        %     cellfun(@(x) size(x,1) , used_filter_plot_1,'UniformOutput',true);
 
 
 
@@ -1080,8 +1206,8 @@ for curr_stim=1:2
 
         % a1=nexttile(curr_group)
         ax=subplot(5,2,[4*curr_group+curr_stim-4 ,4*curr_group+curr_stim-2])
-        % imagesc(t_bins,[],used_plot_all(sort_idx,:))
-        imagesc(t_bins,[],smoothdata(used_plot_all(sort_idx,:),1,'gaussian',20))
+        imagesc(t_bins,[],used_plot_all(sort_idx,:))
+        % imagesc(t_bins,[],smoothdata(used_plot_all(sort_idx,:),1,'gaussian',20))
 
         % colorbar('southoutside')
         colormap(ax,ap.colormap(['W' image_color{curr_group}]));
@@ -1091,18 +1217,7 @@ for curr_stim=1:2
 
         axis off
 
-        % ax=subplot(3,2,5)
-        % hold on
-        % temp_mean=nanmean(used_plot_all,1);
-        % temp_error=std(used_plot_all,0,1,'omitmissing')./sqrt(size(used_plot_all,1));
-        %
-        % ap.errorfill(t_bins,temp_mean,temp_error,colors{curr_group},0.5,0.1)
-        %
-        % ylim(yscale)
-        % xlim([-0.1 0.5])
-        % xline(0,'LineStyle',':')
-        %
-        % axis off
+    
 
     end
 
@@ -1160,7 +1275,7 @@ colors={[84 130 53]./255,[112  48 160]./255};
 image_color={'G','P'};
 p_val=0.95;
 % % max_num=500;
-use_stim=[3 5];
+passive_stim=[3 5];
 
 
 
@@ -1181,7 +1296,7 @@ for curr_group=1:2
 
     for curr_stim=1:2
 
-        curr_stim_now=use_stim(curr_stim);
+        curr_stim_now=passive_stim(curr_stim);
 
         switch curr_stim_now
             case {3,5}
@@ -1400,6 +1515,8 @@ for curr_group=1:2
 
         figure(fig2)
         ax2=nexttile(tl2,curr_stim_now-3+3*curr_group)
+          % ax2=nexttile(tl2,curr_stim_now-3+3*curr_group)
+
         h2=imagesc(t_bins,z_edges(1:end-1),firing_rates_bins2)
         xlim([-0.1 0.5]);
         xticks([-0.1 0.5]);
@@ -1431,6 +1548,8 @@ for curr_group=1:2
 
         % MUA max
         ax1=nexttile(tl2,3*curr_group)
+         % ax1=nexttile(tl2,3*curr_stim_now)
+
         firing_rates_max=cellfun(@(x) max(x(:,psth_use_t_stim),[],2),firing_rates_bins1,'UniformOutput',false );
         % firing_rates_max=porportion
         ap.errorfill(z_edges(1:end-1) , smoothdata(nanmean(cat(3,firing_rates_max{:}),3),'gaussian',4),...
@@ -1466,7 +1585,7 @@ groups={'VA','AV'}
 titles={'L','M','V passive','4k','A passive','12k','V task','A task','iti move'};
 p_val=0.95
 all_stim=[ 3 5 ];
-colors={[0.3 0.3 1],[1 0.3 0.3]};
+ colors={[84 130 53]./255,[112  48 160]./255};
 
 colors1={[0.1706    0.1275    0.1165],[0.3294    0.5098    0.2078], [0.7451    0.8667    0.6706];...
     [0.2706    0.0353    0.4667],[0.4392    0.1882    0.6275], [0.8196    0.7216    0.9019]};
@@ -1477,8 +1596,11 @@ z_max = 250;
 bin_size_z = 25; % 单位：μm，根据实际尺度调整
 z_edges = [z_min:bin_size_z:z_max,inf];
 
+fig2 = figure('Position',[50 50 150 300 ]);
+tl2 = tiledlayout(2,1);
 
-for curr_group=1
+
+for curr_group=1:2
 
     switch curr_group
         case 1
@@ -1560,17 +1682,17 @@ figure
 % tiledlayout(9,11)
 
 
-shuff=cell(9,1);
-    per=cell(9,1);
+shuff=cell(length(idxx),1);
+    per=cell(length(idxx),1);
     temp_shuff=cell(11,1);
-for curr_recording=1:9
+for curr_recording=1:length(idxx)
     
-    for curr_depth=1:11
+    for curr_depth=1:length(idxx{1})
         per{curr_recording}{curr_depth}=sum(sum(idxx{curr_recording}{curr_depth},2)==2)/length(idxx{curr_recording}{curr_depth}(:,2));
         n_shuff=1000;
         shuff{curr_recording}{curr_depth}=zeros(n_shuff,1);
         for curr_shuf=1:n_shuff
-            temp_shuff{curr_depth}{curr_recording}{curr_shuf}=ap.shake(idxx{curr_recording}{curr_depth},1)
+            temp_shuff{curr_depth}{curr_recording}{curr_shuf}=ap.shake(idxx{curr_recording}{curr_depth},1);
             % shuff{curr_recording}{curr_depth}(curr_shuf)= ...
             %     sum(sum(ap.shake(idxx{curr_recording}{curr_depth},1),2)==2);
             shuff{curr_recording}{curr_depth}(curr_shuf)= ...
@@ -1580,7 +1702,7 @@ for curr_recording=1:9
         ranks = tiedrank(vertcat(per{curr_recording}{curr_depth},shuff{curr_recording}{curr_depth} ));
         p_vals(curr_recording) = ranks( 1) / (n_shuff + 1);
         nexttile
-        numbers=length(unique(vertcat(shuff{curr_recording}{curr_depth})))
+        numbers=length(unique(vertcat(shuff{curr_recording}{curr_depth})));
         histogram(vertcat(shuff{curr_recording}{curr_depth}),numbers)
         xline(prctile(vertcat(shuff{curr_recording}{curr_depth}),95),'b')
         xline(prctile(vertcat(shuff{curr_recording}{curr_depth}),5),'b')
@@ -1589,7 +1711,6 @@ for curr_recording=1:9
 end
 
 
-end
 
 temp_111=cellfun(@(x)       cat(1,x{:})           ,temp_shuff,'UniformOutput',false );
 temp_2= cellfun(@(x)  arrayfun(@(col) vertcat(x{:,col}), 1:size(x,2), 'UniformOutput', false),temp_111,'UniformOutput',false);
@@ -1598,7 +1719,7 @@ temp_shuffle=cellfun(@(x) cellfun(@(y)  sum(sum(y,2)==2)/length(y(:,2))  ,x,'Uni
 shuffle_mean=cellfun(@(x)   (prctile(x,95)+prctile(x,5))/2    ,temp_shuffle,'UniformOutput',true);
 shuffle_error=cellfun(@(x)   (prctile(x,95)-prctile(x,5))/2    ,temp_shuffle,'UniformOutput',true);
 
-temp_real1= vertcat(idxx{:})
+temp_real1= vertcat(idxx{:});
 temp_real_mean=nanmean(cellfun(@(y)  sum(sum(y,2)==2)/length(y(:,2)),   temp_real1,'UniformOutput',true),1)
 temp_real_error=std(cellfun(@(y)  sum(sum(y,2)==2)/length(y(:,2)),   temp_real1,'UniformOutput',true),0,1,'omitmissing')./sqrt(size(temp_real1,1))
 
@@ -1609,19 +1730,20 @@ temp_real_error=std(cellfun(@(y)  sum(sum(y,2)==2)/length(y(:,2)),   temp_real1,
 figure
 for curr_depth=1:11
 nexttile
-numbers=length(unique(temp_shuffle{curr_depth}))
-        histogram(temp_shuffle{curr_depth},numbers)
-        xline(prctile(temp_shuffle{curr_depth},95),'b')
-        xline(prctile(temp_shuffle{curr_depth},5),'b')
+numbers=length(unique(temp_shuffle{curr_depth}));
+        histogram(temp_shuffle{curr_depth},numbers);
+        xline(prctile(temp_shuffle{curr_depth},95),'b');
+        xline(prctile(temp_shuffle{curr_depth},5),'b');
         % xline(temp_real3(curr_depth),'r')
-                xline(temp_real_mean(curr_depth)+temp_real_error(curr_depth),'g')
-                xline(temp_real_mean(curr_depth),'r')
+                xline(temp_real_mean(curr_depth)+temp_real_error(curr_depth),'g');
+                xline(temp_real_mean(curr_depth),'r');
 
 end
 
-figure('Position',[50 50 100 200 ]);
+% figure('Position',[50 50 100 200 ]);
+ax2=nexttile(tl2)
 hold on 
-ap.errorfill(z_edges(1:end-1),temp_real_mean,temp_real_error ,[84 130 53]./255,0.1);
+ap.errorfill(z_edges(1:end-1),temp_real_mean,temp_real_error ,colors{curr_group},0.1);
 ap.errorfill(z_edges(1:end-1),shuffle_mean,shuffle_error,[0.8 0.8 0.8],1 );
 xlim([z_edges(1) z_edges(end-1)+1])
 ylabel('fraction of overlay in A')
@@ -1631,6 +1753,10 @@ xline(50,'LineStyle',':')
  yticks([0 0.5])
 view(gca,90, 90);
 set(gca,'Color','none')
+drawnow
+
+end
+
 
 %% overlay 
 groups={'VA','AV','VA_nA'}
@@ -1900,4 +2026,166 @@ end
 
 
 
+%%
+
+%%  velocity
+
+surround_time = [-5,5];
+surround_sample_rate = 100;
+surround_time_points = surround_time(1):1/surround_sample_rate:surround_time(2);
+
+
+colors={[84 130 53]./255,[112  48 160]./255};
+image_color={'G','P'};
+
+figure('Position',[50 50 200 400]);
+
+
+    for curr_group=1:2
+        switch curr_group
+            case 1
+                used_animals=animals(~cellfun(@isempty, anterior_learned_idx_VA','UniformOutput',true));
+                used_animals_idx=anterior_learned_idx_VA(~cellfun(@isempty, anterior_learned_idx_VA','UniformOutput',true));
+            case 2
+                used_animals=animals(~cellfun(@isempty, anterior_learned_idx_AV','UniformOutput',true));
+                used_animals_idx=anterior_learned_idx_AV(~cellfun(@isempty, anterior_learned_idx_AV','UniformOutput',true));
+
+        end
+
+      
+     temp_vel_v=cell(length(used_animals),1);
+     temp_vel_a=cell(length(used_animals),1);
+
+        for curr_animal=1:length(used_animals)
+            animal=used_animals{curr_animal};
+            temp_file=load([Path 'single_mouse\' animal '_ephys_behavior.mat']);
+            temp_vel_v{curr_animal}=temp_file.frac_velocity_stimalign(used_animals_idx{curr_animal},2);
+            temp_vel_a{curr_animal}=temp_file.frac_velocity_stimalign(used_animals_idx{curr_animal},3);
+
+        end
+
+
+       temp_vel_v_all= vertcat(temp_vel_v{:});
+       vel_v_mean=nanmean(cell2mat(cellfun(@(x) nanmean(x,1),temp_vel_v_all,'UniformOutput',false)),1);
+       vel_v_error=std(cell2mat(cellfun(@(x) nanmean(x,1),temp_vel_v_all,'UniformOutput',false)),0,1,'omitmissing')/sqrt(length(temp_vel_v_all));
+
+ 
+       temp_vel_a_all= vertcat(temp_vel_a{:});
+       vel_a_mean=nanmean(cell2mat(cellfun(@(x) nanmean(x,1),temp_vel_a_all,'UniformOutput',false)),1);
+       vel_a_error=std(cell2mat(cellfun(@(x) nanmean(x,1),temp_vel_a_all,'UniformOutput',false)),0,1,'omitmissing')/sqrt(length(temp_vel_a_all));
+
+ 
+       nexttile
+       hold on
+       ap.errorfill(surround_time_points,vel_v_mean,vel_v_error,[1 0 0])
+       ap.errorfill(surround_time_points,vel_a_mean,vel_a_error,[0 0 1])
+
+    end
+
+
+%%
+surround_time = [-5,5];
+surround_sample_rate = 100;
+surround_time_points = surround_time(1):1/surround_sample_rate:surround_time(2);
+
+
+colors={[84 130 53]./255,[112  48 160]./255};
+image_color={'G','P'};
+
+figure('Position',[50 50 200 400]);
+
+for curr_group=1:2
+    switch curr_group
+        case 1
+            used_animals=animals(~cellfun(@isempty, anterior_learned_idx_VA','UniformOutput',true));
+            used_animals_idx=anterior_learned_idx_VA(~cellfun(@isempty, anterior_learned_idx_VA','UniformOutput',true));
+        case 2
+            used_animals=animals(~cellfun(@isempty, anterior_learned_idx_AV','UniformOutput',true));
+            used_animals_idx=anterior_learned_idx_AV(~cellfun(@isempty, anterior_learned_idx_AV','UniformOutput',true));
+
+    end
+
+
+    RateWarp=cell(length(used_animals),1);
+    Tasktype_idx=cell(length(used_animals),1);
+    trialInfo=cell(length(used_animals),1);
+    % temp_celltypes=cell(length(used_animals),1);
+
+    for curr_animal=1:length(used_animals)
+        animal=used_animals{curr_animal};
+        temp_file=load([Path 'single_mouse\' animal '_ephys_warp.mat']);
+        %       temp_file_rec=matfile([Path 'single_mouse\' animal '_ephys.mat']);
+        % temp_celltypes{curr_animal}=temp_file_rec.all_cell_sorted(used_animals_idx{curr_animal},1);
+        %
+        RateWarp{curr_animal}=temp_file.RateWarp(used_animals_idx{curr_animal});
+        Tasktype_idx{curr_animal}=temp_file.Tasktype_idx(used_animals_idx{curr_animal});
+        trialInfo{curr_animal}=temp_file.trialInfo(used_animals_idx{curr_animal});
+
+    end
+
+
+    RateWarp_all= vertcat(RateWarp{:});
+    Tasktype_all=vertcat(Tasktype_idx{:});
+    trialInfo_all=cellfun(@(x) cellfun(@(a) a.isValid,x,'UniformOutput',false)  , vertcat(trialInfo{:}),'UniformOutput',false);
+
+    RateWarp_all_valid=cellfun(@(x,y) cellfun(@(a,b) a(:,:,b) ,x,y,'UniformOutput',false)  ,...
+        RateWarp_all,trialInfo_all,'UniformOutput',false );
+    modality=cellfun(@(x,y)  cellfun(@(a,b)  a(b), x,y,'UniformOutput',false)   ,Tasktype_all,trialInfo_all,'UniformOutput',false );
+
+
+    % ax=axesOut{curr_day};
+    % seg=segIdx{curr_day};
+    RateWarp_norm=cellfun(@(x) cellfun(@(a)...
+        reshape(zscore(reshape(permute(a, [1 3 2]), [], size(a,2)),0,1),[size(permute(a, [1 3 2]))]),x,'UniformOutput',false) ,...
+        RateWarp_all_valid,'UniformOutput',false   );
+    RateWarp_sort=cellfun(@(x,y) cellfun(@(a,b) ...
+        arrayfun(@(id)  permute(nanmean(a(:,b==id,:),2),[1 3 2]),unique(b),'UniformOutput',false ),x,y,'UniformOutput',false),...
+        RateWarp_norm,modality,'UniformOutput',false   );
+
+
+    temp_data=cellfun(@(x) cat(1,x{:}),RateWarp_sort,'UniformOutput',false);
+    numbers= cellfun(@(x)  size(x,1), temp_data{1},'UniformOutput',true);
+    temp_data2=cellfun(@(x)  cat(1,x{:})  ,temp_data,'UniformOutput',false);
+
+    RateWarp_all1=cat(2,temp_data2{:});
+    [w,vale]=pca(RateWarp_all1);
+
+% figure;
+% plot(mean(RateWarp_all1(1+sum(numbers(1:6)):sum(numbers(1:7)),:)',1))
+% 
+% imagesc(RateWarp_all1(1+sum(numbers(1:6)):sum(numbers(1:7)),:)')
+% colormap(ap.colormap('wk'))
+% clim([0 1])
+
+    value_l=vale(1:numbers(1),:);
+    value_c=vale(1+numbers(1):sum(numbers(1:2)),:);
+    value_r=vale(1+sum(numbers(1:2)):sum(numbers(1:3)),:);
+    value_4=vale(1+sum(numbers(1:3)):sum(numbers(1:4)),:);
+    value_8=vale(1+sum(numbers(1:4)):sum(numbers(1:5)),:);
+    value_12=vale(1+sum(numbers(1:5)):sum(numbers(1:6)),:);
+    value_v=vale(1+sum(numbers(1:6)):sum(numbers(1:7)),:);
+    value_a=vale(1+sum(numbers(1:7)):sum(numbers(1:8)),:);
+    nexttile; hold on;view(3);
+    % 轨迹（画平均线；如要阴影可用patch或fill）
+    % plot3(value_l(:,1), value_l(:,2), value_l(:,3), 'LineWidth', 2,'color',[0.5 0.5 0.5]);  % Visual
+    % plot3(value_c(:,1), value_c(:,2), value_c(:,3), 'LineWidth', 2,'color',[0.5 0.5 0.5]);  % Auditory
+    plot3(value_r(:,1), value_r(:,2), value_r(:,3), 'LineWidth', 2,'color',[0.5 0.5 1]);  % Visual
+    % % plot3(value_4(:,1), value_4(:,2), value_4(:,3), 'LineWidth', 2,'color',[0.5 0.5 0.5]);  % Auditory
+    plot3(value_8(:,1), value_8(:,2), value_8(:,3), 'LineWidth', 2,'color',[1 0.5 0.5]);  % Visual
+    % % plot3(value_12(:,1), value_12(:,2), value_12(:,3), 'LineWidth', 2,'color',[0.5 0.5 0.5]);  % Auditory
+    plot3(value_v(:,1), value_v(:,2), value_v(:,3), 'LineWidth', 2,'color',[0 0 1]);  % Visual
+    plot3(value_a(:,1), value_a(:,2), value_a(:,3), 'LineWidth', 2,'color',[1 0 0]);  % Auditory
+
+    % 
+    % plot3(value_8(51,1), value_8(51,2), value_8(51,3), 'ko','MarkerFaceColor','k');  % Visual
+    % plot3(value_8(101,1), value_8(101,2), value_8(101,3), 'ko','MarkerFaceColor','k');  % Visual
+    % plot3(value_r(101,1), value_r(101,2), value_r(101,3), 'ko','MarkerFaceColor','k');  % Visual
+    % plot3(value_r(51,1), value_r(51,2), value_r(51,3), 'ko','MarkerFaceColor','k');  % Visual
+    plot3(value_v(51,1), value_v(51,2), value_v(51,3), 'ko','MarkerFaceColor','k'); % stim处
+    plot3(value_v(61,1), value_v(61,2), value_v(61,3), 'ks','MarkerFaceColor','k'); % move处
+    plot3(value_a(51,1), value_a(51,2), value_a(51,3), 'ko','MarkerFaceColor','k'); % stim处
+    plot3(value_a(61,1), value_a(61,2), value_a(61,3), 'ks','MarkerFaceColor','k'); % move处
+    % % axis image
+
+end
 

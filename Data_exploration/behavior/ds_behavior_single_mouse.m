@@ -11,19 +11,22 @@ Path = 'D:\Data process\wf_data\';
 % animals = {'HA000','HA001','HA002'};n1_name='visual angle';n2_name='visual position';
 % animals = {'DS019','DS020','DS021'};n1_name='visual size up';n2_name='visual position';
 % animals =     {
-%                     'AP027','AP028','DS019','DS020','DS021',...
+%              
+% 
+% .
+% 'AP027','AP028','DS019','DS020','DS021',...
 %                     'AP027','AP028','AP029',...
 %                     'HA003','HA004','DS019','DS020','DS021',...
 %                     'HA000','HA001','HA002'};
 
-% animals =     { 'DS007','DS010','AP019','AP021','DS011','AP022',...
-%     'DS000','DS004','DS014','DS015','DS016',...
-%     'AP018','AP020','DS006','DS013',...
-%     'AP027','AP028','DS019','DS020','DS021',...
-%     'AP027','AP028','AP029',...
-%     'HA003','HA004','DS019','DS020','DS021',...
-%     'HA000','HA001','HA002','DS005'};
-animals={'HA011','HA012','HA010','HA009'}
+animals =     { 'DS007','DS010','AP019','AP021','DS011','AP022',...
+    'DS000','DS004','DS014','DS015','DS016',...
+    'AP018','AP020','DS006','DS013',...
+    'AP027','AP028','DS019','DS020','DS021',...
+    'AP027','AP028','AP029',...
+    'HA003','HA004','DS019','DS020','DS021',...
+    'HA000','HA001','HA002','DS005'};
+% animals={'HA011','HA012','HA010','HA009'}
 % reaction_time=2;
 % Grab learning day for each mouse
 surround_time = [-5,5];
@@ -66,8 +69,7 @@ for curr_animal_idx = 1:length(animals)
 
     recordings = plab.find_recordings(animal,[],use_workflow);
     %只保留widefiled的数据
-    recordings(find([recordings.ephys])) = [];
-    % recordings = recordings(1:8);
+    % recordings(find([recordings.ephys])) = [];
 
 
     workflow_day={recordings.day}';
@@ -189,44 +191,19 @@ iti_counts_all=cell(length(recordings),1);
         trials_success(curr_recording)=n_trials_success;
         % success(curr_recording)=sum(cat(1,trial_events.values.Outcome))/n_trials;
 
-        % 计算 iti move的时间点
-        wheel_starts = timelite.timestamps(diff([0;wheel_move]) == 1);
-        wheel_stops = timelite.timestamps(diff([0;wheel_move]) == -1);
-        wheel_starts_position=  wheel_position(diff([0;wheel_move]) == 1);
-        wheel_stops_position=  wheel_position(diff([0;wheel_move]) == -1);
-        % 找到 wheel 开始转动的索引
-        start_idx = find(diff([0;wheel_move]) == 1);
-        % 预分配时间数组 (提高效率)
-        time_to_90 = nan(size(start_idx));
-        % **优化的计算方式**
-        for i = 1:length(start_idx)
-            % 直接找到第一个满足 wheel_position > pos_start + 90 的索引
-            target_idx = find(wheel_position(start_idx(i):length(wheel_position)) < wheel_starts_position(i) - (30/360*1024), 1, 'first');
-            % 计算所需时间 (以 ms 计算)
-            if ~isempty(target_idx)
-                time_to_90(i) = (target_idx - 1) * 1; % 1000Hz 采样率，每点 1ms
-            end
-        end
-        wheel_move_less_than_200ms= time_to_90<200;
-        wheel_move_over_90=wheel_stops_position-wheel_starts_position<-(30/360*1024);
-        % (get wheel starts when no stim on screen: not sure this works yet)
-        iti_move_idx = interp1(photodiode_times, ...
-            photodiode_values,wheel_starts,'previous') == 0;
 
-        real_iti_move = wheel_starts(iti_move_idx & wheel_move_over_90 & wheel_move_less_than_200ms );
-        % n_trial_iti_move=length(real_iti_move);
-        iti_move{curr_recording}=real_iti_move;
+
+        % 计算 iti move的时间点
+       ds.load_iti_move
+
+        iti_move{curr_recording}=iti_move_time;
 
         all_iti_move{curr_recording}=wheel_starts(iti_move_idx);
 
-        iti_counts{curr_recording} = histcounts(real_iti_move, [0; stimOn_times]);
+        iti_counts{curr_recording} = histcounts(iti_move_time, [0; stimOn_times]);
         iti_counts_all{curr_recording}= histcounts(wheel_starts(iti_move_idx), [0; stimOn_times]);
 
-        % wheel_stops(iti_move_idx) -wheel_starts(iti_move_idx)
-
-        % Get total trials/water
-        % n_trials_water(curr_recording,:) = [length(trial_events.timestamps), ...
-        %     sum(([trial_events.values.Outcome] == 1)*6)];
+      
 
         % Get median stim-outcome time
         n_trials = length([trial_events.values.Outcome]);

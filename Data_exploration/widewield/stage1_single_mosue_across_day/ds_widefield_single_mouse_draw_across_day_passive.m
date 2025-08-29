@@ -17,7 +17,7 @@ passive_boundary=0.2;
 period_passive=find(t_passive>0&t_passive<passive_boundary);
 period_kernels=find(t_kernels>0&t_kernels<passive_boundary);
 
-animals={'HA010'}
+animals={'DS006'}
 % animals={'HA003','HA004','DS019','DS020','DS021'}
   % animals={'AP027','AP028','AP029','DS019','DS020','DS021'}
 

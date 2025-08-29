@@ -16,16 +16,16 @@ surround_time = [-5,5];
 surround_sample_rate = 100;
 surround_time_points = surround_time(1):1/surround_sample_rate:surround_time(2);
 
-% 
-% animals =     { 'DS007','DS010','AP019','AP021','DS011','AP022',...
-%                     'DS000','DS004','DS014','DS015','DS016',...
-%                     'AP018','AP020','DS006','DS013',...
-%                     'AP027','AP028','DS019','DS020','DS021',...
-%                     'AP027','AP028','AP029',...
-%                     'HA003','HA004','DS019','DS020','DS021',...
-%                     'HA000','HA001','HA002','DS005'};
 
-        animals={'HA009','HA010','HA011','HA012'};
+animals =     { 'DS007','DS010','AP019','AP021','DS011','AP022',...
+                    'DS000','DS004','DS014','DS015','DS016',...
+                    'AP018','AP020','DS006','DS013',...
+                    'AP027','AP028','DS019','DS020','DS021',...
+                    'AP027','AP028','AP029',...
+                    'HA003','HA004','DS019','DS020','DS021',...
+                    'HA000','HA001','HA002','DS005'};
+
+        % animals={'HA009','HA010','HA011','HA012'};
 for curr_animal_idx=1:length(animals)
     animal=animals{curr_animal_idx};
     fprintf('%s\n', ['start  ' animal ]);
@@ -140,7 +140,7 @@ for curr_animal_idx=1:length(animals)
 
             workflow_type_name{curr_recording}=recordings2(curr_recording).workflow{index_real};
 
-        
+
 
             if contains( workflow_type_name{curr_recording}, {'audio_volume', 'audio_frequency'})
                 workflow_type(curr_recording) = 2;
@@ -288,21 +288,29 @@ for curr_animal_idx=1:length(animals)
             real_reward_times=reward_times(1: sum(rewarded_trials(1:n_trials)==1));
             pho_on_times=photodiode_times(photodiode_values==1);
             pho_off_times=photodiode_times(photodiode_values==0)+2;
+            iti_move_regressors=histcounts(real_iti_move,wf_regressor_bins);
+
+
             if workflow_type(curr_recording)==1|workflow_type(curr_recording)==2
                 move_regressors = {histcounts(real_stim_move_time,wf_regressor_bins)};
                 stim_regressors = {histcounts(real_stimOn_times,wf_regressor_bins)};
                 reward_regressors = {histcounts(real_reward_times,wf_regressor_bins)};
 
                 wf_t_only_task= {ones(1,length(wf_t))};
+
+                            all_move_regressor=double(move_regressors{1} | iti_move_regressors);
+
             elseif workflow_type(curr_recording)==3
                 stim_regressors = {histcounts(real_stimOn_times(curr_tasktype==0),wf_regressor_bins);...
                     histcounts(real_stimOn_times(curr_tasktype==1),wf_regressor_bins)};
                 move_regressors = {histcounts(real_stim_move_time(curr_tasktype==0),wf_regressor_bins);...
                     histcounts(real_stim_move_time(curr_tasktype==1),wf_regressor_bins)};
-              reward_regressors= {histcounts(real_reward_times(curr_tasktype(rewarded_trials(1:n_trials))==0),wf_regressor_bins);...
+                reward_regressors= {histcounts(real_reward_times(curr_tasktype(rewarded_trials(1:n_trials))==0),wf_regressor_bins);...
                     histcounts(real_reward_times(curr_tasktype(rewarded_trials(1:n_trials))==1),wf_regressor_bins)};
-             
-               
+                           
+                all_move_regressor=double(move_regressors{1} |move_regressors{2} | iti_move_regressors);
+
+
                 temp_pho_off_times=[0; photodiode_off_times];
                 wf_t_only_v1=interp1([temp_pho_off_times(curr_tasktype==0);photodiode_on_times(curr_tasktype==0)],...
                     [ones(sum(photodiode_values(repelem(curr_tasktype, 2)'==0)==1),1);....
@@ -325,7 +333,6 @@ for curr_animal_idx=1:length(animals)
                 wf_t_only_task={wf_t_only_v1+wf_t_only_v2;wf_t_only_a1+wf_t_only_a2};
             end
 
-            iti_move_regressors=histcounts(real_iti_move,wf_regressor_bins);
             wf_pd_off = interp1(photodiode_times,photodiode_values,wf_t,'previous')==0;
             wf_t_only_iti = interp1([pho_on_times;pho_off_times], ...
                 [zeros(sum(photodiode_values==1),1);ones(sum(photodiode_values==0),1)], ...
@@ -334,10 +341,13 @@ for curr_animal_idx=1:length(animals)
 
             % move_regressor = histcounts(stim_move_time,wf_regressor_bins);
             temp_regressors=[stim_regressors(:);move_regressors(:);{iti_move_regressors};reward_regressors(:)];
-             regressors=cat(1,temp_regressors{:});
+            
+
+
+            regressors=cat(1,temp_regressors{:});
 
             % Set time shifts for regressors
-         
+
             % t_shifts = [repmat({-10:30}, size(stim_regressors));...
             %     repmat({-10:30}, size(move_regressors));[-10:30]];
 
@@ -347,7 +357,9 @@ for curr_animal_idx=1:length(animals)
             % Do regression
             [kernels_encode,predicted_signals,explained_var,predicted_signals_reduced] = ...
                 ap.regresskernel(regressors,wf_V,t_shifts,[],[],cvfold);
-
+            
+            
+            signals=wf_V;
 
             %  linear regression:
        
@@ -429,7 +441,31 @@ for curr_animal_idx=1:length(animals)
             disp('iti_move_kernels_running_successfully');
 
 
-                success = false; % 标记变量，判断是否成功运行
+
+            % all movement above threshold
+            success = false; % 标记变量，判断是否成功运行
+            while ~success
+                try
+
+                    disp(['Running with n_components = ', num2str(n_components)]);
+
+                    [all_move_kernels,predicted_signals,explained_var] = ...
+                        ap.regresskernel(wf_V(1:n_components,:),all_move_regressor,-frame_shifts,lambda);
+
+                    success = true; % 如果没有报错，则成功运行
+                catch ME
+                    disp(['Error: ', ME.message]);
+                    n_components = n_components - 10; % 变量 a 递减
+                    if n_components < 100 % 避免无限循环（你可以根据实际情况调整）
+                        error('n_components 过小，无法继续运行');
+                    end
+                end
+            end
+            disp('all_move_kernels_running_successfully');
+
+
+            % reward kernels
+            success = false; % 标记变量，判断是否成功运行
             while ~success
                 try
 
@@ -454,8 +490,12 @@ for curr_animal_idx=1:length(animals)
             disp('reward_kernels_running_successfully');
 
 
+         
+
+
+
             wf_px_task_kernels{curr_recording}={cat(3,stim_kernels{:}),cat(3,move_kernels{:}),iti_move_kernels,...
-                cat(3,reward_kernels{:})}';
+                all_move_kernels,cat(3,reward_kernels{:})}';
 
             wf_px_task_kernels_encode{curr_recording}=kernels_encode;
 
