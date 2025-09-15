@@ -2,6 +2,8 @@ function [p_val] = shuffle_test_non_pair(A, B)
 
 A=A(:);
 B=B(:);
+A=A(~isnan(A));
+B=B(~isnan(B));
 
 n_shuff = 1000;
 all_data = [A; B];

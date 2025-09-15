@@ -249,11 +249,15 @@ scatterColors = [[84 130 53]./255; [112  48 160 ]./255]; % 深蓝、深红
 nexttile
 for curr_group=1:2
 hold on
-ap.errorfill(1:max_l1, mean(rxt_1{curr_group},1,'omitmissing'),std(rxt_1{curr_group},0,1,'omitmissing')./...
+ap.errorfill(1:max_l1, median(rxt_1{curr_group},1,'omitmissing'),std(rxt_1{curr_group},0,1,'omitmissing')./...
     sqrt(size(rxt_1{curr_group},1)),corlors{curr_group},0.1,0.5)
-ap.errorfill(max_l1+1:max_l1+max_l2, mean(rxt_2{curr_group},1,'omitmissing'),std(rxt_2{curr_group},0,1,'omitmissing')./...
+ap.errorfill(max_l1+1:max_l1+max_l2, median(rxt_2{curr_group},1,'omitmissing'),std(rxt_2{curr_group},0,1,'omitmissing')./...
     sqrt(size(rxt_2{curr_group},1)),corlors{curr_group},0.1,0.5)
 end
+
+p_rxt_1=arrayfun(@(id) ds.shuffle_test_non_pair(rxt_1{1}(:,id),rxt_1{2}(:,id)),1:max_l1)<0.05
+p_rxt_2=arrayfun(@(id) ds.shuffle_test_non_pair(rxt_2{1}(:,id),rxt_2{2}(:,id)),1:max_l2)>0.95
+plot(find([p_rxt_1 p_rxt_2]),0,'.r');
 
 xlim([1 max_l1+max_l2+0])
 xticks([max_l1/2+0.5 max_l1+max_l2/2+0.5 max_l1+max_l2+1.5  max_l1+max_l2+3.5])
@@ -263,24 +267,7 @@ xline(max_l1+max_l2+0.5,'LineStyle','--','LineWidth',1,'Color',[0.5 0.5 0.5])
 ylabel('reaction time (s)')
  ylim([-0.05  0.5])
 yticks([ 0  0.5])
-
-
-
-test_p=cellfun(@(x,y) ds.shuffle_test( nanmean(x(:,6:7),2) ,nanmean(y(:,1:2),2),1,2) ,rxt_2,rxt_2,'UniformOutput',true)
-y_base = 0.35;   % 星号基准高度，可以根据数据调节
-y_step = 0.05;
-offset = 0;  % 用于竖直堆叠
-if test_p(1)
-    text(7.5, y_base + offset, '*', 'Color',corlors{1}, 'FontSize',14, ...
-        'HorizontalAlignment','center');
-    offset = offset + y_step;  % 往上移一格
-end
-if test_p(2)
-    text(7.5, y_base + offset, '*', 'Color',corlors{2}, 'FontSize',14, ...
-        'HorizontalAlignment','center');
-end
-
-
+ % set(gca, 'YScale', 'log');
 set(gca,'Color','none')
 
 nexttile
@@ -292,7 +279,21 @@ for curr_group=1:2
         std(perform_2{curr_group},0,1,'omitmissing')/sqrt(size(perform_2{curr_group},1)),corlors{curr_group},0.1,0.5)
 end
 
-% plot(find([p_perform1 p_perform2]),-0.05,'.r');
+p_perform1=arrayfun(@(id) ds.shuffle_test_non_pair(perform_1{1}(:,id),perform_1{2}(:,id)),1:max_l1)<0.05
+p_perform2=arrayfun(@(id) ds.shuffle_test_non_pair(perform_2{1}(:,id),perform_2{2}(:,id)),1:max_l2)<0.05
+P=ds.shuffle_test_non_pair(perform_1{1}(:,end),perform_2{1}(:,1))
+P=ds.shuffle_test_non_pair(perform_1{2}(:,end),perform_2{2}(:,1))
+
+P=ds.shuffle_test(rxt_1{1}(:,end)-rxt_2{1}(:,1),rxt_1{2}(:,end)-rxt_2{2}(:,1),0)
+P=ds.shuffle_test(perform_1{1}(:,end)-perform_2{1}(:,1),perform_1{2}(:,end)-perform_2{2}(:,1),0)
+
+A=perform_1{1}(:,end)
+B=perform_2{1}(:,1)
+ds.shuffle_test_non_pair(perform_2{1}(:,1),perform_2{2}(:,1))
+ds.shuffle_test_non_pair(perform_1{1}(:,end),perform_2{1}(:,1))
+
+plot(find([p_perform1 p_perform2]),-0.05,'.r');
+
 
 xline(max_l1+0.5,'LineStyle','--','LineWidth',1,'Color',[0.5 0.5 0.5])
 xline(max_l1+max_l2+0.5,'LineStyle','--','LineWidth',1,'Color',[0.5 0.5 0.5])
@@ -304,28 +305,8 @@ ylabel('performance')
 % legend({'',legned_name{1},'','','','','',legned_name{2}},'Location','northoutside','Box','off','Orientation','horizontal')
 ylim([-0.1 0.8])
 yticks([0 0.8])
-
-test_p=cellfun(@(x,y) ds.shuffle_test( nanmean(x(:,5:7),2) ,nanmean(y(:,1:2),2),1,2) ,perform_1,perform_1,'UniformOutput',true)
-y_base = 0.5;   % 星号基准高度，可以根据数据调节
-y_step = 0.05;
-offset = 0;  % 用于竖直堆叠
-if test_p(1)
-    text(7.5, y_base + offset, '*', 'Color',corlors{1}, 'FontSize',14, ...
-        'HorizontalAlignment','center');
-    offset = offset + y_step;  % 往上移一格
-end
-if test_p(2)
-    text(7.5, y_base + offset, '*', 'Color',corlors{2}, 'FontSize',14, ...
-        'HorizontalAlignment','center');
-end
-
-
-% saveas(gcf,[Path 'figures\summary\figures\behavioral performance' ], 'jpg');
+     % saveas(gcf,[Path 'figures\summary\figures\behavioral performance' ], 'jpg');
 set(gca,'Color','none')
-
-
-
-
 
 itimove_temp_mix_peak_mean=cellfun(@(x)  nanmean(cellfun(@(a)  nanmean(a) ,x,'UniformOutput',true ) ) ,itimove_mix_all,'UniformOutput',false)
 itimove_temp_mix_peak_error=cellfun(@(x)  std(cellfun(@(a)  nanmean(a) ,x,'UniformOutput',true ),'omitmissing')/sqrt(length(x))  ,itimove_mix_all,'UniformOutput',false)
@@ -351,15 +332,15 @@ set(gca,'Color','none')
 
 test_p=cellfun(@(x,y) ds.shuffle_test( nanmean(x(:,6:7),2) ,nanmean(y(:,1:2),2),1,2) ,itimove_mod1_all,itimove_mod2_all,'UniformOutput',true)
 y_base = 5;   % 星号基准高度，可以根据数据调节
-y_step = 0.5;
+y_step = 0.05;
 offset = 0;  % 用于竖直堆叠
 if test_p(1)
-    text(7.5, y_base + offset, '*', 'Color',corlors{1}, 'FontSize',14, ...
+    text(8.5, y_base + offset, '*', 'Color',corlors{1}, 'FontSize',14, ...
         'HorizontalAlignment','center');
     offset = offset + y_step;  % 往上移一格
 end
 if test_p(2)
-    text(7.5, y_base + offset, '*', 'Color',corlors{2}, 'FontSize',14, ...
+    text(8.5, y_base + offset, '*', 'Color',corlors{2}, 'FontSize',14, ...
         'HorizontalAlignment','center');
 end
 
@@ -369,7 +350,6 @@ end
 
 figure('Position', [50 50 200 250]);
 t1 = tiledlayout(3,1, 'TileSpacing', 'loose', 'Padding', 'loose');
-test_p1=cell(3,1)
 for curr_dat=1:3
     nexttile
     
@@ -413,9 +393,8 @@ for curr_dat=1:3
     end
 
     temp_1= cellfun(@(x)   cat(2,x{:}), performance_align{curr_dat},'UniformOutput',false)
-     test_p= cellfun(@(x)  ds.shuffle_test (nanmean(x(7:8,:),1),nanmean(x(19:20,:),1),1,2 )>0.95   , temp_1,'UniformOutput',true)
-     test_p1{curr_dat}= cellfun(@(x)  1-ds.shuffle_test (nanmean(x(7:8,:),1),nanmean(x(19:20,:),1),1,2 )   , temp_1,'UniformOutput',true)
-
+     test_p= cellfun(@(x)  ds.shuffle_test (nanmean(x(7:8,:),1),nanmean(x(19:20,:),1),0,2 )>0.95   , temp_1,'UniformOutput',true)
+% 
 % 
 %     temp{1}= cellfun(@(x)  nanmean(x(4:6,:),1),temp_1,'UniformOutput',false)
 %     temp{2}= cellfun(@(x)  nanmean(x(6:8,:),1),temp_1,'UniformOutput',false)

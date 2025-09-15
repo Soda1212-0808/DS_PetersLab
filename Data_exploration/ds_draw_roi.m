@@ -3,7 +3,7 @@ load('C:\Users\dsong\Documents\MATLAB\Da_Song\DS_scripts_ptereslab\General_infor
 figure;
 % imagesc(roi1(1).data.mask );
  % imagesc(roi1(1).data.mask+roi1(3).data.mask ); 
-imagesc(roi1(13).data.mask );
+imagesc(roi1(12).data.mask );
 % imagesc(roi1(1).data.mask+roi1(3).data.mask );
 ap.wf_draw('ccf', 'black');
 clim([0 2])
@@ -24,8 +24,8 @@ hold on
     plot(boundaries1{1, 1} (:,2),boundaries1{1, 1} (:,1),'Color',[1 0 0])
 
 dat=roipoly;
-   roi1(20).name='l-AM'
- roi1(5).data.mask=dat;
+   roi1(12).name='l-AM'
+ roi1(12).data.mask=dat;
  
   % roi1(14).name='asymmetry rmPFC'
  roi1(15).data.mask=fliplr(roi1(14).data.mask);

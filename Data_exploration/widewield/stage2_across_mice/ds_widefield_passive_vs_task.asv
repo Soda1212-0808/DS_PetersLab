@@ -290,7 +290,7 @@ for curr_group=1:2
             hold on
             % p_task = polyfit(performs_task(cell2mat(tem_learned_day_task)==1), data1_task(cell2mat(tem_learned_day_task)==1)', 1);       % 一阶多项式拟合：y = p(1)*x + p(2)
 
-            p_task = polyfit(performs_task, data1_task, 1);       % 一阶多项式拟合：y = p(1)*x + p(2)
+            p_task = polyfit(performs_task, data1_task', 1);       % 一阶多项式拟合：y = p(1)*x + p(2)
             x_fit_task = linspace(0, 1, 2);
             y_fit_task = polyval(p_task, x_fit_task);
             plot(x_fit_task, y_fit_task, '-', 'LineWidth', 2,'Color',colors_1{curr_group}(1,:));
@@ -355,8 +355,7 @@ figure;
 for curr_roi=1:2
     nexttile
 
- % ds.shuffle_test(slope_task{1}{curr_roi}, slope_pass{1}{curr_roi},0,1)
- % ds.shuffle_test(slope_task{2}{curr_roi}, slope_pass{2}{curr_roi},0,1)
+ ds.shuffle_test(slope_task{1}{curr_roi}, slope_pass{1}{curr_roi},0,1)
 
 
  mean_1=  [cellfun(@(x)  median(x{curr_roi})  , slope_task,'UniformOutput',true );...

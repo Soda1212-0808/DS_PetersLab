@@ -31,12 +31,12 @@ data_all_days=cell(2,1);
 % used_data=1;% 1 raw data;2 kernels 
 data_type={'raw','kernels'};
 
- wf_passive_kernel=struct;
+ % wf_passive_kernel=struct;
 
 for used_data=2
     for  workflow_idx=1:2
         workflow=all_workflow{workflow_idx};
-        wf_passive_kernel.(workflow)=cell(length(select_group),1);
+        % wf_passive_kernel.(workflow)=cell(length(select_group),1);
         for curr_group=select_group;
             main_preload_vars = who;
             if curr_group==1
@@ -58,8 +58,8 @@ for used_data=2
 
             end
 
-            wf_passive_kernel.(workflow){curr_group}=table
-            wf_passive_kernel.(workflow){curr_group}.name= animals{curr_group}';
+            % wf_passive_kernel.(workflow){curr_group}=table
+            % wf_passive_kernel.(workflow){curr_group}.name= animals{curr_group}';
 
             % used_id=1:3;
             all_data_video=cell(length(animals{curr_group}),1);
@@ -133,7 +133,7 @@ for used_data=2
                 x(find(strcmp(y, z(find(cellfun(@(idx) strcmp('naive', idx), z, 'UniformOutput', true)))), 3, 'first'), :), ...
                 all_data_video(naive_idx), all_data_workflow_name(naive_idx), matches(naive_idx), ...
                 'UniformOutput', false);
-            wf_passive_kernel.(workflow){curr_group}.habituation=naive_data;
+            % wf_passive_kernel.(workflow){curr_group}.habituation=naive_data;
 
             naive_data(~naive_idx) = arrayfun(@(x) repmat({nan(450,426,length(use_t),3)},3,1),...
                 (1:length(find(~naive_idx)))', 'UniformOutput', false);
@@ -145,7 +145,7 @@ for used_data=2
                 ,all_data_video,all_data_workflow_name,matches,all_data_learned_day,'UniformOutput',false);
             pre_learn_data0 = cellfun(@(x) x(1:end-2),pre_learn_data0,'UniformOutput',false);
             
-            wf_passive_kernel.(workflow){curr_group}.mod1_naive=pre_learn_data0;
+            % wf_passive_kernel.(workflow){curr_group}.mod1_naive=pre_learn_data0;
 
             pre_learn_data0 = cellfun(@(x) mean(cat(5,x{:}),5),pre_learn_data0,'UniformOutput',false);
             pre_learn_data0= cellfun(@(x) [x; repmat({nan(450,426,length(use_t),3)},1-length(x),1)],pre_learn_data0,'UniformOutput',false);
@@ -154,7 +154,7 @@ for used_data=2
             pre_learn_data1=cell(length(animals{curr_group}),1);
             pre_learn_data1 = cellfun(@(x,y,z,l) x(find(strcmp(y,z(find(cellfun(@(idx) strcmp(n1_name, idx),z,'UniformOutput',true))))& l==0 ,2,'last'))...
                 ,all_data_video,all_data_workflow_name,matches,all_data_learned_day,'UniformOutput',false);
-            wf_passive_kernel.(workflow){curr_group}.mod1_pre_learn=pre_learn_data1;
+            % wf_passive_kernel.(workflow){curr_group}.mod1_pre_learn=pre_learn_data1;
 
             pre_learn_data1= cellfun(@(x) [x; repmat({nan(450,426,length(use_t),3)},2-length(x),1)],pre_learn_data1,'UniformOutput',false);
 
@@ -163,7 +163,7 @@ for used_data=2
             post_learn1_data1 = cellfun(@(x,y,z,l) x(find(strcmp(y,z(find(cellfun(@(idx) strcmp(n1_name, idx),z,'UniformOutput',true))))& l==1 ,3,'first'))...
                 ,all_data_video,all_data_workflow_name,matches,all_data_learned_day,'UniformOutput',false);
             
-            wf_passive_kernel.(workflow){curr_group}.mod1_post_learn=post_learn1_data1;
+            % wf_passive_kernel.(workflow){curr_group}.mod1_post_learn=post_learn1_data1;
 
             post_learn1_data1= cellfun(@(x) [x; repmat({nan(450,426,length(use_t),3)},3-length(x),1)],post_learn1_data1,'UniformOutput',false);
 
@@ -173,7 +173,7 @@ for used_data=2
                 ,all_data_video,all_data_workflow_name,matches,all_data_learned_day,'UniformOutput',false);
             post_learn2_data1 = cellfun(@(x) x(4:end),post_learn2_data1,'UniformOutput',false);
 
-                        wf_passive_kernel.(workflow){curr_group}.mod1_well_trained=post_learn2_data1;
+            % wf_passive_kernel.(workflow){curr_group}.mod1_well_trained=post_learn2_data1;
 
             post_learn2_data1= cellfun(@(x) [x; repmat({nan(450,426,length(use_t),3)},2-length(x),1)],post_learn2_data1,'UniformOutput',false);
 
@@ -189,7 +189,7 @@ for used_data=2
             pre_learn_data2 = cellfun(@(x,y,z,l) x(find(strcmp(y,z(find(cellfun(@(idx) strcmp(n2_name, idx),z,'UniformOutput',true))))& l==0 ,2,'first'))...
                 ,all_data_video,all_data_workflow_name,matches,all_data_learned_day,'UniformOutput',false);
 
-            wf_passive_kernel.(workflow){curr_group}.mod2_pre_learn=pre_learn_data2;
+            % wf_passive_kernel.(workflow){curr_group}.mod2_pre_learn=pre_learn_data2;
 
             pre_learn_data2= cellfun(@(x) [x; repmat({nan(450,426,length(use_t),3)},2-length(x),1)],pre_learn_data2,'UniformOutput',false);
 
@@ -197,7 +197,7 @@ for used_data=2
             post_learn1_data2 = cellfun(@(x,y,z,l) x(find(strcmp(y,z(find(cellfun(@(idx) strcmp(n2_name, idx),z,'UniformOutput',true))))& l==1 ,3,'first'))...
                 ,all_data_video,all_data_workflow_name,matches,all_data_learned_day,'UniformOutput',false);
 
-           wf_passive_kernel.(workflow){curr_group}.mod2_post_learn=post_learn1_data2;
+           % wf_passive_kernel.(workflow){curr_group}.mod2_post_learn=post_learn1_data2;
 
             post_learn1_data2= cellfun(@(x) [x; repmat({nan(450,426,length(use_t),3)},3-length(x),1)],post_learn1_data2,'UniformOutput',false);
 
@@ -206,7 +206,7 @@ for used_data=2
                 ,all_data_video,all_data_workflow_name,matches,all_data_learned_day,'UniformOutput',false);
             post_learn2_data2 = cellfun(@(x) x(4:end),post_learn2_data2,'UniformOutput',false);
             
-            wf_passive_kernel.(workflow){curr_group}.mod2_well_trained=post_learn2_data2;
+            % wf_passive_kernel.(workflow){curr_group}.mod2_well_trained=post_learn2_data2;
 
             post_learn2_data2= cellfun(@(x) [x; repmat({nan(450,426,length(use_t),3)},2-length(x),1)],post_learn2_data2,'UniformOutput',false);
  
@@ -215,7 +215,7 @@ for used_data=2
             first_5day_data2 = cellfun(@(x,y,z,l) x(find(strcmp(y,z(find(cellfun(@(idx) strcmp(n2_name, idx),z,'UniformOutput',true)))) ,5,'first'))...
                 ,all_data_video,all_data_workflow_name,matches,all_data_learned_day,'UniformOutput',false);
             
-            wf_passive_kernel.(workflow){curr_group}.mod2=first_5day_data2;
+            % wf_passive_kernel.(workflow){curr_group}.mod2=first_5day_data2;
 
             first_5day_data2= cellfun(@(x) [x; repmat({nan(450,426,length(use_t),3)},5-length(x),1)],first_5day_data2,'UniformOutput',false);
 
@@ -225,21 +225,18 @@ for used_data=2
             data3(mixed_idx) = cellfun(@(x,y,z) x(find(strcmp(y,z(find(cellfun(@(idx) strcmp(n3_name, idx),z,'UniformOutput',true)))),3,'last'),:),...
                 all_data_video(mixed_idx) ,all_data_workflow_name(mixed_idx) ,matches(mixed_idx) ,'UniformOutput',false);
            
-            wf_passive_kernel.(workflow){curr_group}.mix=data3;
+            % wf_passive_kernel.(workflow){curr_group}.mix=data3;
 
             data3(~mixed_idx) = arrayfun(@(x) repmat({nan(450,426,length(use_t),3)},3,1),...
                 (1:length(find(~mixed_idx)))', 'UniformOutput', false);
             data3= cellfun(@(x) [x; repmat({nan(450,426,length(use_t),3)},3-length(x),1)],data3,'UniformOutput',false);
 
-            % all_data_daybyday=cellfun(@(a0,a,b,c,d,e,f,g,h,i,j) [a0;a;b;c;d;e;f;g;h;i;j],...
-            %     naive_data,pre_learn_data0,pre_learn_data1,post_learn1_data1,post_learn2_data1,...
-            %     pre_learn_data2,post_learn1_data2,post_learn2_data2,data3,first_5day_data2,last_5day_data1,'UniformOutput',false);
-
+        
             all_inputs = {naive_data, pre_learn_data0, pre_learn_data1, post_learn1_data1, post_learn2_data1, ...
                 pre_learn_data2, post_learn1_data2, post_learn2_data2, data3, first_5day_data2, last_5day_data1};
-            all_data_daybyday = cellfun(@(varargin) vertcat(varargin{:}), all_inputs{:}, 'UniformOutput', false);
 
-            data_all_days{curr_group}{used_data}{workflow_idx}=all_data_daybyday;
+            data_all_days{curr_group}{used_data}{workflow_idx}=...
+                cellfun(@(varargin) vertcat(varargin{:}), all_inputs{:}, 'UniformOutput', false);
 
             clearvars('-except',main_preload_vars{:});
 
@@ -248,7 +245,7 @@ for used_data=2
 
 end
 
-save(['D:\Data process\slide\papers\data\wf_passive.mat' ],'wf_passive_kernel','-v7.3')
+% save(['D:\Data process\slide\papers\data\wf_passive.mat' ],'wf_passive_kernel','-v7.3')
 
 
 % save([Path 'mat_data\summary_data\passive ' data_type{used_data} ' in group ' groups{select_group}  '.mat' ],'data_all_images','data_all','-v7.3');
@@ -451,6 +448,7 @@ xlabel_all={'left','center','right';'4k Hz','8k Hz','12k Hz'}
 line_colors={[0.5 0.5 0.5],[0.5 0.5 0.5],[0 0 1];[0.5 0.5 0.5],[1 0 0],[0.5 0.5 0.5]}
 buf3_roi_peak_mean=cell(2,1);
 buf3_roi_peak_error=cell(2,1);
+buf3_roi_peak=cell(2,1);
 buf3_roi_stim1_mean=cell(2,1);
 buf3_roi_stim1_error=cell(2,1);
 figure('Position',[50 50 430 300])
@@ -484,7 +482,9 @@ for curr_group=1:2
         end
 
         buf1=cellfun(@(z) reshape(z,size(z,1)*size(z,2),size(z,3),size(z,4)),...
-            temp_image(10:11,:), 'UniformOutput', false);
+            temp_image([10 10 11],:), 'UniformOutput', false);
+
+
 
         for curr_roi= 1:length(roi1)
             buf3_roi{curr_roi}=cellfun(@(x) permute(nanmean(x(roi1(curr_roi).data.mask(:),:,:),1),[2,3,1]),buf1,'UniformOutput',false);
@@ -492,18 +492,20 @@ for curr_group=1:2
             % buf3_roi_stim{curr_animal}{curr_roi}= double(buf3_roi{curr_roi}(:,curr_day))';
         end
 
-        buf3_roi_peak1= cellfun(@(x) cellfun(@(y) max(y(use_period,:),[],1),x,'UniformOutput',false) ,buf3_roi,'UniformOutput',false);
-        buf3_roi_peak_mean{curr_group}= cellfun(@(x)  nanmean(cat(3,x{:}),3), buf3_roi_peak1,'UniformOutput',false);
-        buf3_roi_peak_error{curr_group}=cellfun(@(x)   std(cat(3,x{:}),0,3,'omitmissing')./sqrt(size(x,2))  , buf3_roi_peak1,'UniformOutput',false);
+        temp_peak1= cellfun(@(x) cellfun(@(y) max(y(use_period,:),[],1),x,'UniformOutput',false) ,buf3_roi,'UniformOutput',false);
+temp_peak2=cellfun(@(x)  arrayfun(@(id) mean(cat(5, x{:,id}), 5) , 1:size(x,2),'UniformOutput',false ) ,temp_peak1,'UniformOutput',false)
+        
+        buf3_roi_peak{curr_group}=temp_peak2;
+        buf3_roi_peak_mean{curr_group}= cellfun(@(x)  nanmean(cat(3,x{:}),3), temp_peak2,'UniformOutput',false);
+        buf3_roi_peak_error{curr_group}=cellfun(@(x)   std(cat(3,x{:}),0,3,'omitmissing')./sqrt(size(x,2))  , temp_peak2,'UniformOutput',false);
         buf3_roi_stim1_mean{curr_group}= cellfun(@(x) nanmean(cat(3,x{:}),3),buf3_roi,'UniformOutput',false   )
         buf3_roi_stim1_error{curr_group}= cellfun(@(x) std(cat(3,x{:}),0,3,'omitmissing')./sqrt(size(x,2)),buf3_roi,'UniformOutput',false   )
         clearvars('-except',main_preload_vars{:});
-
+ % x=temp_peak1{1}
 
     end
 
 end
-
 
 
 
@@ -589,6 +591,37 @@ for area_idx = 1:2  % 对应 curr_area = [1 3]
    
 
 end
+
+
+use_area=[1 3];
+p_vals=nan(2,2)
+for curr_group=1:2
+    switch curr_group
+        case 1
+            idx={3 ,[1 2]}
+        case 2
+            idx={2, [1 3]}
+    end
+    for area_idx = 1:2
+        curr_area=use_area(area_idx)
+        temp_dat=cat(1,buf3_roi_peak{curr_group}{curr_area}{:});
+        temp_matrix=[temp_dat(:,idx{1}) nanmean(temp_dat(:,idx{2}),2)];
+
+temp_diff=nanmean(diff(temp_matrix'));
+n_shuff=1000;
+shuff=zeros(n_shuff,1);
+for curr_shuf=1:n_shuff
+shuff(curr_shuf)= nanmean(diff(ap.shake(temp_matrix,2)'));
+end
+ranks = tiedrank(vertcat(temp_diff,shuff));
+
+p_vals(curr_group,area_idx) = ranks( 1) / (n_shuff + 1)
+
+    end
+end
+
+
+
 
 
 
@@ -976,7 +1009,7 @@ buf3_roi_mean_crossday=cell(2,1);
 buf3_roi_l_acrosstime=cell(2,1);
 buf3_roi_l_mean_crosstime=cell(2,1);
 buf3_roi_l_error_crosstime=cell(2,1);
-buf3_roi_peak1=cell(2,1);
+temp_peak1=cell(2,1);
 all_data_passive=cell(2,1);
 all_buf_data_each=cell(2,1);
 legend_labels={{'L','C','R'},...
@@ -1118,7 +1151,7 @@ buf3_roi_each_crossday=cell(2,1);
 buf3_roi_l_acrosstime=cell(2,1);
 buf3_roi_l_mean_crosstime=cell(2,1);
 buf3_roi_l_error_crosstime=cell(2,1);
-buf3_roi_peak1=cell(2,1);
+temp_peak1=cell(2,1);
 all_data_passive=cell(2,1);
 all_buf_data_each=cell(2,1);
 legend_labels={{'L','C','R'},...
@@ -1200,15 +1233,7 @@ for curr_passive=1:2
                 nanmean( cat(3,buf3_roi_peak_0{[1 5-use_stim]}),3));
         end
 
-        % if (curr_group==1 & curr_passive==1)
-        %     use_roi=1;  use_days=[7 :11]; stage=1;use_x=[1:5]
-        % elseif (curr_group==2 & curr_passive==2)
-        %     use_roi=3;use_days=[7: 11];stage=1;;use_x=[1:5]
-        % elseif (curr_group==1 & curr_passive==2)
-        %     use_roi=3;  use_days=[22: 26];stage=2;;use_x=[6:10]
-        % elseif (curr_group==2 & curr_passive==1)
-        %     use_roi=1;  use_days=[22 :26];stage=2;;use_x=[6:10]
-        % end
+     
 
         temp_roi=0
         for use_roi=[1 3]
@@ -1229,36 +1254,33 @@ for curr_passive=1:2
                
             end
 
-            n_shuff = 1000;
-            for curr_i=1:26
-                temp_rank= tiedrank(  horzcat ( nanmean(diff(curr_statis(curr_i,:,:),[],3)),...
-                    cell2mat(arrayfun(@(shuff)  nanmean(diff(ap.shake(curr_statis(curr_i,:,:),3),[],3)), 1:n_shuff,'uni',false)))')';
-                p(curr_i)=temp_rank(:,1)./(n_shuff+1)
-            end
+
+temp{1}= permute(nanmean(curr_statis(7:9,:,:),1),[3,2,1]);
+temp{2}= permute(nanmean(curr_statis(10:11,:,:),1),[3,2,1]);
+temp{3}= permute(nanmean(curr_statis(22:23,:,:),1),[3,2,1]);
+temp{4}= permute(nanmean(curr_statis(24:26,:,:),1),[3,2,1]);
 
 
-                 
+vals=cellfun(@(x) ds.shuffle_test(x(1,:),x(2,:),0),temp,'UniformOutput',true)
+
+xStart = [1 4 6 8]; xEnd = [3 5 7 10];
+
+line_thres=[-0.00001 -0.00001];
+arrayfun(@(a,b) line([a b],line_thres,'Color','k') ,xStart(vals<0.05), xEnd(vals<0.05));
+arrayfun(@(i) text(mean([xStart(i) xEnd(i)]), 0, '*','Color','r', 'FontSize',12,'HorizontalAlignment','center'), find(vals<0.05));
 
 
-                 
-
-            if ~isempty( find(p([7:11 22:26])<0.05))
-                plot( find(p([7:11 22:26])<0.06), 0.000005, '.r')
-                % ap.errorfill(use_x,curr_value(use_days),curr_error(use_days),color,0.1 )
-            end
-
-
-            ylim(scale*[0 1])
-            xlim([0.5 10.5])
-            xticks([3 8])
-            ylabel( ax{curr_passive,curr_group},'\Delta F/F')
+ylim(scale*[-0.1 1])
+xlim([0.5 10.5])
+xticks([3 8])
+ylabel( ax{curr_passive,curr_group},'\Delta F/F')
 if curr_passive==2
-            xticklabels({'mod 1','mod 2'})
+    xticklabels({'mod 1','mod 2'})
 else
-                xticklabels([])
+    xticklabels([])
 
 end
-            set(gca,'Color','none')
+set(gca,'Color','none')
         end
     end
 end
@@ -1396,7 +1418,7 @@ set(gca, 'XTick', 1:8, 'XTickLabel', {'pl-mPFC', 'pr-mPFC', 'al-mPFC', 'ar-mPFC'
  legend({'V', 'A', 'VA','AV'}, 'Location', 'northeastoutside','Box','off');
 ylabel('proportion of difference ');
 
-saveas(gcf,[Path 'figures\summary\figures\passive of 3 stage images and selectivity 1'], 'jpg');
+% saveas(gcf,[Path 'figures\summary\figures\passive of 3 stage images and selectivity 1'], 'jpg');
 
 
 
@@ -1419,7 +1441,7 @@ buf3_roi_error_crossday=cell(2,1);
 buf3_roi_mean_crossday=cell(2,1);
 buf3_roi_l_mean_crosstime=cell(2,1);
 buf3_roi_l_error_crosstime=cell(2,1);
-buf3_roi_peak1=cell(2,1);
+temp_peak1=cell(2,1);
 all_data_passive=cell(2,1);
 all_buf_data_each=cell(2,1);
 for curr_group=1:2
@@ -1485,11 +1507,11 @@ for curr_group=1:2
 
             all_data_passive{curr_group}{curr_passive}{curr_roi}=cat(3,buf3_roi_l_mean{:});
             buf3_roi_peak=cellfun(@(x) double(max(x(use_period,:),[],1) )',buf3_roi_l_acrosstime, 'UniformOutput', false);
-            buf3_roi_peak1{curr_group}{curr_passive}{curr_roi}=reshape(cat(2,buf3_roi_peak{:}), [length(buf3_roi_peak{1}) size(buf3_roi_peak)]);
+            temp_peak1{curr_group}{curr_passive}{curr_roi}=reshape(cat(2,buf3_roi_peak{:}), [length(buf3_roi_peak{1}) size(buf3_roi_peak)]);
             buf3_roi_error_crossday{curr_group}{curr_passive}{curr_roi}=...
-                std(nanmean(buf3_roi_peak1{curr_group}{curr_passive}{curr_roi}(:,19:21,:),2),0,3,"omitmissing")./sqrt(size(buf3_roi_peak1{curr_group}{curr_passive}{curr_roi},3));
+                std(nanmean(temp_peak1{curr_group}{curr_passive}{curr_roi}(:,19:21,:),2),0,3,"omitmissing")./sqrt(size(temp_peak1{curr_group}{curr_passive}{curr_roi},3));
             buf3_roi_mean_crossday{curr_group}{curr_passive}{curr_roi}=...
-                nanmean(buf3_roi_peak1{curr_group}{curr_passive}{curr_roi}(:,19:21,:),[2,3]);
+                nanmean(temp_peak1{curr_group}{curr_passive}{curr_roi}(:,19:21,:),[2,3]);
         end
 
 
