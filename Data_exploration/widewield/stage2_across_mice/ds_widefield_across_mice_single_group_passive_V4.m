@@ -6,12 +6,13 @@ master_U_fn = fullfile(plab.locations.server_path,'Lab', ...
 load(master_U_fn);
 load('C:\Users\dsong\Documents\MATLAB\Da_Song\DS_scripts_ptereslab\General_information\roi.mat')
 
-surround_samplerate = 35;
-surround_window_passive = [-0.5,1];
+
 surround_window_task = [-0.2,1];
-t_passive = surround_window_passive   (1):1/surround_samplerate:surround_window_passive(2);
 t_kernels=1/surround_samplerate*[-10:30];
 
+surround_samplerate = 35;
+surround_window_passive = [-0.5,1];
+t_passive = surround_window_passive   (1):1/surround_samplerate:surround_window_passive(2);
 passive_boundary=0.2;
 period_passive=find(t_passive>0&t_passive<passive_boundary); 
 period_kernels=find(t_kernels>0&t_kernels<passive_boundary);
@@ -1558,6 +1559,10 @@ for curr_group=1:2
             colormap( insetAx,ap.colormap('WK'));
             uistack(insetAx, 'bottom');
         end
+    
+    
+    
+    
     end
 end
 

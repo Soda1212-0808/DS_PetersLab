@@ -237,6 +237,8 @@ end
 
     
 end
+
+
 % save([Path 'summary_data\behavior.mat'],'performance_align','-v7.3')
 %
 legned_name={'VA';'AV'};
@@ -626,11 +628,11 @@ tiledlayout(1,3)
 for curr_stage=1:3
     switch  curr_stage
         case 1
-            temp_dat=asso_day_mod2;
+            temp_dat=asso_day_mod1;
         case 2
-          temp_dat=  reaction_time_mod2;
+          temp_dat=  reaction_time_mod1;
         case 3
-           temp_dat=  viaraility_mod2;
+           temp_dat=  viaraility_mod1;
     end
 
 
@@ -1021,7 +1023,7 @@ end
 %% example behavior trace
 
     animal ='DS019'
-    rec_day='2025-01-10'
+    rec_day='2025-01-23'
     rec = plab.find_recordings(animal,rec_day,'*wheel*');
     rec_time = rec.recording{end};
     load_parts = struct;
@@ -1030,8 +1032,8 @@ end
     ap.load_recording;
 
 %
-    time_period=[  min(find(timelite.timestamps-(photodiode_on_times(16)-0.2)>0)),...
-        min(find(timelite.timestamps-(photodiode_off_times(18)+0.5)>0))]
+    time_period=[  min(find(timelite.timestamps-(photodiode_on_times(20)-0.2)>0)),...
+        min(find(timelite.timestamps-(photodiode_off_times(20)+0.5)>0))];
 
     reward_timeline =reward_thresh(time_period(1):time_period(2));  % 示例数据
     % 找出所有为 1 的索引
@@ -1047,11 +1049,10 @@ end
     mask(cell2mat(idx_ranges')) = true;
     % 应用掩码修改 vec
     reward_timeline(mask) = 1;
-
     %
     line_width=1;
     font_size=8;
-    figure('Position',[50 50 300 150]);
+    figure('Position',[50 50 200 150]);
     t1 = tiledlayout(4, 1, 'TileSpacing', 'loose', 'Padding', 'loose');
 
     hold on
@@ -1107,23 +1108,23 @@ xlim([-190 length(reward_timeline)])
     % legend({'stim','reward','wheel move','wheel velocity','lick'},'Location','eastoutside','Box','off')
 
 
-
-    figure('Position',[50 50 100 50]);
-    t1 = tiledlayout(4, 1, 'TileSpacing', 'none', 'Padding', 'none');
-    nexttile
-    plot( photodiode_trace(time_period(1)-1000:time_period(2))>3,'LineWidth',line_width,'Color','k')
-        ylim([0 1.3])
-
-    axis off
-    nexttile
-        plot(wheel_move(time_period(1)-1000:time_period(2)),'LineWidth',line_width,'Color','k')
-        ylim([0 1.3])
-
-    axis off
-    nexttile
-    plot(lick_thresh(time_period(1)-1000:time_period(2)),'LineWidth',line_width,'Color','k')
-    axis off
-    ylim([0 1.3])
+    % 
+    % figure('Position',[50 50 100 50]);
+    % t1 = tiledlayout(4, 1, 'TileSpacing', 'none', 'Padding', 'none');
+    % nexttile
+    % plot( photodiode_trace(time_period(1)-1000:time_period(2))>3,'LineWidth',line_width,'Color','k')
+    %     ylim([0 1.3])
+    % 
+    % axis off
+    % nexttile
+    %     plot(wheel_move(time_period(1)-1000:time_period(2)),'LineWidth',line_width,'Color','k')
+    %     ylim([0 1.3])
+    % 
+    % axis off
+    % nexttile
+    % plot(lick_thresh(time_period(1)-1000:time_period(2)),'LineWidth',line_width,'Color','k')
+    % axis off
+    % ylim([0 1.3])
 
    % saveas(gcf,[Path 'figures\summary\figures\figure 1 example behavioral trace' ], 'jpg');
 %% single mice behavior
@@ -1133,12 +1134,12 @@ colors_group=[0 0 1];
 
 % animals = {'DS000','DS004','DS014','DS015','DS016'};
 % animals = {  'DS007','DS010','AP019','AP021','DS011','AP022'}
-% animals={'DS010'}
+animals={'DS015'}
 
 % animals={'HA000','HA001','HA002','HA003','HA004','DS019','DS020','DS021','AP027','AP028','AP029'}
  % animals={'HA003','HA004','DS019','DS020'}
  % animals={'AP027','AP028','AP029','DS019','DS020','DS021'}
-animals = {  'HA011','HA012','HA009','HA010'}
+% animals = {  'HA011','HA012','HA009','HA010'}
 
 for curr_animal =1:length(animals)
     animal=animals{curr_animal};

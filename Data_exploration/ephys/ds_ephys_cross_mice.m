@@ -11,6 +11,7 @@ animals= { 'DS007','DS010','AP021','DS011','AP022','DS001','AP018','DS003',...
 
 anterior_idx={[2 4],  [2 4],    2,    [2 4],  [2 4],  [2 4],    2,     2,     [2 4],  [2 4],  [2 4],  [2 4],  [2 4],  [2 4],  [2 4]};
 anterior_learned_idx={[2 4],  [2 4],    2,    [2 4],  [2 4],  [   ],    [],    [],    [   ],  [   ],  [2 4],  [  4],  [2 4],  [2 4],  [2 4]};
+
 anterior_learned_idx_VA={[2 4],  [2 4],    2,    [2 4],  [2 4],  [   ],    [],    [],    [   ],  [   ],  [   ],  [   ],  [   ],  [   ],  [   ]};
 anterior_learned_idx_VA_nA={[   ],  [   ],   [ ],    [   ],  [   ],  [2 4],    [],    [],    [   ],  [   ],  [   ],  [   ],  [   ],  [   ],  [   ]};
 anterior_learned_idx_VnA_nA={[   ],  [   ],   [],    [   ],  [   ], [  ],   [2],    [],    [   ],  [   ],  [   ],  [   ],  [   ],  [   ],  [   ]};
@@ -323,7 +324,7 @@ cell_type={'tan','msn','fsi','all'};
 % states=[7 8]
 
 p_val=0.95;
-for curr_cell_type=1:4
+for curr_cell_type=1:3
     figure('Position',[50 50 200 500]);
     t= tiledlayout(4,2,"TileSpacing","tight",'Padding','tight'); % 创建一个1行2列的布局
 
@@ -419,7 +420,7 @@ for curr_cell_type=1:4
         % temp_idx_all_1=[data1(sort_idx_1);data2(sort_idx_2);data3(sort_idx_3);data4];
         temp_idx_all_1=[data1(sort_idx_1);data2(sort_idx_2);data3(sort_idx_3);data4];
 
-        temp_idx_all=[data1(sort_idx_1);data2(sort_idx_2);data3(sort_idx_3);data4];
+        temp_idx_all=[data1(sort_idx_1);data2(sort_idx_2);data3(sort_idx_3)];
        % temp_idx_all=[data1(sort_idx_1);data2(sort_idx_2);data3(sort_idx_3);data4];
 
 
@@ -510,17 +511,17 @@ end
 set(gca, 'XTick', 1:ngroups, 'XTickLabel', {'only V', 'V&A','only A'},'Box','off');
 ylabel('proportion');
 
-temp_o=cellfun(@(x) cat(1,x{:}),temp_mean0,'UniformOutput',false);
-for curr_i=1:3
-    % p=ranksum( temp_o{1}(:,curr_i) ,temp_o{2}(:,curr_i));
-p=ds.shuffle_test_non_pair( temp_o{1}(:,curr_i) ,temp_o{2}(:,curr_i));
-    y_sig = max([temp_o{1}(:,curr_i) ;temp_o{2}(:,curr_i)],[],'all') + 0.01;
-    if p < 0.05
-        stars = repmat('*',1,sum(p<[0.05 0.01 0.001]));
-        plot([(curr_i-0.1) (curr_i+0.1)], [1 1]*y_sig, 'k-');
-        text(curr_i, y_sig+0.01, stars, 'HorizontalAlignment','center');
-    end
-end
+% temp_o=cellfun(@(x) cat(1,x{:}),temp_mean0,'UniformOutput',false);
+% for curr_i=1:3
+%     % p=ranksum( temp_o{1}(:,curr_i) ,temp_o{2}(:,curr_i));
+% p=ds.shuffle_test_non_pair( temp_o{1}(:,curr_i) ,temp_o{2}(:,curr_i));
+%     y_sig = max([temp_o{1}(:,curr_i) ;temp_o{2}(:,curr_i)],[],'all') + 0.01;
+%     if p < 0.05
+%         stars = repmat('*',1,sum(p<[0.05 0.01 0.001]));
+%         plot([(curr_i-0.1) (curr_i+0.1)], [1 1]*y_sig, 'k-');
+%         text(curr_i, y_sig+0.01, stars, 'HorizontalAlignment','center');
+%     end
+% end
 
 
 
@@ -898,8 +899,8 @@ image_color={'G','P'};
 p_val=0.95;
 % % max_num=500;
 sorting_stim=[3 5];
-plot_stim=[7 8];
-figure('Position',[50 50 200 400]);
+plot_stim=[3 5];
+figure('Position',[50 50 400 300]);
 
 for curr_stim=1:2
 
@@ -994,7 +995,8 @@ for curr_stim=1:2
         [~,sort_idx] = sortrows( max_idx,"ascend");
 
 
-        ax=subplot(6,2,[4*curr_group+curr_stim-4 ,4*curr_group+curr_stim-2])
+        % ax=subplot(6,2,[4*curr_group+curr_stim-4 ,4*curr_group+curr_stim-2])
+        ax=subplot(4,3,[curr_group+6*curr_stim-6 ,curr_group+6*curr_stim-3])
 
         % imagesc(t_bins,[],smoothdata(used_plot_all_selected(sort_idx,:),1,'gaussian',20))
         imagesc(t_bins,[],used_plot_all_selected_1(sort_idx,:))
@@ -1014,7 +1016,7 @@ for curr_stim=1:2
         ax.Position=subplotPosition;
         axis off
 
-        ax=subplot(6,2,8+curr_stim)
+        ax=subplot(4,3,6*curr_stim-6+3)
         hold on
         temp_plot=cell2mat(cellfun(@(x) nanmean(x,1)    ,used_filter_plot_all,'UniformOutput',false));
         temp_mean=nanmean(temp_plot,1);
@@ -1035,7 +1037,7 @@ for curr_stim=1:2
         std(proportion_response{2}, 0, 1,'omitmissing') ./ sqrt(size(proportion_response{2},1))]';
     p =  ranksum(proportion_response{1}, proportion_response{2})
 
-    ax=subplot(6,2,10+curr_stim);
+        ax=subplot(4,3,6*curr_stim)
     ax.Color = 'none';    % 设置背景透明
 
     hold on
@@ -1525,7 +1527,7 @@ groups={'VA','AV','VA_nA'}
 
 titles={'L','M','V passive','4k','A passive','12k','V task','A task','iti move'};
 p_val=0.95
-all_stim=[ 7 8 ];
+all_stim=[3 5];
 colors={[84 130 53]./255,[112  48 160]./255};
 % colors={[0.3 0.3 1],[1 0.3 0.3]};
 
@@ -1654,7 +1656,7 @@ for curr_group=1:2
         %     colorbar('southoutside')
         % end
 
-        if curr_sorting==1
+        if curr_group==1
             % title(titles(used_stim),'FontWeight','normal')
             ylabel('depth (\mum)');
             yticks([z_edges(1) z_edges(end-1)]);
@@ -1787,6 +1789,27 @@ for curr_group=1:2
         neuron_count_map_all, neuron_count_map_v, neuron_count_map_a, neuron_count_map_overlay,'UniformOutput',false )
 
 
+idx_temp=cellfun(@(x)  cat(1,x{:}),idxx,'UniformOutput',false)
+
+ 
+
+     temp_shuff= cellfun(@(x) arrayfun(@(id) ap.shake(x,1),1:n_shuff,'UniformOutput',false),idx_temp,'UniformOutput',false);
+
+
+temp_real_mean=cellfun(@(y)  sum(sum(y,2)==2)/length(y(:,2)),   idx_temp,'UniformOutput',true)
+
+
+ temp_p=cat(1,temp_shuff{:}) 
+temp_p2=arrayfun(@(id)   cat(1,temp_p{:,id})  , 1:size(temp_p,2),'UniformOutput',false)
+temp_shuffle= cellfun(@(y)  sum(sum(y,2)==2)/length(y(:,2))  , temp_p2,'UniformOutput',true );
+
+prctile(temp_shuffle,95)
+prctile(temp_shuffle,5)
+
+
+% cellfun(@(x) length(x),neuron_coords_all,'UniformOutput',true)
+
+
 % idxx=cellfun(@(a,b,c,d)  arrayfun(@(depth)   [ [ones(b(depth),1);zeros(c(depth)-d(depth),1) ]  ...
 %     [zeros(b(depth)-d(depth),1); ones(c(depth),1)  ]],...
 %     1:11,'UniformOutput',false),...
@@ -1847,14 +1870,14 @@ temp_real_error=std(cellfun(@(y)  sum(sum(y,2)==2)/length(y(:,2)),   temp_real1,
 
 figure
 for curr_depth=1:11
-nexttile
-numbers=length(unique(temp_shuffle{curr_depth}));
-        histogram(temp_shuffle{curr_depth},numbers);
-        xline(prctile(temp_shuffle{curr_depth},95),'b');
-        xline(prctile(temp_shuffle{curr_depth},5),'b');
-        % xline(temp_real3(curr_depth),'r')
-                xline(temp_real_mean(curr_depth)+temp_real_error(curr_depth),'g');
-                xline(temp_real_mean(curr_depth),'r');
+    nexttile
+    numbers=length(unique(temp_shuffle{curr_depth}));
+    histogram(temp_shuffle{curr_depth},numbers);
+    xline(prctile(temp_shuffle{curr_depth},95),'b');
+    xline(prctile(temp_shuffle{curr_depth},5),'b');
+    % xline(temp_real3(curr_depth),'r')
+    xline(temp_real_mean(curr_depth)+temp_real_error(curr_depth),'g');
+    xline(temp_real_mean(curr_depth),'r');
 
 end
 
@@ -2144,7 +2167,7 @@ end
 
 
 
-%%
+
 
 %%  velocity
 

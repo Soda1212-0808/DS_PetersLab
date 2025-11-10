@@ -267,8 +267,8 @@ for curr_group=1:2
                 (data_behavior_single.stim2lastmove_mad_null(idx_0)+data_behavior_single.stim2lastmove_mad(idx_0));
             day_learned=data_behavior_single.rxn_l_mad_p(idx_0)<0.01;
            
-            temp_vel=data_behavior_single.frac_velocity_stimalign(idx_0,1)
-            temp_vel1= cellfun(@(x) corr(x(:,500:600)') ,temp_vel,'UniformOutput',false )
+            temp_vel=data_behavior_single.frac_velocity_stimalign(idx_0,1);
+            temp_vel1= cellfun(@(x) corr(x(:,500:600)') ,temp_vel,'UniformOutput',false );
             temp_corr =cellfun(@(x) nanmean(x(~eye(size(x)))) ,temp_vel1,'UniformOutput',true);
 
 

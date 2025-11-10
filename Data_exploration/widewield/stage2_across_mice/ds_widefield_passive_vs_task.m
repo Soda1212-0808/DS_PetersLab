@@ -16,7 +16,7 @@ t_kernels=1/surround_samplerate*[-10:30];
 kernels_period=t_kernels>=-0.1& t_kernels<=0.3;
 
 
-surround_window_passive = [-0.5,1];
+surround_window_passive = [-0.2,1];
 t_passive = surround_window_passive(1):1/surround_samplerate:surround_window_passive(2);
 t_kernels=1/surround_samplerate*[-10:30];
 
@@ -267,7 +267,7 @@ for curr_group=1:2
         end
 
       
-        for curr_roi=1:2
+        for curr_roi=1
             tem_mpfc_passive_data1=   cellfun(@(x) x(curr_roi),tem_mpfc_passive_data,'UniformOutput',true);
             tem_mpfc_task_data1=   cellfun(@(x) x(curr_roi),tem_mpfc_task_data,'UniformOutput',true);
             data1_passive=cat(1,tem_mpfc_passive_data1{:});
@@ -297,7 +297,7 @@ for curr_group=1:2
 
             % p_passive = polyfit(performs_passive(cell2mat(tem_learned_day_passive)==1),  data1_passive(cell2mat(tem_learned_day_passive)==1,used_stim)', 1);       % 一阶多项式拟合：y = p(1)*x + p(2)
             p_passive = polyfit(performs_passive,  data1_passive(:,used_stim), 1);       % 一阶多项式拟合：y = p(1)*x + p(2)
-            
+           
             x_fit_passive = linspace(0, 1, 2);
             y_fit_passive = polyval(p_passive, x_fit_passive);
             plot(x_fit_passive, y_fit_passive, '-', 'LineWidth', 2,'Color',colors_1{curr_group}(2,:));
@@ -327,6 +327,8 @@ for curr_group=1:2
 
             scatter(performs_passive(cell2mat(tem_learned_day_passive)==0),...
                 data1_passive(cell2mat(tem_learned_day_passive)==0,used_stim)',20,'filled','MarkerFaceColor',[0.5 0.5 0.5])
+            
+            
             scatter(performs_passive(cell2mat(tem_learned_day_passive)==1),...
                 data1_passive(cell2mat(tem_learned_day_passive)==1,used_stim)',20,'filled',...
                 'MarkerFaceColor',colors_1{curr_group}(2,:))
@@ -347,7 +349,7 @@ for curr_group=1:2
 end
   
 
-
+%%
 
 figure;
 

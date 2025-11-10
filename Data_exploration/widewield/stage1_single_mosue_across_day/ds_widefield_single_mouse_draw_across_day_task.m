@@ -6,7 +6,7 @@ master_U_fn = fullfile(plab.locations.server_path,'Lab', ...
 load(master_U_fn);
 % U_master = plab.wf.load_master_U;
 load('C:\Users\dsong\Documents\MATLAB\Da_Song\DS_scripts_ptereslab\General_information\roi.mat')
-
+% {'DS007','DS010','AP019','AP021','DS011','AP022'}
 surround_samplerate = 35;
 surround_window_task = [-0.2,1];
 t_task = surround_window_task(1):1/surround_samplerate:surround_window_task(2);

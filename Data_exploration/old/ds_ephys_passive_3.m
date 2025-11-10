@@ -2223,8 +2223,8 @@ for curr_group=1:2
     used_idx=eval('base',['anterior_learned_idx_'  groups{curr_group}]);
 
     obj=ap.ccf_draw
-    % obj.draw_name('caudoputamen')
-        obj.draw_name('hippocampal region')
+    obj.draw_name('caudoputamen')
+        % obj.draw_name('hippocampal region')
 
     obj.ccf_fig.Position=[50 50 800 200]
     used_position=animals_probe_positions(~cellfun(@isempty ,used_idx,'UniformOutput',true));
