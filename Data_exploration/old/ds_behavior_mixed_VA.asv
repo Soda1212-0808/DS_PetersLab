@@ -5,7 +5,7 @@ Path = 'D:\Data process\wf_data\';
  % animals = {'DS007','DS010','AP021','DS011','DS001','AP018','AP022'};n1_name='visual position';n2_name='audio volume'; index_group=[1  1 1 1 0 0 0  ]';
 % animals = {'DS003','DS006','DS013','DS000','DS004','DS014','DS015','DS016'};n1_name='audio volume';n2_name='visual position';index_group=[0 0 0 1 1 1 1 1 ];
 % animals = {'DS020','DS019','DS021'};n1_name='visual position';n2_name='audio frequency'; index_group=[1  1 1 1 0 0 0  ]';
-animals={'HA010'}
+ animals = {'DS025','DS024','DS023','DS022'};
 p_para='mean';
 
 
@@ -22,6 +22,7 @@ p_para='mean';
 all_animal_frac_move_V=cell(length(animals),1);
 all_animal_frac_move_A=cell(length(animals),1);
 
+all_animal_frac_success=cell(length(animals),1);
 
 figure('Position',[50 50 length(animals)*300 900]);
 tt = tiledlayout(1,length(animals),'TileSpacing','tight');
@@ -29,7 +30,8 @@ for curr_animal_idx = 1:length(animals)
     animal = animals{curr_animal_idx};
 
     % use_workflow = {'stim_wheel_right_stage2_mixed_VA'};
-     use_workflow = {'stim_wheel_right_stage2_mixed_VA$|stim_wheel_right_frequency_stage2_mixed_VA$'};
+      use_workflow =...
+       [ 'stim_wheel_Vcenter_cross_movement_stage*'];
 
     recordings = plab.find_recordings(animal,[],use_workflow);
     % only ephys data
@@ -46,7 +48,7 @@ for curr_animal_idx = 1:length(animals)
     n_trials_water_A = nan(length(recordings),1);
     frac_move_day = nan(length(recordings),1);
 
-    success = nan(length(recordings),1);
+    success = nan(length(recordings),2);
     success_V = nan(length(recordings),1);
     success_A = nan(length(recordings),1);
     rxn_med = nan(length(recordings),2);
@@ -137,8 +139,10 @@ for curr_animal_idx = 1:length(animals)
         align_times = stimOn_times;
         pull_times = align_times + surround_time_points;
 
-        success(curr_recording)=sum(cat(1,trial_events.values.Outcome))/n_trials;
-
+        % success(curr_recording)=sum(cat(1,trial_events.values.Outcome))/n_trials;
+outcome=cat(1,trial_events.values.Outcome);
+success(curr_recording,:)=[sum(outcome(tasktype(1:n_trials)==0))/length(outcome(tasktype(1:n_trials)==0));...
+sum(outcome(tasktype(1:n_trials)==1))/length(outcome(tasktype(1:n_trials)==1))];
 
         frac_move_day(curr_recording) = nanmean(wheel_move);
 
@@ -187,7 +191,7 @@ for curr_animal_idx = 1:length(animals)
 
 
     % Draw in tiled layout nested in master
-    t_animal = tiledlayout(tt,6,1);
+    t_animal = tiledlayout(tt,7,1);
     t_animal.Layout.Tile =  curr_animal_idx;
     title(t_animal,animal);
 
@@ -316,6 +320,13 @@ for curr_animal_idx = 1:length(animals)
         % % Store learned day across animals
         % learned_day_all(curr_animal_idx) = find(learned_day,1);
     end
+
+  nexttile(t_animal); hold on
+   plot(relative_day,success);
+    xlabel('day');
+   if any(nonrecorded_day)
+        xline(nonrecorded_day,'--k');
+    end
         drawnow;
 
  
@@ -330,10 +341,10 @@ for curr_animal_idx = 1:length(animals)
  all_animal_stim2move_mad_null{curr_animal_idx}=stim2move_mad_null;
  all_animal_frac_move_V{curr_animal_idx}=frac_move_stimalign_V;
  all_animal_frac_move_A{curr_animal_idx}=frac_move_stimalign_A;
-
+all_animal_frac_success{curr_animal_idx}=success;
 end
 
- saveas(gcf,[Path 'figures\summary\behavior\ephys_mixed_behavior_' strjoin(animals, '_')], 'jpg');
+ % saveas(gcf,[Path 'figures\summary\behavior\ephys_mixed_behavior_' strjoin(animals, '_')], 'jpg');
  % saveas(gcf,[Path 'mixed_behavior_' strjoin(animals, '_') '.eps' ], 'epsc');
 % save ([Path 'summary_data\behavior in mixed task in ' n1_name '_to_' n2_name '.mat' ],...
 %     'animals','all_animal_learned_day', 'all_animal_react_index','all_animal_rxn_med','all_animal_stim2move_med',...

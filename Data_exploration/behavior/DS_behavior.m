@@ -1,18 +1,10 @@
-%% Behavior across days
+% Behavior across days
 clear all
 Path = 'D:\Data process\wf_data\';
 
-% animals = {'DS007','DS010','AP019','AP021','DS011','AP022','DS001','AP018','AP020'};n1_name='visual position';n2_name='audio volume';
-% animals = {'DS003','DS006','DS013','DS000','DS004','DS014','DS015','DS016'};n1_name='audio volume';n2_name='visual position';
-% % animals = {'DS005'} ;transfer_type='a_frequency_to_v_position';
-% animals = {'AP027','AP028','AP029'};n1_name='visual opacity';n2_name='visual position';
-% animals = {'AP027','AP028','AP029','DS019','DS020','DS021'};n1_name='visual position';n2_name='audio frequency';
-% % animals = {'HA003','HA004','DS019','DS020','DS021'};n1_name='visual size up';n2_name='visual position';
-% animals = {'HA000','HA001','HA002'};n1_name='visual angle';n2_name='visual position';
-% animals = {'DS019','DS020','DS021'};n1_name='visual size up';n2_name='visual position';
 
- animals = {'HA013','HA014','HA015'};
- % animals = {'HA012'};
+animals = {'DS025','DS024','DS023','DS022'};
+% animals = {'HA012'};
 
 
 reaction_time=2;
@@ -21,28 +13,6 @@ surround_time = [-5,5];
 surround_sample_rate = 100;
 surround_time_points = surround_time(1):1/surround_sample_rate:surround_time(2);
 
-learned_day_all = nan(size(animals));
-all_animal_react_index=cell(length(animals),1);
-all_animal_react_index2=cell(length(animals),1);
-all_animal_react_null_index=cell(length(animals),1);
-
-all_animal_learned_day=cell(length(animals),1);
-all_animal_workflow_name=cell(length(animals),1);
-all_animal_workflow_name_full=cell(length(animals),1);
-all_animal_workflow_day=cell(length(animals),1);
-all_animal_stim_on2off_time=cell(length(animals),1);
-all_animal_rxn_med=cell(length(animals),1);
-all_animal_stim2move_mean=cell(length(animals),1);
-all_animal_stim2move_mean_null=cell(length(animals),1);
-all_animal_stim2move_mad=cell(length(animals),1);
-all_animal_stim2move_mad_null=cell(length(animals),1);
-all_animal_stim2move_med=cell(length(animals),1);
-all_animal_stim2move_med_null=cell(length(animals),1);
-all_animal_workflow_day_frac_move=cell(length(animals),1);
-all_animal_trials_iti_move2all_trials=cell(length(animals),1);
-all_animal_stim2move_time=cell(length(animals),1);
-all_animal_frac_move_trialbytrial=cell(length(animals),1);
-all_animal_frac_velocity_trialbytrial=cell(length(animals),1);
 
 figure('Position',[50 100 length(animals)*300 900]);
 
@@ -71,14 +41,7 @@ for curr_animal_idx = 1:length(animals)
     %     'stim_wheel_right_stage2_mixed_VA$'];
 
     use_workflow =...
-        ['stim_wheel_right_stage1$|' ...
-        'stim_wheel_right_stage2$|' ...
-        'stim_wheel_right_stage1_audio_volume$|'...
-        'stim_wheel_right_stage2_audio_volume$|' ...
-        'stim_wheel_right_stage1_audio_frequency$|' ...
-        'stim_wheel_right_stage2_audio_frequency$|' ...
-        'stim_wheel_right_frequency_stage2_mixed_VA$|' ...
-        'stim_wheel_right_stage2_mixed_VA$'];
+        [ 'stim_wheel_Vcenter_cross_movement_stage*'];
 
     recordings = plab.find_recordings(animal,[],use_workflow);
 
@@ -96,25 +59,24 @@ for curr_animal_idx = 1:length(animals)
     success = nan(length(recordings),1);
     rxn_med = nan(length(recordings),1);
     stim_on_to_off_times=cell(length(recordings),1);
-    stim2move_mean = nan(length(recordings),1);
-    stim2move_mean_null = nan(length(recordings),1);
-    stim2move_mad_null = nan(length(recordings),1);
-    stim2move_med_null = nan(length(recordings),1);
-    
+    % stim2move_mean = nan(length(recordings),1);
+    % stim2move_mean_null = nan(length(recordings),1);
+    % stim2move_med_null = nan(length(recordings),1);
+    % stim2move_med = nan(length(recordings),1);
+
     stim2move_time=cell(length(recordings),1);
 
+    stim2move_mad_null = nan(length(recordings),1);
     stim2move_mad = nan(length(recordings),1);
-    stim2move_med = nan(length(recordings),1);
 
     frac_move_stimalign = nan(length(recordings),length(surround_time_points));
     frac_velocity_stimalign= nan(length(recordings),length(surround_time_points));
-   
+
     frac_move_stimalign_trialbytrial =cell(length(recordings),1);
     frac_velocity_stimalign_trialbytrial=cell(length(recordings),1);
-    
+
     rxn_stat_p = nan(length(recordings),1);
     workflow_name= cell(length(recordings),1);
-    workflow_name_full=cell(length(recordings),1);
     trials_success= nan(length(recordings),1);
     trials_iti_move= nan(length(recordings),1);
 
@@ -142,89 +104,69 @@ for curr_animal_idx = 1:length(animals)
         else index_real=1;
         end
 
-
         rec_time = recordings(curr_recording).recording{index_real};
-        workflow_name_full{curr_recording}=recordings(curr_recording).workflow{index_real};
-
-        if strcmp(recordings(curr_recording).workflow{index_real},'stim_wheel_right_stage1_audio_volume')...
-                ||strcmp(recordings(curr_recording).workflow{index_real},'stim_wheel_right_stage2_audio_volume')
-            workflow_name{curr_recording}='audio volume';
-        elseif strcmp(recordings(curr_recording).workflow{index_real},'stim_wheel_right_stage1')...
-                ||strcmp(recordings(curr_recording).workflow{index_real},'stim_wheel_right_stage2')
-            workflow_name{curr_recording}='visual position';
-        elseif strcmp(recordings(curr_recording).workflow{index_real},'stim_wheel_right_stage1_angle')...
-                ||strcmp(recordings(curr_recording).workflow{index_real},'stim_wheel_right_stage2_angle')...
-                ||strcmp(recordings(curr_recording).workflow{index_real},'stim_wheel_right_stage2_angle_size60')
-            workflow_name{curr_recording}='visual angle';
-        elseif strcmp(recordings(curr_recording).workflow{index_real},'stim_wheel_right_stage1_size_up')...
-                ||strcmp(recordings(curr_recording).workflow{index_real},'stim_wheel_right_stage2_size_up')
-            workflow_name{curr_recording}='visual size up';
-        elseif strcmp(recordings(curr_recording).workflow{index_real},'stim_wheel_right_stage1_opacity')...
-                ||strcmp(recordings(curr_recording).workflow{index_real},'stim_wheel_right_stage2_opacity')
-            workflow_name{curr_recording}='visual opacity';
-        elseif strcmp(recordings(curr_recording).workflow{index_real},'stim_wheel_right_stage1_audio_frequency')...
-                ||strcmp(recordings(curr_recording).workflow{index_real},'stim_wheel_right_stage2_audio_frequency')
-            workflow_name{curr_recording}='audio frequency';
-        elseif strcmp(recordings(curr_recording).workflow{index_real},'stim_wheel_right_stage2_mixed_VA')...
-                ||strcmp(recordings(curr_recording).workflow{index_real},'stim_wheel_right_frequency_stage2_mixed_VA')
-            workflow_name{curr_recording}='mixed VA';
-        else  workflow_name{curr_recording}='none';
-        end
 
         load_parts = struct;
         load_parts.behavior = true;
 
         ap.load_recording;
+        
+        % Get task types
+        No_tasktype=length(unique([trial_events.values.TaskType]));
 
+        tasktype=[trial_events.values.TaskType];
 
 
         % Get total trials/water
         n_trials_water(curr_recording,:) = [length(trial_events.timestamps), ...
             sum(([trial_events.values.Outcome] == 1)*6)];
 
+        n_trials = length([trial_events.values.Outcome]);
+
+
         % Get median stim-outcome time
-        n_trials = length([trial_events.timestamps.Outcome])-1;
+        
         stim_on_to_off_times{curr_recording}=stimOff_times(1:n_trials) - ...
             stimOn_times(1:n_trials);
         rxn_med(curr_recording) = median(stimOff_times(1:n_trials) - ...
             stimOn_times(1:n_trials)  );
 
         n_trials_success=sum(cat(1,trial_events.values.Outcome));
-       trials_success(curr_recording)=n_trials_success;
+        trials_success(curr_recording)=n_trials_success;
 
-           % 计算 iti move的时间点
+        % 计算 iti move的时间点
 
-            wheel_starts = timelite.timestamps(diff([0;wheel_move]) == 1);
-            wheel_stops = timelite.timestamps(diff([0;wheel_move]) == -1);
+        wheel_starts = timelite.timestamps(diff([0;wheel_move]) == 1);
+        wheel_stops = timelite.timestamps(diff([0;wheel_move]) == -1);
 
-            wheel_starts_position=  wheel_position(diff([0;wheel_move]) == 1);
-            wheel_stops_position=  wheel_position(diff([0;wheel_move]) == -1);
+        wheel_starts_position=  wheel_position(diff([0;wheel_move]) == 1);
+        wheel_stops_position=  wheel_position(diff([0;wheel_move]) == -1);
 
-            % 找到 wheel 开始转动的索引
-            start_idx = find(diff([0;wheel_move]) == 1);
-            % 预分配时间数组 (提高效率)
-            time_to_90 = nan(size(start_idx));
-            % **优化的计算方式**
-            for i = 1:length(start_idx)
-                % 直接找到第一个满足 wheel_position > pos_start + 90 的索引
-                target_idx = find(wheel_position(start_idx(i):length(wheel_position)) < wheel_starts_position(i) - (30/360*1024), 1, 'first');
-                % 计算所需时间 (以 ms 计算)
-                if ~isempty(target_idx)
-                    time_to_90(i) = (target_idx - 1) * 1; % 1000Hz 采样率，每点 1ms
-                end
+        % 找到 wheel 开始转动的索引
+        start_idx = find(diff([0;wheel_move]) == 1);
+        % 预分配时间数组 (提高效率)
+        time_to_90 = nan(size(start_idx));
+        % **优化的计算方式**
+        for i = 1:length(start_idx)
+            % 直接找到第一个满足 wheel_position > pos_start + 90 的索引
+            target_idx = find(wheel_position(start_idx(i):length(wheel_position)) < wheel_starts_position(i) - (30/360*1024), 1, 'first');
+            % 计算所需时间 (以 ms 计算)
+            if ~isempty(target_idx)
+                time_to_90(i) = (target_idx - 1) * 1; % 1000Hz 采样率，每点 1ms
             end
-            wheel_move_less_than_200ms= time_to_90<200;
+        end
+        wheel_move_less_than_200ms= time_to_90<200;
 
-            wheel_move_over_90=wheel_stops_position-wheel_starts_position<-(30/360*1024);
+        wheel_move_over_90=wheel_stops_position-wheel_starts_position<-(30/360*1024);
 
-            % (get wheel starts when no stim on screen: not sure this works yet)
-            iti_move_idx = interp1(photodiode_times, ...
-                photodiode_values,wheel_starts,'previous') == 0;
+        % (get wheel starts when no stim on screen: not sure this works yet)
+        iti_move_idx = interp1(photodiode_times, ...
+            photodiode_values,wheel_starts,'previous') == 0;
 
-            real_iti_move = wheel_starts(iti_move_idx & wheel_move_over_90 & wheel_move_less_than_200ms );
-            n_trial_iti_move=length(real_iti_move);
+        real_iti_move = wheel_starts(iti_move_idx & wheel_move_over_90 & wheel_move_less_than_200ms );
+        n_trial_iti_move=length(real_iti_move);
 
-            trials_iti_move(curr_recording)=n_trial_iti_move;
+        trials_iti_move(curr_recording)=n_trial_iti_move;
 
         % rxn_med(curr_recording) = median(seconds([trial_events.timestamps(1:n_trials).Outcome] - ...
         %     cellfun(@(x) x(1),{trial_events.timestamps(1:n_trials).StimOn})));
@@ -248,10 +190,10 @@ for curr_animal_idx = 1:length(animals)
         event_aligned_wheel_move = interp1(timelite.timestamps, ...
             +wheel_move,pull_times,'previous');
 
-       
-        frac_move_stimalign(curr_recording,:) = nanmean(event_aligned_wheel_move,1);    
+
+        frac_move_stimalign(curr_recording,:) = nanmean(event_aligned_wheel_move,1);
         frac_move_stimalign_trialbytrial{curr_recording}=event_aligned_wheel_move;
-                
+
         frac_velocity_stimalign(curr_recording,:) = nanmean(event_aligned_wheel_vel,1);
         frac_velocity_stimalign_trialbytrial{curr_recording} = event_aligned_wheel_vel;
         % % figure
@@ -263,7 +205,7 @@ for curr_animal_idx = 1:length(animals)
         % nexttile;
         % histogram(stim_to_move,[-0.1:0.02:0.3])
         % drawnow
-        
+
         stim2move_time{curr_recording}=stim_to_move;
 
 
@@ -456,7 +398,7 @@ for curr_animal_idx = 1:length(animals)
 
 
     nexttile(t_animal);
-    react_null_index=(stim2move_mean_null-stim2move_mean)./(stim2move_mean+stim2move_mean_null);
+    react_null_index=(stim2move_mad_null-stim2move_mad)./(stim2move_mad+stim2move_mad_null);
     plot(react_null_index)
     set(gca,'XTick',1:length(recordings),'XTickLabel', ...
         cellfun(@(day,num) sprintf('%d (%s)',num,day(6:end)), ...
@@ -464,7 +406,7 @@ for curr_animal_idx = 1:length(animals)
     hold on
     yline(0)
     % ylim([-1, 1])
-    ylabel('(rxt-rxt_null)/rxt')
+    ylabel('(performance')
 
 
     nexttile(t_animal);
@@ -485,41 +427,14 @@ for curr_animal_idx = 1:length(animals)
 
     ylim([(range_t1-0.5),(0.5+length(learned_day))])
 
-    all_animal_react_index2{curr_animal_idx}=react_index2;
-    all_animal_react_index{curr_animal_idx}=react_index;
-    all_animal_react_null_index{curr_animal_idx}=react_null_index;
 
-    all_animal_learned_day{curr_animal_idx}=learned_day;
-    all_animal_workflow_name{curr_animal_idx}=workflow_name;
-    all_animal_workflow_name_full{curr_animal_idx}=workflow_name_full;
-
-    all_animal_rxn_med{curr_animal_idx}=rxn_med;
-
-    all_animal_stim2move_mean{curr_animal_idx}=stim2move_mean;
-    all_animal_stim2move_mad{curr_animal_idx}=stim2move_mad;
-    all_animal_stim2move_med{curr_animal_idx}=stim2move_med;
-
-    all_animal_stim2move_med_null{curr_animal_idx}=stim2move_med_null;
-    all_animal_stim2move_mad_null{curr_animal_idx}=stim2move_mad_null;
-    all_animal_stim2move_mean_null{curr_animal_idx}=stim2move_mean_null;
-
-    all_animal_workflow_day{curr_animal_idx}=workflow_day;
-    all_animal_workflow_day_frac_move{curr_animal_idx} =  frac_move_stimalign;
-    
-    iti_move2all_trials=trials_iti_move./trials_success;
-    all_animal_trials_iti_move2all_trials{curr_animal_idx}= iti_move2all_trials;
-    all_animal_stim2move_time{curr_animal_idx}=stim2move_time;
-    all_animal_stim_on2off_time{curr_animal_idx}=stim_on_to_off_times;
-
-    all_animal_frac_move_trialbytrial{curr_animal_idx}=frac_move_stimalign_trialbytrial;
-    all_animal_frac_velocity_trialbytrial{curr_animal_idx}=frac_velocity_stimalign_trialbytrial;
 
     drawnow;
-  
+
 end
-% 
+%
 % % saveas(gcf,[Path 'figures\summary\behavior\behavior in ' n1_name '_to_' n2_name ], 'jpg');
-% % 
+% %
 %  save([Path 'summary_data\behavior in ' n1_name '_to_' n2_name '.mat' ],...
 %      'animals','all_animal_workflow_day','all_animal_learned_day', 'all_animal_workflow_name',...
 %      'all_animal_react_index','all_animal_rxn_med','all_animal_stim2move_mean','all_animal_stim2move_mean_null',...
