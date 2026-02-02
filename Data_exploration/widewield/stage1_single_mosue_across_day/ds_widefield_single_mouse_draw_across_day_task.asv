@@ -14,7 +14,7 @@ boundary=0.2;
 period_task=find(t_task>0&t_task<boundary);
 period_kernels=find(t_kernels>0&t_kernels<boundary);
 
-animals={'DS024'}
+animals={'DS025'}
  
 for curr_animal=1:length(animals)
     animal=animals{curr_animal};

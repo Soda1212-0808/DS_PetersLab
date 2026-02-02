@@ -1,6 +1,6 @@
 %% Exploratory widefield analysis
 clear all
-animal='ap032'
+animal='DS024'
 ap.load_recording;
 
 
@@ -177,7 +177,7 @@ peri_event_t = reshape(align_times,[],1) + reshape(t,1,[]);
 
 aligned_trace = reshape(interp1(wf_t,roi_trace',peri_event_t,'previous'), ...
     length(align_times),length(t),[]);
- 
+
 aligned_trace_baselinesub = aligned_trace - ...
     mean(aligned_trace(:,t >= baseline_window(1) & t <= baseline_window(2)),2);
 
@@ -353,7 +353,14 @@ while ~success
     end
 end
 
+  [stim_kernels,predicted_signals,explained_var] = ...
+            cellfun(@(y) ap.regresskernel(wf_V(1:n_components,:),y,-frame_shifts,lambda),...
+             stim_regressors ,'UniformOutput',false );
 
+ [stim_kernels2,predicted_signals,explained_var] = ...
+           ap.regresskernel(wf_V(1:n_components,:),cat(1,stim_regressors{:}),-frame_shifts,lambda),...
+ kernels_px =plab.wf.svd2px(wf_U(:,:,1:size(kernels,1)),kernels)
+        
 
 disp('stim_kernels_running_successfully');
 kernels_px = cellfun(@(kernels) plab.wf.svd2px(wf_U(:,:,1:size(kernels,1)),kernels),stim_kernels,'UniformOutput',false);
@@ -369,16 +376,6 @@ axis image
 end
 
 
-
-
- [stim_kernels2,predicted_signals,explained_var] = ...
-           ap.regresskernel(wf_V(1:n_components,:),cat(1,stim_regressors{:}),-frame_shifts,lambda),...
- kernels_px2 =plab.wf.svd2px(wf_U(:,:,1:size(stim_kernels2,1)),stim_kernels2);
-     
-ap.imscroll(kernels_px2,frame_shifts);
-clim(max(abs(clim)).*[-1,1]);
-colormap(ap.colormap('PWG'));
-axis image
 
 %% Sparse noise retinotopy (single day)
 

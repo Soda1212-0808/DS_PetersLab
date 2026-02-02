@@ -1,7 +1,7 @@
 
 clear all
 % Path = 'C:\Users\dsong\Documents\MATLAB\Da_Song\Data_analysis\mice\process\processed_data_v2\ephys\';
-Path = 'D:\Data process\ephys\';
+Path = 'D:\Data process\project_cross_model\ephys\';
 
 % animals={'DS010','AP021','DS011','AP022','DS001','AP018','DS003','DS004','DS000','DS006','DS013'}
 % animals={'DS007','DS010','DS011','AP021','AP022'}

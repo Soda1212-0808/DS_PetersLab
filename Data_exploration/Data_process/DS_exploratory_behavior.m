@@ -1,5 +1,6 @@
 %% Exploratory behavior analysis
-animal='DS025'
+clear all
+animal='DS024'
 
 load_parts = struct;
 load_parts.behavior = true;
@@ -144,20 +145,67 @@ surround_sample_rate = 100;
 surround_time_points = surround_time(1):1/surround_sample_rate:surround_time(2);
 pull_times = align_times + surround_time_points;
 
-[wheel_velocity,wheel_move] = ...
-    AP_parse_wheel(wheel_position,timelite.daq_info(timelite_wheel_idx).rate);
+
+
+No_tasktype=unique([trial_events.values.TaskType]);
+tasktype=[trial_events.values.TaskType];
+n_trials = length([trial_events.timestamps.Outcome]);
+tasktype(1:n_trials)
+outcome=[trial_events.values.Outcome];
+
 
 event_aligned_wheel_vel = interp1(timelite.timestamps, ...
     wheel_velocity,pull_times);
 event_aligned_wheel_move = interp1(timelite.timestamps, ...
     +wheel_move,pull_times,'previous');
 
+
+wheel_vel_by_type=feval(@(x)  cat(2,x{:}) ,arrayfun(@(perform) arrayfun(@(type) ...
+    event_aligned_wheel_vel(tasktype(1:n_trials)==type&outcome(1:n_trials)==perform,:),...
+    No_tasktype,'UniformOutput',false ), [1,0],'UniformOutput',false ))
+
+
+stim2move_type=arrayfun(@(type) stim_to_move(tasktype(1:n_trials)==type&outcome(1:n_trials)==1),No_tasktype,'UniformOutput',false  )
+stim2outcome_type=arrayfun(@(type) stim_to_outcome(tasktype(1:n_trials)==type&outcome(1:n_trials)==1),No_tasktype,'UniformOutput',false  )
+
+figure('Position',[50 50 400 300]);
+tiledlayout(2,3)
+nexttile;plot(stim2move_type{1},'.k');box off;ylim([-0.1 0.3]);
+nexttile;plot(stim2move_type{2},'.k');box off;ylim([-0.1 0.3]);;title('reaction time (s)')
+nexttile;ds.make_bar_plot(stim2move_type);
+
+nexttile;plot(stim2outcome_type{1},'.k');box off;ylim([0 5])
+nexttile;plot(stim2outcome_type{2},'.k');box off;ylim([0 5]);;title('stim2outcome (s)')
+nexttile;ds.make_bar_plot(stim2outcome_type);
+% sgtitle(animal)
+
+
+
+titlename={'Type1\_correct','Type2\_correct','Type1\_error','Type2\_error'};
+figure('Position',[50 50 800 300]);
+tiledlayout(2,length(wheel_vel_by_type),'TileIndexing','columnmajor')
+for curr_image=1:length(wheel_vel_by_type)
+nexttile
+imagesc(surround_time_points,[],wheel_vel_by_type{curr_image})
+xline(0,'color','r');
+% clim(max(abs(clim)).*[-1,1])
+clim([-2000 2000])
+colormap(gca,ap.colormap('BWR'));
+title(titlename{curr_image})
+nexttile
+plot(surround_time_points,nanmean(wheel_vel_by_type{curr_image},1));
+ylim([-2000 2000])
+xline(0,'color','r');
+end
+
+
+
 figure;
 subplot(2,2,1);
 imagesc(surround_time_points,[],event_aligned_wheel_vel)
 xline(0,'color','r');
 clim(max(abs(clim)).*[-1,1])
-colormap(gca,AP_colormap('BWR'));
+colormap(gca,ap.colormap('BWR'));
 
 subplot(2,2,3);
 plot(surround_time_points,nanmean(event_aligned_wheel_vel,1));
@@ -176,12 +224,44 @@ ylabel('Move prob.');
 xlabel('Time from event');
 
 
-% [~,sort_idx] = sort([trial_events.values.TrialQuiescence]);
-% figure;
-% imagesc(surround_time_points,[],event_aligned_wheel_move(sort_idx,:));
-% xline(0,'color','r','linewidth',2);
-% hold on;
-% plot(-[trial_events.values(sort_idx).TrialQuiescence],1:length(trial_events.values),'b','linewidth',2);
+
+%%
+n_outcome = numel(outcome);
+
+% 1) 识别触发 correction 的位置：res==0 且 前一 trial 为 1（把第1位视作前一位为1以触发）
+prev = [1; outcome(1:end-1)];             % 将第1位的“前一位”设为1（如果res(1)==0，应该触发）
+triggers = find(outcome==0 & prev==1);   % 触发索引 i (表示第 i 次错，correction 从 i+1 开始)
+
+% 2) 计算每个位置向右第一个为1的位置（包含当前位置），用 fillmissing 向右填充索引
+nextOne = nan(n_outcome,1);
+oneIdx = find(outcome==1);
+nextOne(oneIdx) = oneIdx;            % 在为1的位置放置它的索引
+nextOne = fillmissing(nextOne,'next'); % 向右填充：每个位置得到“该位或右侧第一个1的索引”
+% note: 对于位于最后一个1之后的位置，nextOne 会保持 NaN
+
+% 3) 对每个 trigger 构造 correction 区间的 start/end（start = trigger+1）
+starts = triggers + 1;
+valid = starts <= n_outcome;                  % 去掉超出范围的触发（trigger==n 的情况）
+starts = starts(valid);
+% end index 是从 start 位置向右第一个1（若没有则到 n）
+ends = nextOne(starts);
+ends(isnan(ends)) = n_outcome;               % 如果没有后续1，则延伸到序列末尾
+
+% 4) 用差分（prefix-sum trick）把所有区间合并成一个 mask（完全无循环）
+if isempty(starts)
+    corrMask = false(n_outcome,1);
+else
+    delta = zeros(n_outcome+1,1);
+    delta(starts) = delta(starts) + 1;
+    delta(ends+1) = delta(ends+1) - 1;   % ends 可以为 n -> index n+1 有意义
+    corrMask = cumsum(delta(1:n_outcome)) > 0;
+end
+
+corrIdx = find(corrMask);
+normalIdx = ~corrMask;
+
+
+success=arrayfun(@(type) sum(tasktype(normalIdx(1:n_trials))==type&outcome(normalIdx(1:n_trials))==1)/sum(tasktype(normalIdx(1:n_trials))==type),No_tasktype,'UniformOutput',true  )
 
 
 %% Behavior across days
@@ -280,7 +360,7 @@ for curr_animal_idx = 1:length(animals)
 
         % Clear vars except pre-load for next loop
         clearvars('-except',preload_vars{:});
-        AP_print_progress_fraction(curr_recording,length(recordings));
+        ap.print_progress_fraction(curr_recording,length(recordings));
 
     end
 

@@ -347,7 +347,7 @@ for curr_animal=1 :length(animals)
 
 
         % % draw cell position in probe track
-        %   unit_dots = ap.plot_unit_depthrate(spike_templates(ismember(spike_templates, template_sort)),template_depths,probe_areas);
+       % unit_dots = ap.plot_unit_depthrate(spike_templates,spike_templates,template_depths,probe_areas);
         % %
         % unit_dots = ap.plot_unit_depthrate(spike_templates(ismember(spike_templates, template_sort)),...
         %     template_depths,probe_histology.probe_ccf(probe_histology_day_idx).trajectory_areas);

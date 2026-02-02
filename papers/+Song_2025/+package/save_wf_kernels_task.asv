@@ -26,7 +26,7 @@ wf_task_kernel_move_all_aligned=cell(2,1);
 wf_task_kernel_stim_each_mice=cell(2,1);
 wf_task_kernel_move_each_mice=cell(2,1);
 wf_task_kernel_reward_each_mice=cell(2,1);
-wf_task_kernel_move_all_each_mice=cell(2,1);
+wf_task_kernel_moce_all_each_mice=cell(2,1);
 
 for curr_group=1:2
     wf_task_kernel_stim_aligned{curr_group}=table;
@@ -94,7 +94,7 @@ for curr_group=1:2
     wf_task_kernel_stim_each_mice{curr_group}=all_data_video_stim;
     wf_task_kernel_move_each_mice{curr_group}=all_data_video_move;
     wf_task_kernel_reward_each_mice{curr_group}=all_data_video_reward;
-    wf_task_kernel_move_all_each_mice{curr_group}=all_data_video_move_all;
+    wf_task_kernel_moce_all_each_mice{curr_group}=all_data_video_move_all;
 
     temp_val={all_data_video_stim,all_data_video_move,all_data_video_reward,all_data_video_move_all};
     temp_output=cell(4,1);
@@ -291,9 +291,5 @@ wf_task_kernels_reward_across_day = wf_task_kernels_across_day.reward;
 wf_task_kernels_move_all_across_day = wf_task_kernels_across_day.move_all;
 
 
-save(fullfile(save_path,'revision\wf_task_kernels.mat' ),...
-    'wf_task_kernel_stim_each_mice','wf_task_kernel_stim_aligned','wf_task_kernels_stim_across_day',...
-    'wf_task_kernel_move_each_mice','wf_task_kernel_move_aligned','wf_task_kernels_move_across_day',...
-    'wf_task_kernel_reward_each_mice','wf_task_kernel_reward_aligned','wf_task_kernels_reward_across_day',...
-    'wf_task_kernel_move_all_each_mice','wf_task_kernel_move_all_aligned','wf_task_kernels_move_all_across_day'...
-    ,'-v7.3')
+save(fullfile(save_path,'wf_task_kernels.mat' ),...
+    'wf_task_kernel_stim_each_mice','wf_task_kernel_stim_aligned','wf_task_kernels_stim_across_day','-v7.3')

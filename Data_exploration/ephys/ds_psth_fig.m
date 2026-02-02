@@ -1,4 +1,4 @@
-Path = 'D:\Data process\ephys\';
+Path = 'D:\Data process\project_cross_model\ephys\';
 
 % Set animal/day/units
 animal = 'DS016';

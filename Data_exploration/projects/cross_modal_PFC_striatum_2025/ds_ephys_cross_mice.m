@@ -1,6 +1,6 @@
 clear all
 % Path = 'C:\Users\dsong\Documents\MATLAB\Da_Song\Data_analysis\mice\process\processed_data_v2\ephys\';
-Path = 'D:\Data process\ephys\';
+Path = 'D:\Data process\project_cross_model\ephys\';
 
 % animals={'DS010','AP021','DS011','AP022','DS001','AP018','DS003','DS004','DS000','DS006','DS013'}
 % animals={'DS007','DS010','DS011','AP021','AP022'}
@@ -320,8 +320,8 @@ image_color={'G','P','G'};
 cell_type={'tan','msn','fsi','all'};
 
 % task or passive
- states=[3 5]
-% states=[7 8]
+ % states=[3 5]
+ states=[3 5 7 8]
 
 p_val=0.95;
 for curr_cell_type=1:3
@@ -418,9 +418,9 @@ for curr_cell_type=1:3
         [~,sort_idx_3]=sortrows(max_idx_a(data3),"ascend");
 
         % temp_idx_all_1=[data1(sort_idx_1);data2(sort_idx_2);data3(sort_idx_3);data4];
-        temp_idx_all_1=[data1(sort_idx_1);data2(sort_idx_2);data3(sort_idx_3);data4];
+        temp_idx_all=[data1(sort_idx_1);data2(sort_idx_2);data3(sort_idx_3);data4];
 
-        temp_idx_all=[data1(sort_idx_1);data2(sort_idx_2);data3(sort_idx_3)];
+        % temp_idx_all=[data1(sort_idx_1);data2(sort_idx_2);data3(sort_idx_3)];
        % temp_idx_all=[data1(sort_idx_1);data2(sort_idx_2);data3(sort_idx_3);data4];
 
 
@@ -529,6 +529,131 @@ drawnow
 % saveas(gcf,[Path 'figures\Figure\ephys cell ' types{curr_cell_type} ' ' titles{used_stim} ], 'jpg');
 
 end
+
+
+
+%%
+%%  psth of differnt cell types in task and passive conditions
+colors={[84 130 53]./255,[112  48 160]./255,[112  48 160]./255};
+image_color={'G','P','G'};
+cell_type={'tan','msn','fsi','all'};
+
+% task or passive
+ % states=[3 5]
+ states=[7 3  8 5  ]
+
+p_val=0.95;
+for curr_cell_type=1:3
+    figure('Position',[50 50 200 500]);
+    t= tiledlayout(2,4,"TileSpacing","tight",'Padding','tight'); % 创建一个1行2列的布局
+
+
+    used_animals=animals(~cellfun(@isempty, anterior_learned_idx','UniformOutput',true));
+    used_animals_idx=anterior_learned_idx(~cellfun(@isempty, anterior_learned_idx','UniformOutput',true));
+
+
+    temp_single_idx=cell(length(used_animals),1);
+    temp_single_plot=cell(length(used_animals),1);
+    temp_cell_type=cell(length(used_animals),1);
+    temp_response=cell(length(used_animals),1);
+    temp_response_plot=cell(length(used_animals),1);
+    %
+    for curr_animal=1:length(used_animals)
+
+        animal=used_animals{curr_animal};
+        temp_file_name=matfile([Path 'single_mouse\' animal '_ephys.mat']);
+
+        temp_single_plot{curr_animal}=temp_file_name.plot_single(used_animals_idx{curr_animal},1);
+        temp_single_idx{curr_animal}=temp_file_name.plot_idx(used_animals_idx{curr_animal},1);
+
+        temp_cell_type{curr_animal}=temp_file_name.all_celltypes(used_animals_idx{curr_animal},1);
+
+        temp_response{curr_animal}=temp_file_name.all_event_response_idx(used_animals_idx{curr_animal},1);
+        temp_response_plot{curr_animal}=temp_file_name.all_event_response_signle_neuron(used_animals_idx{curr_animal},1);
+
+
+    end
+
+    used_single_plot=vertcat(temp_single_plot{:});
+    used_response_plot=vertcat(temp_response_plot{:});
+    used_cell_type=vertcat(temp_cell_type{:});
+    used_response=vertcat(temp_response{:});
+    used_single_idx=vertcat(temp_single_idx{:});
+
+    % correlation between reaction time and firing latency
+    [~,max_id]=cellfun(@(x)  cellfun(@(a) max(a(: ,psth_use_t_stim,:),[],2),x,'UniformOutput',false  ),used_single_plot,'UniformOutput',false);
+    max_id= cellfun(@(x) cellfun(@(a) permute(a,[1 3 2]),x,'UniformOutput',false ),max_id,'UniformOutput',false);
+
+
+    switch  curr_cell_type
+        case{1,2,3}
+            used_filter_plot_1=cellfun(@(x,y,z)  x(y.(cell_type{curr_cell_type}) ,:,:)  ,...
+                used_response_plot,used_cell_type,used_response,'UniformOutput',false);
+            used_filter_response_1=cellfun(@(x,y,z)  z(y.(cell_type{curr_cell_type}) ,:)  ,...
+                used_response_plot,used_cell_type,used_response,'UniformOutput',false);
+        case 4
+            used_filter_plot_1=used_response_plot;
+            used_filter_response_1=used_response;
+    end
+
+    used_plot_all_selected_1=vertcat(used_filter_plot_1{:});
+
+
+
+        [~,max_idx_v]=max(used_plot_all_selected_1(: ,psth_use_t_stim,states(1)),[],2);
+        [~,max_idx_a]=max(used_plot_all_selected_1(: ,psth_use_t_stim,states(3)),[],2);
+
+        used_response_all=vertcat(used_filter_response_1{:});
+        temp_response= used_response_all(:,states)>p_val;
+
+        data1 = find(temp_response(:,1)==1 & temp_response(:,2)==0);
+        data2 = find(temp_response(:,1)==1 & temp_response(:,2)==1);
+        data3 = find(temp_response(:,1)==0 & temp_response(:,2)==1);
+        data4 = find(temp_response(:,1)==0 & temp_response(:,2)==0);
+
+
+        [~,sort_idx_1]=sortrows(max_idx_v(data1),"ascend");
+        [~,sort_idx_2]=sortrows(max_idx_a(data2) ,"ascend");
+        [~,sort_idx_3]=sortrows(max_idx_a(data3),"ascend");
+
+        % temp_idx_all_1=[data1(sort_idx_1);data2(sort_idx_2);data3(sort_idx_3);data4];
+        temp_idx_all=[data1(sort_idx_1);data2(sort_idx_2);data3(sort_idx_3);data4];
+
+
+
+    for curr_state=states
+        nexttile
+        imagesc(t_bins,[],used_plot_all_selected_1(temp_idx_all,:,curr_state))
+        colormap(ap.colormap(['KWR' ]));
+        clim_value=[-5,5];
+        clim(clim_value);
+        xlim([-0.1 0.5])
+        hold on
+
+            yline(length(data1))
+            yline(length([data1; data2]))
+            yline(length([data1; data2;data3]))
+        xline(0)
+        axis off
+    end
+
+      for curr_state=states
+        plot_mean=feval(@(a)   nanmean(cat(3,a{:}),3), cellfun(@(x) permute(nanmean(x,1),[2,3,1]),  used_filter_plot_1,'UniformOutput',false));
+        plot_error=feval(@(a)   std(cat(3,a{:}),0,3)./ sqrt(length(a)) , cellfun(@(x) permute(nanmean(x,1),[2,3,1]),  used_filter_plot_1,'UniformOutput',false));
+
+        nexttile
+        ap.errorfill(t_bins,plot_mean(:,curr_state),plot_error(:,curr_state))
+        ylim([-0.5 2])
+        xlim([-0.1 0.5])
+
+      end
+
+
+drawnow
+
+end
+
+
 
 %%  visual task resposive neurons across different reaction time
 colors={[84 130 53]./255,[112  48 160]./255};

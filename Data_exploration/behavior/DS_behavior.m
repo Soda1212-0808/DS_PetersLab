@@ -3,9 +3,11 @@ clear all
 Path = 'D:\Data process\wf_data\';
 
 
-animals = {'DS025','DS024','DS023','DS022'};
+% animals = {'DS025','DS024','DS023','DS022'};
 % animals = {'HA012'};
+animals= { 'AP030','AP031','AP032'};
 
+% animals= { 'AP019'};
 
 reaction_time=2;
 % Grab learning day for each mouse
@@ -21,27 +23,29 @@ tt = tiledlayout(1,length(animals),'TileSpacing','tight');
 for curr_animal_idx = 1:length(animals)
 
     animal = animals{curr_animal_idx};
-
+% 
+% use_workflow=['stim_wheel_right_stage2_no_change$|' ...
+%     'stim_wheel_right_stage1_no_change*$|']
+    use_workflow =...
+        ['stim_wheel_right_stage1$|' ...
+        'stim_wheel_right_stage2*$|' ...
+        'stim_wheel_right_stage1_opacity$|' ...
+        'stim_wheel_right_stage2_opacity$|' ...
+        'stim_wheel_right_stage1_angle$|' ...
+        'stim_wheel_right_stage2_angle$|' ...
+        'stim_wheel_right_stage2_angle_size60$|' ...
+        'stim_wheel_right_stage1_size_up$|' ...
+        'stim_wheel_right_stage2_size_up$|' ...
+        'stim_wheel_right_stage1_audio_volume$|'...
+        'stim_wheel_right_stage2_audio_volume$|' ...
+        'stim_wheel_right_stage1_audio_frequency$|' ...
+        'stim_wheel_right_stage2_audio_frequency$|' ...
+        'stim_wheel_right_frequency_stage2_mixed_VA$|' ...
+        'stim_wheel_right_stage2_mixed_VA$'...
+        'stim_wheel_Vcenter_cross_movement_stage*'];
 
     % use_workflow =...
-    %     ['stim_wheel_right_stage1$|' ...
-    %     'stim_wheel_right_stage2$|' ...
-    %     'stim_wheel_right_stage1_opacity$|' ...
-    %     'stim_wheel_right_stage2_opacity$|' ...
-    %     'stim_wheel_right_stage1_angle$|' ...
-    %     'stim_wheel_right_stage2_angle$|' ...
-    %     'stim_wheel_right_stage2_angle_size60$|' ...
-    %     'stim_wheel_right_stage1_size_up$|' ...
-    %     'stim_wheel_right_stage2_size_up$|' ...
-    %     'stim_wheel_right_stage1_audio_volume$|'...
-    %     'stim_wheel_right_stage2_audio_volume$|' ...
-    %     'stim_wheel_right_stage1_audio_frequency$|' ...
-    %     'stim_wheel_right_stage2_audio_frequency$|' ...
-    %     'stim_wheel_right_frequency_stage2_mixed_VA$|' ...
-    %     'stim_wheel_right_stage2_mixed_VA$'];
-
-    use_workflow =...
-        [ 'stim_wheel_Vcenter_cross_movement_stage*'];
+    %     [ 'stim_wheel_Vcenter_cross_movement_stage*'];
 
     recordings = plab.find_recordings(animal,[],use_workflow);
 
@@ -82,6 +86,7 @@ for curr_animal_idx = 1:length(animals)
 
     % figure
     for curr_recording =1: length(recordings)
+    % for curr_recording =1: 8
 
         % Grab pre-load vars
         preload_vars = who;
@@ -112,9 +117,9 @@ for curr_animal_idx = 1:length(animals)
         ap.load_recording;
         
         % Get task types
-        No_tasktype=length(unique([trial_events.values.TaskType]));
+        % No_tasktype=length(unique([trial_events.values.TaskType]));
 
-        tasktype=[trial_events.values.TaskType];
+        % tasktype=[trial_events.values.TaskType];
 
 
         % Get total trials/water
@@ -235,9 +240,9 @@ for curr_animal_idx = 1:length(animals)
     nonrecorded_day = setdiff(1:length(recordings),relative_day);
 
     % workflow_name_2=arrayfun(@(idx) recordings(idx).workflow{1},1:length(recordings),  'UniformOutput', false)';
-    matches = unique(workflow_name, 'stable');
-    different_day_1= cellfun(@(x) relative_day(find(strcmp(workflow_name,x))),matches,'UniformOutput',false);
-    different_day_2= cellfun(@(x) find(strcmp(workflow_name,x)),matches,'UniformOutput',false);
+    % matches = unique(workflow_name, 'stable');
+    % different_day_1= cellfun(@(x) relative_day(find(strcmp(workflow_name,x))),matches,'UniformOutput',false);
+    % different_day_2= cellfun(@(x) find(strcmp(workflow_name,x)),matches,'UniformOutput',false);
 
     % Draw in tiled layout nested in master
     t_animal = tiledlayout(tt,8,1);
@@ -282,23 +287,23 @@ for curr_animal_idx = 1:length(animals)
     ylim_linear = log10(ylim1);
     ylim_linear = 10 .^ ylim_linear;
 
-    colorMap = lines(length(different_day_1)); % 使用 colormap 自动生成不同颜色
-
-    % 遍历 relative_day 填充背景
-    for curr_day = relative_day
-        % 遍历 different_day 中的每一组
-        for groupIdx = 1:length(different_day_1)
-            if any(different_day_1{groupIdx} == curr_day)
-                % 获取当前组的颜色
-                color = colorMap(groupIdx, :);
-                % 填充背景颜色
-                fill([curr_day-0.5, curr_day+0.5, curr_day+0.5, curr_day-0.5], ...
-                    [ylim_linear(1), ylim_linear(1), ylim_linear(2), ylim_linear(2)], ...
-                    color, 'EdgeColor', 'none', 'FaceAlpha', 0.3); % 添加透明度
-                break; % 当前 `i` 只属于一个组，跳出内循环
-            end
-        end
-    end
+    % colorMap = lines(length(different_day_1)); % 使用 colormap 自动生成不同颜色
+    % 
+    % % 遍历 relative_day 填充背景
+    % for curr_day = relative_day
+    %     % 遍历 different_day 中的每一组
+    %     for groupIdx = 1:length(different_day_1)
+    %         if any(different_day_1{groupIdx} == curr_day)
+    %             % 获取当前组的颜色
+    %             color = colorMap(groupIdx, :);
+    %             % 填充背景颜色
+    %             fill([curr_day-0.5, curr_day+0.5, curr_day+0.5, curr_day-0.5], ...
+    %                 [ylim_linear(1), ylim_linear(1), ylim_linear(2), ylim_linear(2)], ...
+    %                 color, 'EdgeColor', 'none', 'FaceAlpha', 0.3); % 添加透明度
+    %             break; % 当前 `i` 只属于一个组，跳出内循环
+    %         end
+    %     end
+    % end
 
 
     yyaxis right
@@ -354,11 +359,11 @@ for curr_animal_idx = 1:length(animals)
         plot(0,find(learned_day),'.g')
     end
 
-    for curr_type=1:length(different_day_2)
-
-        plot(-0.5,different_day_2{curr_type},'Marker', '|', 'MarkerEdgeColor',colorMap(curr_type,:))
-    end
-    ylim([(range_t1-0.5),(0.5+length(learned_day))])
+    % for curr_type=1:length(different_day_2)
+    % 
+    %     plot(-0.5,different_day_2{curr_type},'Marker', '|', 'MarkerEdgeColor',colorMap(curr_type,:))
+    % end
+    % ylim([(range_t1-0.5),(0.5+length(learned_day))])
 
 
 
@@ -420,10 +425,10 @@ for curr_animal_idx = 1:length(animals)
     if any(learned_day)
         plot(-0.2,find(learned_day),'.g')
     end
-    for curr_type=1:length(different_day_1)
-
-        plot(-0.5,different_day_1{curr_type},'Marker', '|', 'MarkerEdgeColor',colorMap(curr_type,:))
-    end
+    % for curr_type=1:length(different_day_1)
+    % 
+    %     plot(-0.5,different_day_1{curr_type},'Marker', '|', 'MarkerEdgeColor',colorMap(curr_type,:))
+    % end
 
     ylim([(range_t1-0.5),(0.5+length(learned_day))])
 
