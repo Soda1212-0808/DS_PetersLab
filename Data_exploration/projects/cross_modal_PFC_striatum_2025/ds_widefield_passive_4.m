@@ -1,24 +1,50 @@
 
 %% TESTING BATCH PASSIVE WIDEFIELD
 clear all
-Path = 'Y:\Data process\project_cross_model\wf_data\';
+Path = 'D:\Data process\project_cross_model\wf_data\';
+
+% Path = 'Y:\Data process\project_cross_model\wf_data\';
 surround_window = [-0.5,1];
 surround_samplerate = 35;
 t = surround_window(1):1/surround_samplerate:surround_window(2);
-t_kernels=[-5:30]/surround_samplerate;
+t_kernels=[-10:30]/surround_samplerate;
 period=find(t_kernels>0&t_kernels<0.2);
 load('C:\Users\dsong\Documents\MATLAB\Da_Song\DS_scripts_ptereslab\General_information\roi.mat')
-% master_U_fn = fullfile(plab.locations.server_path,'Lab', ...
+% master_U_fn = fullfile(plab.locations.server_path,'Lab', 3...
 %     'widefield_alignment','U_master.mat');
 
 
-animals={'DS025'};
-workflow_passive={'hml_passive_audio','lcr_passive','lcr_passive_size60'};
+workflow_name_map = containers.Map( ...
+    {'stim_wheel_right_stage1_audio_volume', ...
+    'stim_wheel_right_stage2_audio_volume', ...
+    'stim_wheel_right_stage1', ...
+    'stim_wheel_right_stage2', ...
+    'stim_wheel_right_stage1_size_up', ...
+    'stim_wheel_right_stage2_size_up', ...
+    'stim_wheel_right_stage1_opacity', ...
+    'stim_wheel_right_stage2_opacity',...
+    'stim_wheel_right_stage1_audio_frequency',...
+    'stim_wheel_right_stage2_audio_frequency',...
+    'stim_wheel_right_stage2_mixed_VA',...
+    'stim_wheel_right_frequency_stage2_mixed_VA','naive'}, ...
+    {'audio volume', 'audio volume', ...
+    'visual position', 'visual position', ...
+    'visual size up', 'visual size up', ...
+    'visual opacity', 'visual opacity',...
+    'audio frequency','audio frequency',...
+    'mixed VA','mixed VA','naive'} );
+
+
+% animals={'AP019'};
+animals =     { 'DS007','DS010','AP019','AP021','DS011','AP022',...
+    'DS000','DS004','DS014','DS015','DS016'}
+
+workflow_passive={'hml_passive_audio','lcr_passive'};
 for curr_passive=1:2
 
-    
+
     curr_passive_workflow = workflow_passive{curr_passive};
-    
+
 
     for curr_animal_idx=1:length(animals)
         main_preload_vars = who;
@@ -26,7 +52,9 @@ for curr_passive=1:2
         animal=animals{curr_animal_idx};
         fprintf('%s\n', ['start  ' animal ]);
         fprintf('%s\n', ['start saving ' curr_passive_workflow ' files...']);
-
+        %
+        % training_workflow =  ['stim_wheel_right_stage1_no_change$|' ...
+        %     'stim_wheel_right_stage2_no_change$|' ];
 
         training_workflow =...
             ['stim_wheel_right_stage1$|' ...
@@ -50,7 +78,7 @@ for curr_passive=1:2
 
         recordings_training = plab.find_recordings(animal,[],training_workflow);
 
-        % if animals are LAP018,AP019,AP020,AP021,AP022
+        % if animals are AP018,AP019,AP020,AP021,AP022
 
         bufferA=~ismember({recordings_passive.day},{recordings_training.day});
         bufferA = (sum(bufferA) >=3) * [1 1 1, zeros(1, numel(bufferA)-3)] + (sum(bufferA) < 3) * bufferA;
@@ -132,6 +160,20 @@ for curr_passive=1:2
                 preload_vars = who;
                 % Load data
                 rec_day = recordings_wf_passive(curr_recording).day;
+
+                task_day_index = find(strcmp({recordings_wf_training.day}, recordings_wf_passive(curr_recording).day));
+
+                if isempty(task_day_index)
+                    workflow_type_name{curr_recording}='naive';
+                    workflow_type_name_merge{curr_recording}='naive';
+                else
+                    workflow_type_name{curr_recording}=recordings_wf_training(task_day_index).workflow{1};
+                    workflow_type_name_merge{curr_recording}=workflow_name_map(workflow_type_name{curr_recording});
+                end
+
+
+
+
                 rec_time = recordings_wf_passive(curr_recording).recording{end};
                 if ~recordings_wf_passive(curr_recording).widefield(end)
                     continue
@@ -149,9 +191,9 @@ for curr_passive=1:2
                 end
 
 
-                if strcmp(curr_passive_workflow,'lcr_passive')||strcmp(curr_passive_workflow,'lcr_passive_size60')
+                if strcmp(bonsai_workflow,'lcr_passive')||strcmp(bonsai_workflow,'lcr_passive_size60')
                     align_category_all = vertcat(trial_events.values.TrialStimX);
-                elseif strcmp(curr_passive_workflow,'hml_passive_audio')
+                elseif strcmp(bonsai_workflow,'hml_passive_audio')
                     align_category_all = vertcat(trial_events.values.StimFrequence);
                 end
 
@@ -159,6 +201,7 @@ for curr_passive=1:2
                 % Get quiescent trials and stim onsets/ids
                 %得到不动的trial
                 stimOn_times=stimOn_times(1:length(stimOff_times));
+                    align_category_all=align_category_all(1:length(stimOn_times));
 
                 stim_window1 = [0,0.3];
 
@@ -216,9 +259,9 @@ for curr_passive=1:2
                 %%all_trials
                 peri_event_t_all= reshape(stimOn_times,[],1) + reshape(t_passive,1,[]);
                 aligned_v_all = permute((reshape(interp1(wf_t,wf_V',peri_event_t_all,'previous'), length(stimOn_times),length(t_passive),[])), [3, 2, 1]);
-                aligned_v_all_baslined = aligned_v_all-nanmean(aligned_v_all(:,t_passive < 0,:),2);
+                aligned_v_all_baselined = aligned_v_all-nanmean(aligned_v_all(:,t_passive < 0,:),2);
 
-                wf_px_all{curr_recording}=aligned_v_all_baslined;
+                wf_px_all{curr_recording}=aligned_v_all_baselined;
                 trial_state{curr_recording}=quiescent_trials;
                 trial_type{curr_recording}=align_category_all;
 
@@ -248,24 +291,26 @@ for curr_passive=1:2
                     timelite.timestamps <= stimOn_times(x)+stim_window1(2))), ...
                     1:length(stimOn_times));
 
-                if strcmp(bonsai_workflow,'lcr_passive')||strcmp(bonsai_workflow,'lcr_passive_size60')
-                    align_category_all = vertcat(trial_events.values.TrialStimX);
-                    align_category_all=align_category_all(1:length(stimOn_times));
-                    stim_regressor(1,:) =  histcounts(stimOn_times(align_category_all == -90 ),wf_regressor_bins);
-                    stim_regressor(2,:) =  histcounts(stimOn_times(align_category_all == 0 ),wf_regressor_bins);
-                    stim_regressor(3,:) =  histcounts(stimOn_times(align_category_all == 90),wf_regressor_bins);
-                elseif strcmp(bonsai_workflow,'hml_passive_audio')
-                    align_category_all = vertcat(trial_events.values.StimFrequence);
-                    align_category_all=align_category_all(1:length(stimOn_times));
-                    stim_regressor(1,:) =  histcounts(stimOn_times(align_category_all == 4000 ),wf_regressor_bins);
-                    stim_regressor(2,:) =  histcounts(stimOn_times(align_category_all == 8000 ),wf_regressor_bins);
-                    stim_regressor(3,:) =  histcounts(stimOn_times(align_category_all == 12000),wf_regressor_bins);
-                end
+
+
+                stim_regressor = repmat({zeros(length(wf_t),1)}, length(unique(align_category_all)), 1);
+                stim_regressor= arrayfun(@(a)  histcounts(stimOn_times(align_category_all == a),wf_regressor_bins)',...
+                    unique(align_category_all),'UniformOutput',false  );
+
+                gap_1=stimOn_times(1:length(stimOn_times))-0.5;
+                gap_2=[stimOn_times(2:length(stimOn_times))-0.1 ;stimOff_times(length(stimOn_times))+0.5];
+
+                wf_t_only_passive= repmat({false(length(wf_t),1)}, length(unique(align_category_all)), 1);
+                wf_t_only_passive=arrayfun(@(a) interp1([gap_1(align_category_all==a);gap_2(align_category_all==a)],...
+                    [ones(sum(align_category_all==a),1);....
+                    zeros(sum(align_category_all==a),1)],...
+                    wf_t,'previous')==1, unique(align_category_all),'UniformOutput',false);
+
                 move_regressor_random = histcounts(stimOn_times(non_quiescent_trials ),wf_regressor_bins);
                 stim_drive_time=arrayfun(@(x) timelite.timestamps(find(wheel_move(find(timelite.timestamps > x, 1):end) == 1, 1) + find(timelite.timestamps > x, 1) - 1),stimOn_times(stim_drive_trials));
                 % stim_drive_time=arrayfun(@(x) timelite.timestamps(find(wheel_move(find(timelite.timestamps > x, 1):end) == 1, 1) + find(timelite.timestamps > x, 1) - 1),stimOn_times);
                 move_regressor_stim_drive = histcounts(stim_drive_time,wf_regressor_bins);
-                regressors={stim_regressor;move_regressor_random;move_regressor_stim_drive};
+                regressors={permute(cat(2,stim_regressor{:}),[2,1]);move_regressor_random;move_regressor_stim_drive};
                 t_shifts = {[-10:30];[-10:30];[-10:30]};
                 % Set cross validation (not necessary if just looking at kernels)
                 cvfold = 5;
@@ -274,9 +319,7 @@ for curr_passive=1:2
                     ap.regresskernel(regressors,wf_V,t_shifts,[],[],cvfold);
 
 
-                stim_regressors = cell2mat(arrayfun(@(x) ...
-                    histcounts(stimOn_times(align_category_all == x),wf_regressor_bins), ...
-                    unique(align_category_all),'uni',false));
+
                 n_components = 400;
                 frame_shifts = -10:30;
                 lambda = 15;
@@ -289,8 +332,14 @@ for curr_passive=1:2
                     try
 
                         disp(['Running with n_components = ', num2str(n_components)]);
+                        % [kernels,predicted_signals,explained_var] = ...
+                        %     ap.regresskernel(wf_V(1:n_components,:),stim_regressors,-frame_shifts,lambda);
+
                         [kernels,predicted_signals,explained_var] = ...
-                            ap.regresskernel(wf_V(1:n_components,:),stim_regressors,-frame_shifts,lambda);
+                            cellfun(@(x,y) ap.regresskernel(wf_V(1:n_components,find(x==1)),y(find(x==1))',-frame_shifts,lambda),...
+                            wf_t_only_passive, stim_regressor ,'UniformOutput',false );
+
+
 
                         success = true; % 如果没有报错，则成功运行
                     catch ME
@@ -308,7 +357,7 @@ for curr_passive=1:2
 
                 % % Convert kernels V to pixels
                 % wf_px_kernels{curr_recording} = cellfun(@(x) permute(x,[3,2,1]),kernels,'uni',false);
-                wf_px_kernels{curr_recording} = kernels;
+                wf_px_kernels{curr_recording} = cat(3,kernels{:});
                 wf_px_kernels_encode{curr_recording} = kernels_encode;
 
 
@@ -321,6 +370,8 @@ for curr_passive=1:2
 
 
             end
+            
+            
             buffer_learn= rxn_stat_p < 0.05 & rxn_med < 2;
             learned_day(file_length:length(recordings_wf_passive)) =buffer_learn(file_length:length(recordings_wf_passive));
 

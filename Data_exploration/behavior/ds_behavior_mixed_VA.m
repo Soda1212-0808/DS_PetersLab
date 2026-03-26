@@ -2,7 +2,7 @@
 clear all
 Path = 'D:\Data process\wf_data\';
 
-animals = {'DS023'};
+animals = {'DS031'};
 
 
 f1=figure('Position',[50 50 length(animals)*300 900]);
@@ -13,14 +13,14 @@ tt2 = tiledlayout(f2,1,length(animals),'TileSpacing','tight');
 for curr_animal_idx = 1:length(animals)
     animal = animals{curr_animal_idx};
 
-    % use_workflow = {'stim_wheel_right_stage2_mixed_VA'};
+    use_workflow = {'stim_wheel_right_stage2_mixed_VA*'};
 
     % use_workflow =...
     %     {'stim_wheel_Vcenter_cross_movement_stage*','stim_wheel_Afreq2_cross_movement_stage*'};
 
-    use_workflow =...
-        {'stim_wheel_Vcenter_cross_movement_stage*','stim_wheel_Afreq2_cross_movement_stage*',...
-        'stim_wheel_VcenterAfreq2_cross_movement_stage*'};
+    % use_workflow =...
+    %     {'stim_wheel_Vcenter_cross_movement_stage*','stim_wheel_Afreq2_cross_movement_stage*',...
+    %     'stim_wheel_VcenterAfreq2_cross_movement_stage*'};
 
     recordings = plab.find_recordings(animal,[],use_workflow);
     % only ephys data

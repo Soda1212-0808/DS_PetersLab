@@ -5,7 +5,7 @@ Path = 'D:\Data process\wf_data\';
  % animals = {'DS007','DS010','AP021','DS011','DS001','AP018','AP022'};n1_name='visual position';n2_name='audio volume'; index_group=[1  1 1 1 0 0 0  ]';
 % animals = {'DS003','DS006','DS013','DS000','DS004','DS014','DS015','DS016'};n1_name='audio volume';n2_name='visual position';index_group=[0 0 0 1 1 1 1 1 ];
 % animals = {'DS020','DS019','DS021'};n1_name='visual position';n2_name='audio frequency'; index_group=[1  1 1 1 0 0 0  ]';
- animals = {'DS025','DS024','DS023','DS022'};
+ animals = {'AP032'};
 p_para='mean';
 
 

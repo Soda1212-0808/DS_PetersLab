@@ -1,0 +1,339 @@
+%% TESTING BATCH TASK WIDEFIELD
+clear all
+Path = 'D:\Data process\project_cross_model\wf_data\';
+
+
+surround_samplerate = 35;
+surround_window = [-0.2,1];
+baseline_window = [-0.5,-0.1];
+
+t_task = surround_window(1):1/surround_samplerate:surround_window(2);
+baseline_t = baseline_window(1):1/surround_samplerate:baseline_window(2);
+t_kernels=1/surround_samplerate*[-5:30];
+
+
+surround_time = [-5,5];
+surround_sample_rate = 100;
+surround_time_points = surround_time(1):1/surround_sample_rate:surround_time(2);
+
+
+animals =     { 'DS007','DS010','AP019','AP021','DS011','AP022'...
+    'DS000','DS004','DS014','DS015','DS016'};
+
+% animals={'DS010'}
+
+% animals={'HA009','HA010','HA011','HA012'};
+for curr_animal_idx=1:length(animals)
+    animal=animals{curr_animal_idx};
+    fprintf('%s\n', ['start  ' animal ]);
+    fprintf('%s\n', ['start saving tasks files...']);
+
+    passive_workflow = 'lcr_passive';
+    recordings_passive = plab.find_recordings(animal,[],passive_workflow);
+
+    training_workflow =...
+        ['stim_wheel_right_stage1$|' ...
+        'stim_wheel_right_stage2$|' ...
+        'stim_wheel_right_stage1_opacity$|' ...
+        'stim_wheel_right_stage2_opacity$|' ...
+        'stim_wheel_right_stage1_angle$|' ...
+        'stim_wheel_right_stage2_angle$|' ...
+        'stim_wheel_right_stage2_angle_size60$|' ...
+        'stim_wheel_right_stage1_size_up$|' ...
+        'stim_wheel_right_stage2_size_up$|' ...
+        'stim_wheel_right_stage1_audio_volume$|'...
+        'stim_wheel_right_stage2_audio_volume$|' ...
+        'stim_wheel_right_stage1_audio_frequency$|' ...
+        'stim_wheel_right_stage2_audio_frequency$|' ...
+        'stim_wheel_right_frequency_stage2_mixed_VA$|' ...
+        'stim_wheel_right_stage2_mixed_VA$'];
+
+
+    recordings_training = plab.find_recordings(animal,[],training_workflow);
+
+    recordings = recordings_passive( ...
+        cellfun(@any,{recordings_passive.widefield}) & ...
+        ~[recordings_passive.ephys] & ...
+        ismember({recordings_passive.day},{recordings_training.day}));
+
+    recordings2 = recordings_training( ...
+        cellfun(@any,{recordings_training.widefield}) & ...
+        ~[recordings_training.ephys] & ...
+        ismember({recordings_training.day},{recordings_passive.day}));
+
+    %%是否存在保存过之前的数据的文件
+
+    if     exist ([Path 'task\separate_trials\' animal '_task.mat' ])==2
+        load([Path 'task\separate_trials\' animal '_task.mat' ])
+
+
+
+        %查看目前文件的长度以及如果存在没有alignment的情况下要去除
+        n_buffer= find(~all(img_size== [450, 426],2), 1);
+        if isempty (n_buffer)
+            file_length=  length(wf_px_task_kernels);
+            problem=0;
+        else file_length=n_buffer;
+            problem=1;
+        end
+    else
+        wf_px_task_kernels = cell(size(recordings2));
+        wf_px_task_raw= cell(size(recordings2));
+        all_groups_name = cell(size(recordings2))';
+        file_length=0;
+        problem=0;
+        img_size = nan(length(recordings2),2);
+        workflow_type=zeros(length(recordings2),1);
+        workflow_type_name=cell(length(recordings2),1);
+        workflow_type_name_merge=cell(length(recordings2),1);
+        stim2move=cell(length(recordings2),1);
+        stim2move_correct=cell(length(recordings2),1);
+
+
+        wf_px_task_all_itimove=cell(length(recordings2),1);
+        tasktype=cell(length(recordings2),1);
+
+
+    end
+
+    workflow_day={recordings2.day}';
+
+
+    if ~(file_length==length(recordings2)&problem==0)
+        for curr_recording =file_length+1:length(recordings2)
+            % for curr_recording =4:length(recordings2)
+            fprintf('The number of files is %d This file is: %d\n', length(recordings2),curr_recording);
+
+            % Grab pre-load vars
+            preload_vars = who;
+
+            % Load data
+            rec_day = recordings2(curr_recording).day;
+
+            clear time
+            if length(recordings2(curr_recording).index)>1
+                for mm=1:length(recordings2(curr_recording).index)
+                    rec_time = recordings2(curr_recording).recording{mm};
+                    % verbose = true;
+                    % ap.load_timelite
+                    timelite_fn = plab.locations.filename('server',animal,rec_day,rec_time,'timelite.mat');
+                    timelite = load(timelite_fn);
+                    time(mm)=length(timelite.timestamps);
+                end
+                [~,index_real]=max(time);
+            else index_real=1;
+            end
+
+
+            rec_time = recordings2(curr_recording).recording{index_real};
+
+
+            workflow_type_name{curr_recording}=recordings2(curr_recording).workflow{index_real};
+
+
+
+            if contains( workflow_type_name{curr_recording}, {'audio_volume', 'audio_frequency'})
+                workflow_type(curr_recording) = 2;
+            elseif contains( workflow_type_name{curr_recording}, {'mixed_VA'})
+                workflow_type(curr_recording) = 3;
+            elseif contains( workflow_type_name{curr_recording}, {'stage1', 'stage2'}) && ...
+                    (contains( workflow_type_name{curr_recording}, {'opacity', 'size_up', 'angle'}) || ...
+                    isempty(regexp( workflow_type_name{curr_recording}, 'audio|mixed', 'once')))
+                workflow_type(curr_recording) = 1;
+            else
+                workflow_type(curr_recording) = NaN;  % 未知类型
+            end
+
+
+
+            if strcmp(recordings2(curr_recording).workflow{index_real},'stim_wheel_right_stage1_audio_volume')...
+                    ||strcmp(recordings2(curr_recording).workflow{index_real},'stim_wheel_right_stage2_audio_volume')
+                workflow_type_name_merge{curr_recording}='audio volume';
+            elseif strcmp(recordings2(curr_recording).workflow{index_real},'stim_wheel_right_stage1')...
+                    ||strcmp(recordings2(curr_recording).workflow{index_real},'stim_wheel_right_stage2')
+                workflow_type_name_merge{curr_recording}='visual position';
+            elseif strcmp(recordings2(curr_recording).workflow{index_real},'stim_wheel_right_stage1_size_up')...
+                    ||strcmp(recordings2(curr_recording).workflow{index_real},'stim_wheel_right_stage2_size_up')
+                workflow_type_name_merge{curr_recording}='visual size up';
+            elseif strcmp(recordings2(curr_recording).workflow{index_real},'stim_wheel_right_stage1_opacity')...
+                    ||strcmp(recordings2(curr_recording).workflow{index_real},'stim_wheel_right_stage2_opacity')
+                workflow_type_name_merge{curr_recording}='visual opacity';
+            elseif strcmp(recordings2(curr_recording).workflow{index_real},'stim_wheel_right_stage1_audio_frequency')...
+                    ||strcmp(recordings2(curr_recording).workflow{index_real},'stim_wheel_right_stage2_audio_frequency')
+                workflow_type_name_merge{curr_recording}='audio frequency';
+            elseif strcmp(recordings2(curr_recording).workflow{index_real},'stim_wheel_right_stage1_angle')...
+                    ||strcmp(recordings2(curr_recording).workflow{index_real},'stim_wheel_right_stage2_angle')...
+                    ||strcmp(recordings2(curr_recording).workflow{index_real},'stim_wheel_right_stage2_angle_size60')
+                workflow_type_name_merge{curr_recording}='visual angle';
+            elseif strcmp(recordings2(curr_recording).workflow{index_real},'stim_wheel_right_stage2_mixed_VA')...
+                    ||strcmp(recordings2(curr_recording).workflow{index_real},'stim_wheel_right_frequency_stage2_mixed_VA')
+                workflow_type_name_merge{curr_recording}='mixed VA';
+            else  workflow_type_name_merge{curr_recording}='none';
+            end
+
+
+
+            verbose=true;
+
+
+            load_parts = struct;
+            load_parts.behavior = true;
+            load_parts.widefield_master = true;
+            load_parts.widefield = true;
+            ap.load_recording;
+
+
+
+
+            % process behavioral data
+            stim2move{curr_recording}=stim_to_move;
+            % Get median stim-outcome time
+            if length(stimOn_times)< length([trial_events.timestamps.Outcome])
+                n_trials =length(stimOn_times);
+            else
+                n_trials = length([trial_events.timestamps.Outcome]);
+            end
+
+
+            % linear regression data  线性回归后的数据
+            wf_regressor_bins = [wf_t;wf_t(end)+1/wf_framerate];
+            % Create regressors
+            real_stimOn_times=stimOn_times(1:n_trials);
+            real_stim_to_move= stim_to_move(1:n_trials);
+
+
+
+
+
+
+
+
+
+
+
+            if workflow_type(curr_recording)==1|workflow_type(curr_recording)==2
+
+                temp_q = quantile(real_stim_to_move, [1/3, 2/3]);  % 三分位点
+                stim_to_move_idx = zeros(size(real_stim_to_move));
+                stim_to_move_idx(real_stim_to_move <= temp_q(1)) = 1;
+                stim_to_move_idx(real_stim_to_move > temp_q(1) & real_stim_to_move <= temp_q(2)) = 2;
+                stim_to_move_idx(real_stim_to_move > temp_q(2)) = 3;
+
+
+                stim_regressors= arrayfun(@(a)  histcounts(real_stimOn_times(stim_to_move_idx==a),wf_regressor_bins),...
+                     unique(stim_to_move_idx),'UniformOutput',false  );
+
+
+                gap_1=seconds([trial_events.timestamps(1:n_trials).ITIStart ] -trial_events.timestamps(1).StimOn (1))'+photodiode_on_times(1);
+                gap_2=stimOn_times(1:n_trials)+stim_to_outcome(1:n_trials);
+
+                wf_t_only_task=arrayfun(@(a) interp1([gap_1(stim_to_move_idx==a);gap_2(stim_to_move_idx==a)],...
+                    [ones(sum(stim_to_move_idx==a),1);....
+                    zeros(sum(stim_to_move_idx==a),1)],...
+                    wf_t,'previous')==1, unique(stim_to_move_idx),'UniformOutput',false);
+
+
+            elseif workflow_type(curr_recording)==3
+
+                curr_tasktype=[trial_events.values(1:n_trials).TaskType];
+                all_types=unique(curr_tasktype);
+
+                temp_q=  cellfun(@(x) quantile(x, [1/3, 2/3]) ,...
+                    arrayfun(@(type) real_stim_to_move(curr_tasktype==type),unique(curr_tasktype),'uni',false),'UniformOutput',false);
+
+                stim_to_move_idx = zeros(size(real_stim_to_move));
+
+
+                for curr_type=1:2
+                    type=all_types(curr_type);
+
+                    stim_to_move_idx(real_stim_to_move <= temp_q{curr_type}(1)& curr_tasktype'==type) = 1+3*(type);
+                    stim_to_move_idx(real_stim_to_move > temp_q{curr_type}(1) & real_stim_to_move <= temp_q{curr_type}(2)& curr_tasktype'==type) = 2+3*(type);
+                    stim_to_move_idx(real_stim_to_move > temp_q{curr_type}(2)& curr_tasktype'==type) = 3+3*(type);
+                end
+
+
+               stim_regressors= arrayfun(@(a)  histcounts(real_stimOn_times(stim_to_move_idx==a),wf_regressor_bins),...
+                    unique(stim_to_move_idx),'UniformOutput',false  );
+
+               gap_1=seconds([trial_events.timestamps(1:n_trials).ITIStart ] -trial_events.timestamps(1).StimOn (1))'+photodiode_on_times(1);
+               gap_2=stimOn_times(1:n_trials)+stim_to_outcome(1:n_trials);
+
+               wf_t_only_task=arrayfun(@(a) interp1([gap_1(stim_to_move_idx==a);gap_2(stim_to_move_idx==a)],...
+                   [ones(sum(stim_to_move_idx==a),1);....
+                   zeros(sum(stim_to_move_idx==a),1)],...
+                   wf_t,'previous')==1,unique(stim_to_move_idx),'UniformOutput',false);
+
+            end
+
+
+
+            % raw average
+            rewarded_trials = logical([trial_events.values.Outcome]');
+            baseline_times =real_stimOn_times(rewarded_trials);
+            peri_event_t = reshape(real_stimOn_times(rewarded_trials),[],1) + reshape(t_task,1,[]);
+            baseline_event_t = reshape(baseline_times,[],1) + reshape(baseline_t,1,[]);
+            aligned_v = reshape(interp1(wf_t,wf_V',peri_event_t,'previous'), ...
+                length(real_stimOn_times(rewarded_trials)),length(t_task),[]);
+            aligned_baseline_v = nanmean(reshape(interp1(wf_t,wf_V',baseline_event_t,'previous'), ...
+                length(baseline_times),length(baseline_t),[]),2);
+            % 减去baseline数据
+            aligned_v_baselinesub = aligned_v - aligned_baseline_v;
+            aligned_v_avg = permute(splitapply(@nanmean,aligned_v_baselinesub,stim_to_move_idx(rewarded_trials)),[3,2,1]);
+            
+            wf_px_task_raw{curr_recording}=aligned_v_avg;
+
+            %  linear regression:
+
+            n_components = 200;
+            frame_shifts = -10:30;
+            lambda = 15;
+
+            success = false; % 标记变量，判断是否成功运行
+            while ~success
+                try
+
+                    disp(['Running with n_components = ', num2str(n_components)]);
+                    [stim_kernels,predicted_signals,explained_var] = ...
+                        cellfun(@(x,y) ap.regresskernel(wf_V(1:n_components,find(x==1)),y(find(x==1)),-frame_shifts,lambda),...
+                        wf_t_only_task, stim_regressors ,'UniformOutput',false );
+
+
+                    % [stim_kernels1,predicted_signals,explained_var] = ...
+                    %     ap.regresskernel(wf_V(1:n_components,:),stim_regressors{1},-frame_shifts,lambda)
+
+                    % [BUF_kernels,BUF_predict,exp]= ap.regresskernel(stim_regressors,wf_V,-frame_shifts,lambda);
+
+
+                    success = true; % 如果没有报错，则成功运行
+                catch ME
+                    disp(['Error: ', ME.message]);
+                    n_components = n_components - 10; % 变量 a 递减
+                    if n_components < 100 % 避免无限循环（你可以根据实际情况调整）
+                        error('n_components 过小，无法继续运行');
+                    end
+                end
+            end
+
+            disp('stim_kernels_running_successfully');
+
+
+            wf_px_task_kernels{curr_recording}=cat(3,stim_kernels{:});
+
+
+            img_size(curr_recording,:)=size(wf_avg);
+
+            % Clear vars except pre-load for next loop
+            clearvars('-except',preload_vars{:});
+            ap.print_progress_fraction(curr_recording,length(recordings2));
+
+        end
+    end
+
+    save([Path 'task\separate_trials\' animal '_task.mat' ],'workflow_type','workflow_type_name',...
+        'workflow_type_name_merge',...
+        'wf_px_task_kernels','wf_px_task_raw','img_size','workflow_day', '-v7.3')
+
+
+end
+

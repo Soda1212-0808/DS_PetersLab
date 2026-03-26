@@ -1,18 +1,18 @@
 %% Exploratory ephys analysis
 % close all
 clear all
-animal='DS025';
-load_probe=2;
-rec_day='2026-01-05';
-% rec_day='2026-01-04'
+animal='AP032';
+ load_probe=1;
+% rec_day='2026-01-05';
+ % rec_day='2026-03-23'
 
-use_workflow =...
-    {'stim_wheel_Vcenter_cross_movement_stage*','stim_wheel_Afreq2_cross_movement_stage*',...
-    'stim_wheel_VcenterAfreq2_cross_movement_stage*'};
-
-
-recordings = plab.find_recordings(animal,rec_day,use_workflow);
-rec_time=recordings.recording{1};
+% use_workflow =...
+%     {'stim_wheel_Vcenter_cross_movement_stage*','stim_wheel_Afreq2_cross_movement_stage*',...
+%     'stim_wheel_VcenterAfreq2_cross_movement_stage*'};
+% 
+% 
+% recordings = plab.find_recordings(animal,rec_day,use_workflow);
+% rec_time=recordings.recording{1};
 
 ap.load_recording
 

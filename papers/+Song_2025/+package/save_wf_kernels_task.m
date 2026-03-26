@@ -1,7 +1,8 @@
 clear all
 clc
 
-Path = '\\qnap-ap001.dpag.ox.ac.uk\APlab\Users\Da_Song\Data process\project_cross_model\wf_data\';
+Path = 'D:\Data process\project_cross_model\wf_data\';
+
 save_path = '\\qnap-ap001.dpag.ox.ac.uk\APlab\Lab\Papers\Song_2025\data';
 
 surround_samplerate = 35;
@@ -22,11 +23,13 @@ wf_task_kernel_stim_aligned=cell(2,1);
 wf_task_kernel_move_aligned=cell(2,1);
 wf_task_kernel_reward_aligned=cell(2,1);
 wf_task_kernel_move_all_aligned=cell(2,1);
+wf_task_kernel_move_iti_aligned=cell(2,1);
 
 wf_task_kernel_stim_each_mice=cell(2,1);
 wf_task_kernel_move_each_mice=cell(2,1);
 wf_task_kernel_reward_each_mice=cell(2,1);
 wf_task_kernel_move_all_each_mice=cell(2,1);
+wf_task_kernel_move_iti_each_mice=cell(2,1);
 
 for curr_group=1:2
     wf_task_kernel_stim_aligned{curr_group}=table;
@@ -42,6 +45,7 @@ for curr_group=1:2
     all_data_video_move=cell(length(animals{curr_group}),1);
     all_data_video_reward=cell(length(animals{curr_group}),1);
     all_data_video_move_all=cell(length(animals{curr_group}),1);
+    all_data_video_move_iti=cell(length(animals{curr_group}),1);
 
     all_data_workflow_name=cell(length(animals{curr_group}),1);
     all_data_learned_day=cell(length(animals{curr_group}),1);
@@ -74,6 +78,8 @@ for curr_group=1:2
         image_all_reward(idx)=cellfun(@(x)  x{5},raw_data_task.wf_px_task_kernels(idx),'UniformOutput',false);
         image_all_move_all(idx)=cellfun(@(x)  x{4},raw_data_task.wf_px_task_kernels(idx),'UniformOutput',false);
 
+        image_all_move_iti(idx)=cellfun(@(x)  x{3},raw_data_task.wf_px_task_kernels(idx),'UniformOutput',false);
+
         % image_all(idx)=raw_data_task.wf_px_task_kernels(idx);
 
         use_period=period_kernels;
@@ -84,6 +90,8 @@ for curr_group=1:2
         all_data_video_move{curr_animal}= image_all_move(idx)';
         all_data_video_reward{curr_animal}=   image_all_reward(idx)';
         all_data_video_move_all{curr_animal}=  image_all_move_all(idx)';
+                all_data_video_move_iti{curr_animal}=  image_all_move_iti(idx)';
+
         all_data_video_stim{curr_animal}=image_all_stim(idx)';
         all_data_workflow_name{curr_animal}=raw_data_task.workflow_type_name_merge(idx);
         all_data_learned_day{curr_animal}=raw_data_task.learned_day(idx,:);
@@ -95,10 +103,11 @@ for curr_group=1:2
     wf_task_kernel_move_each_mice{curr_group}=all_data_video_move;
     wf_task_kernel_reward_each_mice{curr_group}=all_data_video_reward;
     wf_task_kernel_move_all_each_mice{curr_group}=all_data_video_move_all;
+    wf_task_kernel_move_iti_each_mice{curr_group}=all_data_video_move_iti;
 
-    temp_val={all_data_video_stim,all_data_video_move,all_data_video_reward,all_data_video_move_all};
-    temp_output=cell(4,1);
-    for curr_tem=1:4
+    temp_val={all_data_video_stim,all_data_video_move,all_data_video_reward,all_data_video_move_all,all_data_video_move_iti};
+    temp_output=cell(length(temp_val),1);
+    for curr_tem=1:length(temp_val)
         % mod1_naive
         pre_learn_data0=cell(length(animals{curr_group}),1);
         pre_learn_data0 = cellfun(@(x,y,z,l) ...
@@ -156,9 +165,9 @@ for curr_group=1:2
 
 
     % 简洁版（无辅助函数）
-    names = {'stim','move','reward','move_all'};
+    names = {'stim','move','reward','move_all','move_iti'};
     % 每行 [ch_v, ch_a]：move_all 的特例用 [1 1]
-    rules = [1 2; 1 2; 1 2; 1 1];
+    rules = [1 2; 1 2; 1 2; 1 1;1 1];
 
     wf = struct();  % 统一容器
 
@@ -200,6 +209,7 @@ for curr_group=1:2
     wf_task_kernel_move_aligned{curr_group}     = wf.move;
     wf_task_kernel_reward_aligned{curr_group}   = wf.reward;
     wf_task_kernel_move_all_aligned{curr_group} = wf.move_all;
+    wf_task_kernel_move_iti_aligned{curr_group} = wf.move_iti;
 
 
 
@@ -235,14 +245,15 @@ end
 
 
 % --- 配置（按需改） ---
-names = {'stim','move','reward','move_all'};   % 四组变量名后缀
+names = {'stim','move','reward','move_all','move_iti'};   % 四组变量名后缀
 stage_dim = [nan,1 2 5 1 5 6 3 3];             % 你原来的定义
 min_dim = 170;                                 % 你原来的定义
 use_t = use_t;  % 假设 work 上已有 use_t
 
 % 把现有四个变量收到 cell 里（按 names 顺序）
 inputs = {wf_task_kernel_stim_aligned, wf_task_kernel_move_aligned, ...
-          wf_task_kernel_reward_aligned, wf_task_kernel_move_all_aligned};
+          wf_task_kernel_reward_aligned, wf_task_kernel_move_all_aligned,...
+          wf_task_kernel_move_iti_aligned};
 
 % 结果容器
 wf_task_kernels_across_day = struct();
@@ -289,11 +300,13 @@ wf_task_kernels_stim_across_day   = wf_task_kernels_across_day.stim;
 wf_task_kernels_move_across_day   = wf_task_kernels_across_day.move;
 wf_task_kernels_reward_across_day = wf_task_kernels_across_day.reward;
 wf_task_kernels_move_all_across_day = wf_task_kernels_across_day.move_all;
+wf_task_kernels_move_iti_across_day = wf_task_kernels_across_day.move_iti;
 
 
 save(fullfile(save_path,'revision\wf_task_kernels.mat' ),...
     'wf_task_kernel_stim_each_mice','wf_task_kernel_stim_aligned','wf_task_kernels_stim_across_day',...
     'wf_task_kernel_move_each_mice','wf_task_kernel_move_aligned','wf_task_kernels_move_across_day',...
     'wf_task_kernel_reward_each_mice','wf_task_kernel_reward_aligned','wf_task_kernels_reward_across_day',...
-    'wf_task_kernel_move_all_each_mice','wf_task_kernel_move_all_aligned','wf_task_kernels_move_all_across_day'...
+    'wf_task_kernel_move_all_each_mice','wf_task_kernel_move_all_aligned','wf_task_kernels_move_all_across_day',...
+     'wf_task_kernel_move_iti_each_mice','wf_task_kernel_move_iti_aligned','wf_task_kernels_move_iti_across_day'...
     ,'-v7.3')

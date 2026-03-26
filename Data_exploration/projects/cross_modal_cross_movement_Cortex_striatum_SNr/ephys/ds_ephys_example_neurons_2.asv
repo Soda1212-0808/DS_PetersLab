@@ -1,0 +1,210 @@
+
+clear all
+% Path = 'C:\Users\dsong\Documents\MATLAB\Da_Song\Data_analysis\mice\process\processed_data_v2\ephys\';
+Path = 'D:\Data process\project_SNr\data\ephys_data\single_neuron\';
+
+animals= { 'AP032'};
+
+% Set times for PSTH
+raster_window = [-0.5,1];
+psth_bin_size = 0.001;
+t_bins = raster_window(1):psth_bin_size:raster_window(2);
+t_centers = conv2(t_bins,[1,1]/2,'valid');
+
+baseline_t = [-0.2,0];
+response_t = [0,0.2];
+psth_use_t = t_centers >= response_t(1) & t_centers <= response_t(2);
+
+
+
+
+for curr_animal=1:length(animals)
+
+    animal=animals{curr_animal};
+    recordings_all_training=plab.find_recordings(animal,[]);
+    recordings_all_training=recordings_all_training([recordings_all_training.ephys]>0);
+
+    for curr_day=3:length(recordings_all_training)
+        rec_day=recordings_all_training(curr_day).day;
+
+        for curr_probe=1:recordings_all_training(curr_day).ephys
+            load_probe=curr_probe;
+
+            %%
+            neuro_number=[];
+            preload_vars = who;
+            rec = plab.find_recordings(animal,rec_day,'*hml_passive_audio_Freq2*');
+             rec = plab.find_recordings(animal,rec_day,'*hml_passive_audio*');
+
+            rec_time = rec.recording{end};
+            verbose = true;
+            ap.load_recording;
+            neuro_number=unique(spike_templates);
+            clearvars('-except',preload_vars{:});
+
+            for curr_neuron=1:length(neuro_number)
+
+                plot_units=curr_neuron;
+
+
+                
+                %%
+                figure('color','w','name',sprintf('Unit %d',curr_neuron),'Position',[50 50 1600 900]);
+                h = tiledlayout(6,2);
+
+
+                for workflow_idx = 1:5
+                    switch workflow_idx
+                        case 1
+                            rec = plab.find_recordings(animal,rec_day,'*wheel*');
+                            rec_time = rec.recording{end};
+                            type_name='TaskType';
+                        case 2
+                            rec = plab.find_recordings(animal,rec_day,'*lcr_passive_grating_size40*');
+                            rec_time = rec.recording{end};
+                            type_name='TrialStimX';
+                        case 3
+                            rec = plab.find_recordings(animal,rec_day,'lcr_passive_checkerboard');
+                            rec_time = rec.recording{end};
+                            type_name='TrialStimX';
+                        case 4
+                            rec = plab.find_recordings(animal,rec_day,'*lcr_passive_squareHorizontalStripes*');
+                            rec_time = rec.recording{end};
+                            type_name='TrialStimX';
+
+                        case 5
+                            rec = plab.find_recordings(animal,rec_day,'*hml_passive_audio_Freq2*');
+                            rec_time = rec.recording{end};
+                            type_name='StimFrequence';
+                    end
+                    verbose = true;
+                    ap.load_recording;
+
+
+                    stim_vals=  unique( feval(@(a) cat(1,a{:}) ,{trial_events.values.(type_name)}));
+                    use_align = arrayfun(@(x) stimOn_times(feval(@(s) s(1:n_trials) ,feval(@(a) cat(1,a{:}) ,{trial_events.values.(type_name)})) == x), ...
+                        stim_vals, 'UniformOutput', false)';
+
+                    if workflow_idx==1
+                        stim2move_time=arrayfun(@(id) stim_to_move([trial_events.values(1:n_trials).TaskType] == id),stim_vals,'uni',false);
+
+                    end
+
+
+                    [psth_stim,raster_stim,raster_t_stim] =cellfun(@(x) ap.psth(spike_times_timelite, ...
+                        x,spike_templates),use_align,'UniformOutput',false);
+
+
+
+
+                    for curr_mod=1:2
+
+                        % Plot PSTH
+                        nexttile(h,tilenum(h,1,curr_mod)); hold on;
+                        if ismember(workflow_idx,1)& curr_mod==1
+                            plot(raster_t_stim{1},smoothdata(psth_stim{1}(curr_neuron,:),2,'gaussian',50)','linewidth',2,'Color','r')
+                            plot(raster_t_stim{1},smoothdata(psth_stim{2}(curr_neuron,:),2,'gaussian',50)','linewidth',2,'Color','b')
+
+                        elseif  ismember(workflow_idx,1)& curr_mod==2 & length(psth_stim)>2
+                            plot(raster_t_stim{1},smoothdata(psth_stim{3}(curr_neuron,:),2,'gaussian',50)','linewidth',2,'Color','r')
+                            plot(raster_t_stim{1},smoothdata(psth_stim{4}(curr_neuron,:),2,'gaussian',50)','linewidth',2,'Color','b')
+
+
+                        elseif  ismember(workflow_idx,[2 3 4])& curr_mod==1
+                            colorss={[1 0.5 0.5],[0.5 0.5 1],[0.5 0.5 0.5]}
+                            % plot(raster_t_stim{1},smoothdata(psth_stim{1}(curr_neuron,:),2,'gaussian',50)','linewidth',2,'Color',[1 0.5 0.5])
+                            plot(raster_t_stim{1},smoothdata(psth_stim{2}(curr_neuron,:),2,'gaussian',50)','linewidth',2,'Color',colorss{workflow_idx-1})
+                            % plot(raster_t_stim{1},smoothdata(psth_stim{3}(curr_neuron,:),2,'gaussian',50)','linewidth',2,'Color',[0.8 0.8 0.8])
+
+                        elseif  ismember(workflow_idx,5)& curr_mod==2
+                            plot(raster_t_stim{1},smoothdata(psth_stim{1}(curr_neuron,:),2,'gaussian',50)','linewidth',2,'Color',[1 0.5 0.5])
+                            plot(raster_t_stim{1},smoothdata(psth_stim{2}(curr_neuron,:),2,'gaussian',50)','linewidth',2,'Color',[0.5 0.5 0.5])
+                            plot(raster_t_stim{1},smoothdata(psth_stim{3}(curr_neuron,:),2,'gaussian',50)','linewidth',2,'Color',[0.5 0.5 1])
+
+                        end
+
+
+                        xlim(raster_window)
+                        axis off
+                        xline(0,'r');
+                        % ylim([0 20])
+
+
+                        switch workflow_idx
+                            case 1
+                                [temp_s2m,temp_idx]=arrayfun(@(id) sort(stim2move_time{id},'descend'),1:length(stim2move_time),'UniformOutput',false);
+
+                                [raster_y,raster_x] =cellfun(@(x,y) find(x(y,:,curr_neuron)),raster_stim,temp_idx,'UniformOutput',false  );
+
+                                for curr_stage=1:2
+                                    nexttile(h,tilenum(h,curr_stage+1,curr_mod)); hold on;
+                                    if curr_mod==1
+                                        plot(raster_t_stim{curr_stage}(raster_x{curr_stage}),raster_y{curr_stage},'.k');
+                                        plot(temp_s2m{curr_stage},1:length(stim2move_time{curr_stage}),'.g')
+                                        line([0, 0],[0 ,max(raster_y{curr_stage})],'Color','r');
+
+                                    elseif curr_mod==2&length( raster_stim)>2
+
+                                        plot(raster_t_stim{curr_stage+2}(raster_x{curr_stage+2}),raster_y{curr_stage+2},'.k');
+                                        plot(temp_s2m{curr_stage+2},1:length(stim2move_time{curr_stage+2}),'.g')
+                                        line([0, 0],[0 ,max(raster_y{curr_stage+2})],'Color','r');
+
+                                    end
+
+
+
+                                    xlim(raster_window)
+                                    axis off
+                                end
+
+
+                            case {2,3,4}
+                                if curr_mod==1
+                                    [raster_y,raster_x] =cellfun(@(x) find(x(:,:,curr_neuron)),raster_stim,'UniformOutput',false  );
+
+                                    nexttile(h,tilenum(h,workflow_idx+2,curr_mod)); hold on;
+                                    plot(raster_t_stim{1}(raster_x{2}),raster_y{2},'.k');
+                                    xlim(raster_window)
+                                    axis off
+                                    line([0, 0],[0 ,max(raster_y{2})],'Color','r');
+                                end
+                            case 5
+
+                                if curr_mod==2
+                                    [raster_y,raster_x] =cellfun(@(x) find(x(:,:,curr_neuron)),raster_stim,'UniformOutput',false  );
+                                    for curr_passive=1:3
+                                        nexttile(h,tilenum(h,curr_passive+3,curr_mod)); hold on;
+                                        plot(raster_t_stim{1}(raster_x{curr_passive}),raster_y{curr_passive},'.k');
+                                        xlim(raster_window)
+                                        axis off
+                                        line([0, 0],[0 ,max(raster_y{curr_passive})],'Color','r');
+                                    end
+
+                                end
+                        end
+
+
+
+
+                        drawnow;
+
+                    end
+
+                end
+
+                save_filename = fullfile(Path, sprintf('%s_%s_probe%d_unit%d.png', ...
+                    animal, rec_day, curr_probe,curr_neuron));
+
+                exportgraphics(h, save_filename, 'Resolution', 300);
+
+close all
+            end
+
+
+
+
+        end
+    
+    end
+
+end

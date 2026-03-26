@@ -2,7 +2,7 @@
 clear all
 Path = 'D:\Data process\wf_data\';
 
-animals = {'DS025'};
+animals = {''};
 
 
 f1=figure('Position',[50 50 length(animals)*300 900]);
@@ -13,14 +13,14 @@ tt2 = tiledlayout(f2,1,length(animals),'TileSpacing','tight');
 for curr_animal_idx = 1:length(animals)
     animal = animals{curr_animal_idx};
 
-    % use_workflow = {'stim_wheel_right_stage2_mixed_VA'};
+    use_workflow = {'stim_wheel_right_stage2_mixed_VA*'};
 
     % use_workflow =...
     %     {'stim_wheel_Vcenter_cross_movement_stage*','stim_wheel_Afreq2_cross_movement_stage*'};
 
-    use_workflow =...
-        {'stim_wheel_Vcenter_cross_movement_stage*','stim_wheel_Afreq2_cross_movement_stage*',...
-        'stim_wheel_VcenterAfreq2_cross_movement_stage*'};
+    % use_workflow =...
+    %     {'stim_wheel_Vcenter_cross_movement_stage*','stim_wheel_Afreq2_cross_movement_stage*',...
+    %     'stim_wheel_VcenterAfreq2_cross_movement_stage*'};
 
     recordings = plab.find_recordings(animal,[],use_workflow);
     % only ephys data
@@ -92,7 +92,6 @@ for curr_animal_idx = 1:length(animals)
 
         tasktype=[trial_events.values.TaskType];
 
-
         No_tasktype =unique(tasktype);
 
 
@@ -121,8 +120,8 @@ for curr_animal_idx = 1:length(animals)
         n_trials_types(curr_recording,unique(tasktype)+1)=cellfun(@length,stim_on2off_time_correct,'UniformOutput',true);
 
         % rxn_med(curr_recording,unique(tasktype)+1)   = cellfun(@median, stim_on2off_time_correct,'UniformOutput',true);
-        
-        
+
+
         rxn_med(curr_recording,unique(tasktype)+1)   = cellfun(@(aa) median(aa(aa>0)),   arrayfun(@(type) ...
             stim_to_lastmove(tasktype(1:n_trials)==type &[trial_events.values.Outcome]==1),No_tasktype,'UniformOutput',false),'UniformOutput',true);
 
@@ -274,7 +273,7 @@ for curr_animal_idx = 1:length(animals)
     hold on
     plot(relative_day,react_null_index(:,2:5), 'LineWidth',1)
     plot(relative_day,react_null_index(:,2:5), 'o', 'MarkerSize',2)
-     set(gca,'ColorOrder',[0.0000    0.4470    0.7410; 0.8500    0.3250    0.0980; 0.0000    0.4470    0.7410; 0.8500    0.3250    0.0980])
+    set(gca,'ColorOrder',[0.0000    0.4470    0.7410; 0.8500    0.3250    0.0980; 0.0000    0.4470    0.7410; 0.8500    0.3250    0.0980])
     if any(nonrecorded_day)
         xline(nonrecorded_day,'--k');
     end
@@ -336,7 +335,7 @@ for curr_animal_idx = 1:length(animals)
         end
     end
 
-    for curr_type=1:4
+    for curr_type=1:2
 
         nexttile(t_animal); hold on
         set(gca,'ColorOrder',copper(length(recordings)));
@@ -361,7 +360,7 @@ for curr_animal_idx = 1:length(animals)
     figure
     t_animal2=tiledlayout(4,3)
     for curr_state=1:4
-         nexttile(t_animal2);
+        nexttile(t_animal2);
 
         wheel_vel_mean = cellfun(@(x) ...
             fillmissing(x,'constant',0), ...
@@ -400,12 +399,18 @@ for curr_animal_idx = 1:length(animals)
         plot(relative_day,wheel_vel_max, 'o', 'MarkerSize',2)
         plot(relative_day,wheel_vel_min, 'o', 'MarkerSize',2)
 
-    xlim([1,relative_day(end)]);
-
+        xlim([1,relative_day(end)]);
 
     end
 
     drawnow;
+
+    figure;
+    plot(relative_day,rxn_med)
+    hold on
+    % plot(relative_day,rxn_med, 'o', 'MarkerSize',2)
+
+    set(gca, 'YScale', 'log')
 
 end
 

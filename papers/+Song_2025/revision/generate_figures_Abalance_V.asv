@@ -1,0 +1,61 @@
+%% TESTING BATCH TASK WIDEFIELD
+clear all
+Path = 'D:\Data process\project_cross_model\wf_data\';
+
+ U_master = plab.wf.load_master_U;
+
+
+surround_samplerate = 35;
+surround_window = [-0.2,1];
+baseline_window = [-0.5,-0.1];
+
+t_kernels=1/surround_samplerate*[-10:30];
+surround_time = [-5,5];
+surround_sample_rate = 100;
+surround_time_points = surround_time(1):1/surround_sample_rate:surround_time(2);
+
+animals = { 'DS030','DS031'};
+workflow='task';
+tem_image_task=cell(length(animals),1);
+for curr_animal_idx=1:length(animals)
+    animal=animals{curr_animal_idx};
+    raw_data_task=load([Path  workflow '\' animal '_' workflow '.mat']);
+
+    audio_idx=find(raw_data_task.workflow_type==2,2,'last');
+    visual_idx=find(raw_data_task.workflow_type==1,2,'last');
+
+    tem_image_task{curr_animal_idx}=  cellfun(@(x) plab.wf.svd2px(U_master(:,:,1:size(x,1)),x),...
+        arrayfun(@(idx) raw_data_task.wf_px_task_kernels{idx}{1},[audio_idx ;visual_idx],'UniformOutput',false),...
+        'UniformOutput',false);
+
+    ap.imscroll(cat(4,tem_image_task{curr_animal_idx}{:}),t_kernels)
+    axis image off;
+    clim(0.0003 .* [0, 1]);
+    colormap( ap.colormap('WG'));
+    ap.wf_draw('ccf', [0.5 0.5 0.5]);
+
+
+end
+
+
+
+task_all= cellfun(@(a) cellfun(@(x)  max(x(:,:,t_kernels>0& t_kernels<0.2),[],3),a,'UniformOutput',false), ...
+    tem_image_task,'UniformOutput',false);
+
+task_mean=cellfun(@(x){nanmean(cat(3,x{1:2}),3); nanmean(cat(3,x{3:4}),3)} ,task_all,'UniformOutput',false  )
+
+
+figure;
+for curr_stage=1:2
+nexttile
+imagesc(task_mean{curr_stage})
+axis image off;
+clim(0.0003 .* [0, 1]);
+colormap( ap.colormap('WG'));
+ap.wf_draw('ccf', [0.5 0.5 0.5]);
+
+end
+
+
+
+

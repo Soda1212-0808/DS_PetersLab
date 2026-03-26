@@ -1,0 +1,267 @@
+clear all
+clc
+ U_master = plab.wf.load_master_U;
+load(fullfile('\\qnap-ap001.dpag.ox.ac.uk\APlab\Lab\Papers\Song_2025\data\General_information\roi.mat'))
+% Path = '\\qnap-ap001.dpag.ox.ac.uk\APlab\Users\Da_Song\Data process\project_cross_model\wf_data\';
+
+Path = 'D:\Data process\project_cross_model\wf_data\';
+
+title_names={'opacity','static','size up','angle','angle size 60'};
+behavior_data=table;
+
+for curr_group=1:5
+    switch curr_group
+        case 1
+            animals={'AP027','AP028','AP029'};
+            workflows={'stim_wheel_right_stage1_opacity','stim_wheel_right_stage2_opacity'};
+        
+        case 2
+            animals={'AP019_nochange'};
+            workflows={'stim_wheel_right_stage1_no_change','stim_wheel_right_stage2_no_change'};
+        case 3
+            animals={'HA003','HA004','DS019','DS020','DS021'};
+            workflows={'stim_wheel_right_stage1_size_up','stim_wheel_right_stage2_size_up'};
+        case 4
+            animals={'HA000','HA001','HA002'};
+            workflows={'stim_wheel_right_stage1_angle','stim_wheel_right_stage2_angle'};
+
+        case 5
+            animals={'HA000','HA001','HA002'};
+            workflows={'stim_wheel_right_stage1_angle_size60','stim_wheel_right_stage2_angle_size60'};
+    end
+            
+   
+    title_name=title_names{curr_group};
+
+    behavior_data.worflow(curr_group)={title_name};
+
+    performance=cell(size(animals,1),1);
+    RT=cell(size(animals,1),1);
+    p_val=cell(size(animals,1),1);
+    task_kernels=cell(size(animals,1),1);
+    passive_kernels=cell(size(animals,1),1);
+
+    for curr_animal =1:length(animals)
+        animal=animals{curr_animal};
+        raw_data_behavior=load([Path   'behavior\' animal '_behavior'  '.mat']);
+        raw_data_task_kernels=load([Path   'task\' animal '_task'  '.mat']);
+        raw_data_passive_kernels=load([Path   'lcr_passive\' animal '_lcr_passive'  '.mat']);
+        workflow_idx=ismember(raw_data_behavior.workflow_name_full,workflows);
+        temp_x=raw_data_behavior.rxn_l_mad_p(workflow_idx,1)<0.05;
+        p_val{curr_animal}=(sum(temp_x)>1) & (cumsum(temp_x)>0);
+
+        s2m_mad=  raw_data_behavior.stim2lastmove_mad(workflow_idx,1);
+        s2m_mad_null=  raw_data_behavior.stim2lastmove_mad_null(workflow_idx,1);
+        performance{curr_animal}= (s2m_mad_null-s2m_mad)./(s2m_mad_null+s2m_mad);
+        RT{curr_animal}=raw_data_behavior.stim2move_mean(workflow_idx,1);
+        task_kernels{curr_animal}=cellfun(@(x) x{1},raw_data_task_kernels.wf_px_task_kernels(workflow_idx),'UniformOutput',false)';
+        
+        workflow_passive_idx=ismember(raw_data_passive_kernels.workflow_day,raw_data_task_kernels.workflow_day(workflow_idx));
+        passive_kernels{curr_animal}=raw_data_passive_kernels.wf_px_kernels(workflow_passive_idx)';
+
+    end
+    behavior_data.performance(curr_group)={performance};
+    behavior_data.reaction_time(curr_group)={RT};
+    behavior_data.p_val(curr_group)={p_val};
+    behavior_data.task_kernels(curr_group)={task_kernels};
+    behavior_data.passive_kernels(curr_group)={passive_kernels};
+
+end
+
+save(fullfile('\\qnap-ap001.dpag.ox.ac.uk\APlab\Lab\Papers\Song_2025\data\revision',...
+    'different_task_behavior.mat'),'behavior_data','-v7.3')
+
+  
+ 
+%%
+surround_samplerate = 35;
+t_kernels=1/surround_samplerate*[-10:30];
+
+
+    colors={[0.4 0.4 1],[0.8 0.8 1],[0.5 0.5 1],[0.44 0.4 1],[0.44 0.4 1]};
+    use_group=[ 5]
+    figure('Position',[50 50 600 150]);
+    tiledlayout(1,4)
+    nexttile
+    hold on
+    for curr_group=use_group
+        cellfun(@(x) plot(x,'Color',colors{curr_group},'LineWidth',2) ,behavior_data.reaction_time{curr_group},'UniformOutput',false )
+
+        cellfun(@(x,y) plot(find(y),x(y),'Color','r','LineWidth',2) ,behavior_data.reaction_time{curr_group},...
+            behavior_data.p_val{curr_group},'UniformOutput',false )
+    end
+    % ap.errorfill(1:length(RT_mean),RT_mean,RT_error,[0 0 0])
+    xlim([1 max(cellfun(@length ,behavior_data.reaction_time{curr_group},'UniformOutput',true))])
+    yticks([0.1 0.5 1 2 4 6])
+    set(gca, 'YScale', 'log')
+        ylim([0.5 10])
+
+    ylabel('Reaction time (s)')
+    xlabel('Days')
+    xticks([1 max(cellfun(@length ,behavior_data.performance{curr_group},'UniformOutput',true))])
+
+    nexttile
+    hold on
+    for curr_group=use_group
+
+      cellfun(@(x) plot(x,'Color',colors{curr_group},'LineWidth',2) ,behavior_data.performance{curr_group},'UniformOutput',false )
+   
+      cellfun(@(x,y) plot(find(y),x(y),'Color','r','LineWidth',2) ,behavior_data.performance{curr_group},...
+        behavior_data.p_val{curr_group},'UniformOutput',false )
+    end
+
+    xlim([1 max(cellfun(@length ,behavior_data.performance{curr_group},'UniformOutput',true))])
+    ylim([-0.2 1])
+    ylabel('Performance')
+    xlabel('Days')
+    xticks([1 max(cellfun(@length ,behavior_data.performance{curr_group},'UniformOutput',true))])
+    yticks([0 1])
+
+    % sgtitle(title_name)
+
+
+    temp_wf_task=   cellfun(@(x)   cellfun(@(a)      nanmean(cat(3,a{end-1:end}),3)...
+        ,x,'UniformOutput',false) ,behavior_data.task_kernels(use_group),'UniformOutput',false)
+
+    tem_image_task=   cellfun(@(a)   cellfun(@(x) plab.wf.svd2px(U_master(:,:,1:size(x,1)),x),a,'UniformOutput',false)...
+        ,temp_wf_task,'UniformOutput',false);
+
+    image_plot_task=feval(@(w)    nanmean(max(w(:,:,t_kernels>0&t_kernels<0.2 ,:),[],3),4) ,...
+        feval(@(c) cat(4,c{:}), cat(2,tem_image_task{:})));
+
+    nexttile
+    imagesc(image_plot_task)
+    axis image off
+    clim( 0.0003*[-1,1]);
+    ap.wf_draw('ccf',[0.5 0.5 0.5]);
+    colormap( ap.colormap(['KWB']));
+
+
+
+    temp_wf_passive=   cellfun(@(x)   cellfun(@(a)      nanmean(cat(4,a{end-1:end}),4)...
+        ,x,'UniformOutput',false) ,behavior_data.passive_kernels(use_group),'UniformOutput',false)
+
+    tem_image_passive=   cellfun(@(a)   cellfun(@(x) plab.wf.svd2px(U_master(:,:,1:size(x,1),:),x),a,'UniformOutput',false)...
+        ,temp_wf_passive,'UniformOutput',false);
+
+    image_plot_passive=feval(@(w)    permute(nanmean(max(w(:,:,t_kernels>0&t_kernels<0.2 ,:,:),[],3),5),[1,2,4,3]) ,...
+        feval(@(c) cat(5,c{:}), cat(2,tem_image_passive{:})));
+
+    nexttile
+    imagesc(image_plot_passive(:,:,3))
+    axis image off
+    clim( 0.0003*[-1,1]);
+    ap.wf_draw('ccf',[0.5 0.5 0.5]);
+    colormap( ap.colormap(['KWB']));
+
+    %%
+
+    use_group=[ 4 5]
+    figure('Position',[50 50 1000 150]);
+    mainfig=tiledlayout(1,4)
+
+    plot_fig=tiledlayout(mainfig,1, 2, ...
+        'TileSpacing', 'none', 'Padding', 'none');
+    plot_fig.Layout.Tile = 1;  % 明确放在主 layout 的第 1 个 tile
+
+    for curr_group=use_group
+        nexttile(plot_fig)
+        hold on
+        cellfun(@(x) plot(x,'Color',colors{curr_group},'LineWidth',2) ,behavior_data.reaction_time{curr_group},'UniformOutput',false )
+
+        cellfun(@(x,y) plot(find(y),x(y),'Color','r','LineWidth',2) ,behavior_data.reaction_time{curr_group},...
+            behavior_data.p_val{curr_group},'UniformOutput',false )
+        % ap.errorfill(1:length(RT_mean),RT_mean,RT_error,[0 0 0])
+                         set(gca, 'YScale', 'log')
+
+        ylim([0.1 10])
+        xticks([1 max(cellfun(@length ,behavior_data.performance{curr_group},'UniformOutput',true))])
+
+        switch curr_group
+            case 4
+                xlim([1 max(cellfun(@length ,behavior_data.reaction_time{curr_group},'UniformOutput',true))])
+                yticks([0.1 0.5 1 5 10])
+                ylabel('Reaction time (s)')
+                xlabel('Days')
+            case 5
+                xlim([0 max(cellfun(@length ,behavior_data.reaction_time{curr_group},'UniformOutput',true))])
+                set(gca,'YColor','none')
+        end
+    end
+
+  plot_fig2=tiledlayout(mainfig,1, 2, ...
+        'TileSpacing', 'none', 'Padding', 'none');
+  plot_fig2.Layout.Tile = 2;  % 明确放在主 layout 的第 1 个 tile
+    for curr_group=use_group
+        nexttile (plot_fig2)
+        hold on
+        cellfun(@(x) plot(x,'Color',colors{curr_group},'LineWidth',2) ,behavior_data.performance{curr_group},'UniformOutput',false )
+        cellfun(@(x,y) plot(find(y),x(y),'Color','r','LineWidth',2) ,behavior_data.performance{curr_group},...
+            behavior_data.p_val{curr_group},'UniformOutput',false )
+
+        ylim([-0.2 1])
+        xticks([1 max(cellfun(@length ,behavior_data.performance{curr_group},'UniformOutput',true))])
+
+        switch curr_group
+            case 4
+                xlim([1 max(cellfun(@length ,behavior_data.reaction_time{curr_group},'UniformOutput',true))])
+                yticks([0.1 0.5 1 2 4 6])
+                % set(gca, 'YScale', 'log')
+                ylabel('Performance')
+                xlabel('Days')
+            case 5
+                xlim([0 max(cellfun(@length ,behavior_data.reaction_time{curr_group},'UniformOutput',true))])
+                set(gca,'YColor','none')
+        end
+    end
+    % sgtitle(title_name)
+ 
+
+    temp_wf_task=   cellfun(@(x)   cellfun(@(a)      nanmean(cat(3,a{end-1:end}),3)...
+        ,x,'UniformOutput',false) ,behavior_data.task_kernels(use_group),'UniformOutput',false)
+    tem_image_task=   cellfun(@(a)   cellfun(@(x) plab.wf.svd2px(U_master(:,:,1:size(x,1)),x),a,'UniformOutput',false)...
+        ,temp_wf_task,'UniformOutput',false);
+    image_plot_task=cellfun(@(x) feval(@(v)  nanmean(v,3) , feval(@(c) cat(3,c{:}) ,cellfun(@(a)  max(a(:,:,t_kernels>0&t_kernels<0.2 ,:),[],3),x,'UniformOutput',false)))...
+        ,tem_image_task,'UniformOutput',false  );
+
+    plot_fig3=tiledlayout(mainfig,1, 2, ...
+        'TileSpacing', 'tight', 'Padding', 'tight');
+    plot_fig3.Layout.Tile = 3;  % 明确放在主 layout 的第 1 个 tile
+
+    for curr_image=1:2
+        nexttile (plot_fig3)
+        imagesc(image_plot_task{curr_image})
+        axis image off
+        clim( 0.0003*[-1,1]);
+        ap.wf_draw('ccf',[0.5 0.5 0.5]);
+        colormap( ap.colormap(['KWB']));
+    end
+
+
+
+
+    temp_wf_passive=   cellfun(@(x)   cellfun(@(a)      nanmean(cat(4,a{end-1:end}),4)...
+        ,x,'UniformOutput',false) ,behavior_data.passive_kernels(use_group),'UniformOutput',false)
+
+    tem_image_passive=   cellfun(@(a)   cellfun(@(x) plab.wf.svd2px(U_master(:,:,1:size(x,1),:),x),a,'UniformOutput',false)...
+        ,temp_wf_passive,'UniformOutput',false);
+
+
+
+image_plot_passive=cellfun(@(x) feval(@(v)  nanmean(v,4) , feval(@(c) cat(4,c{:}) ,permute (cellfun(@(a)  max(a(:,:,t_kernels>0&t_kernels<0.2 ,:,:),[],3),[]),x,'UniformOutput',false)))...
+        ,tem_image_passive,'UniformOutput',false  );
+
+x=tem_image_passive{1}
+
+  plot_fig4=tiledlayout(mainfig,1, 2, ...
+        'TileSpacing', 'tight', 'Padding', 'tight');
+    plot_fig4.Layout.Tile = 4;  % 明确放在主 layout 的第 1 个 tile
+
+     for curr_image=1:2
+        nexttile (plot_fig4)
+        imagesc(image_plot_passive{curr_image})
+        axis image off
+        clim( 0.0003*[-1,1]);
+        ap.wf_draw('ccf',[0.5 0.5 0.5]);
+        colormap( ap.colormap(['KWB']));
+    end

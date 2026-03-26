@@ -1,0 +1,69 @@
+
+ds.load_iti_move
+if length(iti_move_time)==1
+    iti_move_time=[iti_move_time ;iti_move_time];
+end
+
+
+if length(stimOn_times)< length([trial_events.timestamps.Outcome])
+    n_trials =length(stimOn_times);
+else
+    n_trials = length([trial_events.timestamps.Outcome]);
+end
+
+
+% Task: align to stim/move/reward
+rewarded_trials = logical([trial_events.values.Outcome]');
+use_trials = rewarded_trials(1:n_trials);
+align_times_4 = [ ...
+    stimOn_times(use_trials); ...
+    stim_move_time(use_trials); ...
+    reward_times(1:end-(length(reward_times)-sum(use_trials)));...
+    iti_move_time];
+
+
+
+%% 
+
+% linear regression data  线性回归后的数据
+wf_regressor_bins = [wf_t;wf_t(end)+1/wf_framerate];
+% Create regressors
+real_stimOn_times=stimOn_times(1:n_trials);
+real_stim_move_time=stim_move_time(1:n_trials);
+real_reward_times=reward_times(1: sum(rewarded_trials(1:n_trials)==1));
+pho_on_times=photodiode_times(photodiode_values==1);
+pho_off_times=photodiode_times(photodiode_values==0)+2;
+iti_move_regressors=histcounts(iti_move_time,wf_regressor_bins);
+
+
+if ~contains('TaskType', fieldnames(trial_events.values))
+    move_regressors = {histcounts(real_stim_move_time,wf_regressor_bins)};
+    stim_regressors = {histcounts(real_stimOn_times,wf_regressor_bins)};
+    reward_regressors = {histcounts(real_reward_times,wf_regressor_bins)};
+
+    wf_t_only_task= {ones(1,length(wf_t))};
+    all_move_regressor=double(move_regressors{1} | iti_move_regressors);
+
+elseif  contains('TaskType', fieldnames(trial_events.values))
+    move_regressors = {histcounts(real_stim_move_time(curr_tasktype==0),wf_regressor_bins);...
+        histcounts(real_stim_move_time(curr_tasktype==1),wf_regressor_bins)};
+    reward_regressors= {histcounts(real_reward_times(curr_tasktype(rewarded_trials(1:n_trials))==0),wf_regressor_bins);...
+        histcounts(real_reward_times(curr_tasktype(rewarded_trials(1:n_trials))==1),wf_regressor_bins)};
+
+    all_move_regressor=double(move_regressors{1} |move_regressors{2} | iti_move_regressors);
+
+    stim_regressors = repmat({zeros(length(wf_t),1)}, 2, 1);
+    stim_regressors(unique(stim_to_move_idx))= arrayfun(@(a)  histcounts(real_stimOn_times(stim_to_move_idx==a),wf_regressor_bins)',...
+        unique(stim_to_move_idx),'UniformOutput',false  );
+
+    gap_1=seconds([trial_events.timestamps(1:n_trials).ITIStart ] -trial_events.timestamps(1).StimOn (1))'+photodiode_on_times(1);
+    gap_2=stimOn_times(1:n_trials)+stim_to_outcome(1:n_trials);
+
+    wf_t_only_task= repmat({false(length(wf_t),1)}, 2, 1);
+    wf_t_only_task(unique(stim_to_move_idx))=arrayfun(@(a) interp1([gap_1(stim_to_move_idx==a);gap_2(stim_to_move_idx==a)],...
+        [ones(sum(stim_to_move_idx==a),1);....
+        zeros(sum(stim_to_move_idx==a),1)],...
+        wf_t,'previous')==1, unique(stim_to_move_idx),'UniformOutput',false);
+end
+
+

@@ -20,13 +20,20 @@ main_preload_vars = who;
 
 load_dataset='wf_task_kernels';
 load(fullfile(Path,'data','revision/',load_dataset));
-tem_image=cellfun(@(x) plab.wf.svd2px(U_master(:,:,1:size(x,1)),x(:,:,[2 3 7 8],:)),  wf_task_kernels_move_all_across_day,'UniformOutput',false);
+tem_image=cellfun(@(x) plab.wf.svd2px(U_master(:,:,1:size(x,1)),x),  wf_task_kernels_stim_across_day,'UniformOutput',false);
+
+figure;
+imagesc(nanmean(std(tem_image{2}(:,:,:,1:5,2),0,3),4))
+axis image off
+ap.wf_draw('ccf',[0.5 0.5 0.5]);
+colormap( ap.colormap(['WR']));
+
 image_max_eachmice=cellfun(@(x)    cat(3,  nanmean(max(x(:,:,kernels_period,[1 2],:),[],3),[4 5]),...
     nanmean(max(x(:,:,kernels_period,[3 4],:),[],3),[4 5])),tem_image,'UniformOutput',false  );
 
-ap.imscroll(tem_image{2}(:,:,:,:,4))
+ap.imscroll(tem_image{1}(:,:,:,:,4))
 axis image off
-clim(ax, 0.0003*[0,1]);
+clim( 0.0003*[0,1]);
 ap.wf_draw('ccf',[0.5 0.5 0.5]);
 colormap( ap.colormap(['BWR']));
 
@@ -71,10 +78,34 @@ for r = 1:2
 end
 drawnow;
 
+%%
+main_preload_vars = who;
+load_dataset='wf_passive_kernels';
+load(fullfile(Path,'data',load_dataset));
+
+tem_image=cellfun(@(x) plab.wf.svd2px(U_master(:,:,1:size(x,1)),x),  wf_passive_kernels_across_day{2},'UniformOutput',false);
 
 
+figure;
+curr_group=2
+for curr_animal=1:size(tem_image{curr_group},6)
+    nexttile
+imagesc(nanmean(max(tem_image{curr_group}(:,:,kernels_period,2,10:11,curr_animal),[],3),5))
+axis image off
+ap.wf_draw('ccf',[0.5 0.5 0.5]);
+colormap( ap.colormap(['WR']));
+nexttile
 
 
+end
+
+
+imagesc(nanmean(std(tem_image{2}(:,:,:,2,1:26,4),0,3),5))
+
+nexttile
+axis image off
+ap.wf_draw('ccf',[0.5 0.5 0.5]);
+colormap( ap.colormap(['WR']));
 
 %%  fig 1c_d  task kernels images
 main_preload_vars = who;
@@ -1753,16 +1784,72 @@ for curr_group=1:2
             colormap(ax, ap.colormap(['W' Color{curr_group}] ));
             clim(scale_image .* [0, 1]);
             ap.wf_draw('ccf', [0.5 0.5 0.5]);
-            % if curr_group==1&curr_stim==1
-            % title( num2str(t_kernels(curr_frame),'%.2f'),'FontWeight','normal')
-            % end
+           
         end
     end
 end
 
-exportgraphics(gcf, fullfile(Path,'figures\eps\Fig s3.eps'), ...
-    'ContentType','vector');
+% exportgraphics(gcf, fullfile(Path,'figures\eps\Fig s3.eps'), ...
+%     'ContentType','vector');
 clearvars('-except',main_preload_vars{:});
+
+
+
+%%
+
+for curr_group=1:2
+   figure('Position',[50 50 1800 250])
+   tiledlayout (1,length(find(t_kernels>-0.05& t_kernels<0.25)),'TileSpacing','none')
+    for curr_frame=find(t_kernels>-0.05& t_kernels<0.25)
+        ax=nexttile
+        imagesc(image_acorss_time{curr_group}(:,:,curr_frame))
+        axis image off;
+        clim(scale_image .* [0, 1]);
+        colormap(ax, ap.colormap(['W' Color{curr_group}] ));
+        ap.wf_draw('ccf', [0.5 0.5 0.5]);     
+    end
+
+    frame1 = getframe(gcf);
+    img_data1{curr_group} =im2double( frame1.cdata);
+end
+result = min(img_data1{1}, img_data1{2});
+
+figure
+imshow(result);
+
+
+
+
+
+
+for curr_group=1:2
+    figure('Position',[50 50 1800 250])
+   tiledlayout (1,length(find(t_kernels>-0.05& t_kernels<0.25)),'TileSpacing','none')
+
+    for curr_stim=4-curr_group
+        for curr_frame=find(t_kernels>-0.05& t_kernels<0.25)
+        ax=nexttile
+            imagesc(image_pass_acorss_time{curr_group}(:,:,curr_frame,curr_stim))
+            axis image off;
+            clim(scale_image .* [0, 1]);
+            colormap(ax, ap.colormap(['W' Color{3-curr_group}] ));
+            clim(scale_image .* [0, 1]);
+            ap.wf_draw('ccf', [0.5 0.5 0.5]);
+           
+        end
+    end
+     frame1 = getframe(gcf);
+    img_data2{curr_group} =im2double( frame1.cdata);
+end
+
+result = min(img_data2{1}, img_data2{2});
+
+figure
+imshow(result);
+
+result = min(img_data2{1}, img_data1{1});
+figure
+imshow(result);
 
 
 %% Fig s4 a behaviors in cross modality task

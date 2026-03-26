@@ -1,7 +1,8 @@
 %% TESTING BATCH TASK WIDEFIELD
 clear all
-Path = 'D:\Data process\wf_data\';
+Path = 'D:\Data process\project_cross_model\wf_data\';
 
+server_path= [plab.locations.server_path  'Lab\widefield_alignment\animal_alignment'];
 
 surround_samplerate = 35;
 surround_window = [-0.2,1];
@@ -11,106 +12,109 @@ t_task = surround_window(1):1/surround_samplerate:surround_window(2);
 baseline_t = baseline_window(1):1/surround_samplerate:baseline_window(2);
 t_kernels=1/surround_samplerate*[-5:30];
 
-
 surround_time = [-5,5];
 surround_sample_rate = 100;
 surround_time_points = surround_time(1):1/surround_sample_rate:surround_time(2);
 
+workflow_name_map = containers.Map( ...
+    {'stim_wheel_right_stage1_audio_volume', ...
+    'stim_wheel_right_stage2_audio_volume', ...
+    'stim_wheel_right_stage1', ...
+    'stim_wheel_right_stage2', ...
+    'stim_wheel_right_stage1_size_up', ...
+    'stim_wheel_right_stage2_size_up', ...
+    'stim_wheel_right_stage1_opacity', ...
+    'stim_wheel_right_stage2_opacity',...
+    'stim_wheel_right_stage1_audio_frequency',...
+    'stim_wheel_right_stage2_audio_frequency',...
+    'stim_wheel_right_stage2_mixed_VA',...
+    'stim_wheel_right_frequency_stage2_mixed_VA'}, ...
+    {'audio volume', 'audio volume', ...
+    'visual position', 'visual position', ...
+    'visual size up', 'visual size up', ...
+    'visual opacity', 'visual opacity',...
+    'audio frequency','audio frequency',...
+    'mixed VA','mixed VA'} );
 
-animals =     { 'DS007','DS010','AP019','AP021','DS011','AP022',...
-                    'DS000','DS004','DS014','DS015','DS016',...
-                    'AP018','AP020','DS006','DS013',...
-                    'AP027','AP028','DS019','DS020','DS021',...
-                    'AP027','AP028','AP029',...
-                    'HA003','HA004','DS019','DS020','DS021',...
-                    'HA000','HA001','HA002','DS005'};
 
-        % animals={'HA009','HA010','HA011','HA012'};
+training_workflow =...
+    ['stim_wheel_right_stage1$|' ...
+    'stim_wheel_right_stage2$|' ...
+    'stim_wheel_right_stage1_opacity$|' ...
+    'stim_wheel_right_stage2_opacity$|' ...
+    'stim_wheel_right_stage1_angle$|' ...
+    'stim_wheel_right_stage2_angle$|' ...
+    'stim_wheel_right_stage2_angle_size60$|' ...
+    'stim_wheel_right_stage1_size_up$|' ...
+    'stim_wheel_right_stage2_size_up$|' ...
+    'stim_wheel_right_stage1_audio_volume$|'...
+    'stim_wheel_right_stage2_audio_volume*$|' ...
+    'stim_wheel_right_stage1_audio_frequency$|' ...
+    'stim_wheel_right_stage2_audio_frequency$|' ...
+    'stim_wheel_right_frequency_stage2_mixed_VA$|' ...
+    'stim_wheel_right_stage2_mixed_VA$'];
+
+% animals =     { 'DS007','DS010','AP019','AP021','DS011','AP022',...
+%     'DS000','DS004','DS014','DS015','DS016',...
+%     'AP018','AP020','DS006','DS013',...
+%     'AP027','AP028','DS019','DS020','DS021',...
+%     'AP027','AP028','AP029',...
+%     'HA003','HA004','DS019','DS020','DS021',...
+%     'HA000','HA001','HA002','DS005'};
+animals={'DS030','DS031','DS029'}
+
+% animals={'HA009','HA010','HA011','HA012'};
 for curr_animal_idx=1:length(animals)
     animal=animals{curr_animal_idx};
+
+    load(fullfile(server_path, ['wf_alignment_' animal ]))
     fprintf('%s\n', ['start  ' animal ]);
     fprintf('%s\n', ['start saving tasks files...']);
 
     passive_workflow = 'lcr_passive';
     recordings_passive = plab.find_recordings(animal,[],passive_workflow);
-
-    training_workflow =...
-        ['stim_wheel_right_stage1$|' ...
-        'stim_wheel_right_stage2$|' ...
-        'stim_wheel_right_stage1_opacity$|' ...
-        'stim_wheel_right_stage2_opacity$|' ...
-        'stim_wheel_right_stage1_angle$|' ...
-        'stim_wheel_right_stage2_angle$|' ...
-        'stim_wheel_right_stage2_angle_size60$|' ...
-        'stim_wheel_right_stage1_size_up$|' ...
-        'stim_wheel_right_stage2_size_up$|' ...
-        'stim_wheel_right_stage1_audio_volume$|'...
-        'stim_wheel_right_stage2_audio_volume$|' ...
-        'stim_wheel_right_stage1_audio_frequency$|' ...
-        'stim_wheel_right_stage2_audio_frequency$|' ...
-        'stim_wheel_right_frequency_stage2_mixed_VA$|' ...
-        'stim_wheel_right_stage2_mixed_VA$'];
-
-
     recordings_training = plab.find_recordings(animal,[],training_workflow);
-
     recordings = recordings_passive( ...
         cellfun(@any,{recordings_passive.widefield}) & ...
         ~[recordings_passive.ephys] & ...
         ismember({recordings_passive.day},{recordings_training.day}));
-
     recordings2 = recordings_training( ...
         cellfun(@any,{recordings_training.widefield}) & ...
         ~[recordings_training.ephys] & ...
         ismember({recordings_training.day},{recordings_passive.day}));
 
-    %%是否存在保存过之前的数据的文件
+    recordings2=recordings2( 1:find(strcmp({recordings2.day},wf_tform.day(end))));
 
+    %%是否存在保存过之前的数据的文件
     if     exist ([Path 'task\' animal '_task.mat' ])==2
         load([Path 'task\' animal '_task.mat' ])
-
-    % if     exist([Path 'task\single_trial\' animal '_task_single_trial.mat' ])==2
-    %      load([Path 'task\single_trial\' animal '_task_single_trial.mat' ])
-
-        %查看目前文件的长度以及如果存在没有alignment的情况下要去除
-        n_buffer= find(~all(img_size== [450, 426],2), 1);
-        if isempty (n_buffer)
-            file_length=  length(wf_px_task);
-            problem=0;
-        else file_length=n_buffer;
-            problem=1;
-        end
+            file_length=  length(wf_px_task); 
     else
+
+        file_length=0;
         wf_px_task = cell(size(recordings2));
         wf_px_task_kernels = cell(size(recordings2));
         wf_px_task_kernels_encode = cell(size(recordings2));
-
         all_groups_name = cell(size(recordings2))';
-        file_length=1;
-        problem=0;
-        img_size = nan(length(recordings2),2);
         workflow_type=zeros(length(recordings2),1);
         workflow_type_name=cell(length(recordings2),1);
         workflow_type_name_merge=cell(length(recordings2),1);
         stim2move=cell(length(recordings2),1);
-         stim2move_correct=cell(length(recordings2),1);
-
+        stim2move_correct=cell(length(recordings2),1);
         wf_px_task_all_type_id= cell(length(recordings2),1);
         wf_px_task_all_reward_id= cell(length(recordings2),1);
         wf_px_task_all= cell(length(recordings2),1);
         wf_px_task_kernels_all= cell(length(recordings2),1);
-
         wf_px_task_all_itimove=cell(length(recordings2),1);
         tasktype=cell(length(recordings2),1);
 
-     
     end
 
     workflow_day={recordings2.day}';
 
 
-    if ~(file_length==length(recordings2)&problem==0)
-        for curr_recording =file_length:length(recordings2)
+    if ~(file_length==length(recordings2))
+        for curr_recording =file_length+1:length(recordings2)
             % for curr_recording =4:length(recordings2)
             fprintf('The number of files is %d This file is: %d\n', length(recordings2),curr_recording);
 
@@ -120,26 +124,16 @@ for curr_animal_idx=1:length(animals)
             % Load data
             rec_day = recordings2(curr_recording).day;
 
-            clear time
-            if length(recordings2(curr_recording).index)>1
-                for mm=1:length(recordings2(curr_recording).index)
-                    rec_time = recordings2(curr_recording).recording{mm};
-                    % verbose = true;
-                    % ap.load_timelite
-                    timelite_fn = plab.locations.filename('server',animal,rec_day,rec_time,'timelite.mat');
-                    timelite = load(timelite_fn);
-                    time(mm)=length(timelite.timestamps);
-                end
-                [~,index_real]=max(time);
-            else index_real=1;
-            end
-
-
+            [~,index_real]=max( cellfun(@(rt) ...
+                numel(load( ...
+                plab.locations.filename('server', animal, rec_day, rt, 'timelite.mat'), ...
+                'timestamps').timestamps), ...
+                recordings2(curr_recording).recording));
             rec_time = recordings2(curr_recording).recording{index_real};
 
 
             workflow_type_name{curr_recording}=recordings2(curr_recording).workflow{index_real};
-
+            workflow_type_name_merge{curr_recording}=workflow_name_map(recordings2(curr_recording).workflow{index_real});
 
 
             if contains( workflow_type_name{curr_recording}, {'audio_volume', 'audio_frequency'})
@@ -156,36 +150,7 @@ for curr_animal_idx=1:length(animals)
 
 
 
-            if strcmp(recordings2(curr_recording).workflow{index_real},'stim_wheel_right_stage1_audio_volume')...
-                    ||strcmp(recordings2(curr_recording).workflow{index_real},'stim_wheel_right_stage2_audio_volume')
-                workflow_type_name_merge{curr_recording}='audio volume';
-            elseif strcmp(recordings2(curr_recording).workflow{index_real},'stim_wheel_right_stage1')...
-                    ||strcmp(recordings2(curr_recording).workflow{index_real},'stim_wheel_right_stage2')
-                workflow_type_name_merge{curr_recording}='visual position';
-            elseif strcmp(recordings2(curr_recording).workflow{index_real},'stim_wheel_right_stage1_size_up')...
-                    ||strcmp(recordings2(curr_recording).workflow{index_real},'stim_wheel_right_stage2_size_up')
-                workflow_type_name_merge{curr_recording}='visual size up';
-            elseif strcmp(recordings2(curr_recording).workflow{index_real},'stim_wheel_right_stage1_opacity')...
-                    ||strcmp(recordings2(curr_recording).workflow{index_real},'stim_wheel_right_stage2_opacity')
-                workflow_type_name_merge{curr_recording}='visual opacity';
-            elseif strcmp(recordings2(curr_recording).workflow{index_real},'stim_wheel_right_stage1_audio_frequency')...
-                    ||strcmp(recordings2(curr_recording).workflow{index_real},'stim_wheel_right_stage2_audio_frequency')
-                workflow_type_name_merge{curr_recording}='audio frequency';
-            elseif strcmp(recordings2(curr_recording).workflow{index_real},'stim_wheel_right_stage1_angle')...
-                    ||strcmp(recordings2(curr_recording).workflow{index_real},'stim_wheel_right_stage2_angle')...
-                    ||strcmp(recordings2(curr_recording).workflow{index_real},'stim_wheel_right_stage2_angle_size60')
-                workflow_type_name_merge{curr_recording}='visual angle';
-            elseif strcmp(recordings2(curr_recording).workflow{index_real},'stim_wheel_right_stage2_mixed_VA')...
-                    ||strcmp(recordings2(curr_recording).workflow{index_real},'stim_wheel_right_frequency_stage2_mixed_VA')
-                workflow_type_name_merge{curr_recording}='mixed VA';
-            else  workflow_type_name_merge{curr_recording}='none';
-            end
-
-
-
             verbose=true;
-
-
             load_parts = struct;
             load_parts.behavior = true;
             load_parts.widefield_master = true;
@@ -193,39 +158,16 @@ for curr_animal_idx=1:length(animals)
             ap.load_recording;
 
 
-
-            % 计算 iti move的时间点
-            wheel_starts = timelite.timestamps(diff([0;wheel_move]) == 1);
-            wheel_stops = timelite.timestamps(diff([0;wheel_move]) == -1);
-            wheel_starts_position=  wheel_position(diff([0;wheel_move]) == 1);
-            wheel_stops_position=  wheel_position(diff([0;wheel_move]) == -1);
-            wheel_move_time=wheel_stops-wheel_starts;
-
-            % 找到 wheel 开始转动的索引
-            start_idx = find(diff([0;wheel_move]) == 1);
-            % 预分配时间数组 (提高效率)
-            time_to_90 = nan(size(start_idx));
-            % **优化的计算方式**
-            for i = 1:length(start_idx)
-                % 直接找到第一个满足 wheel_position > pos_start + 90 的索引
-                target_idx = find(wheel_position(start_idx(i):length(wheel_position)) < wheel_starts_position(i) - (30/360*1024), 1, 'first');
-                % 计算所需时间 (以 ms 计算)
-                if ~isempty(target_idx)
-                    time_to_90(i) = (target_idx - 1) * 1; % 1000Hz 采样率，每点 1ms
-                end
+            % if WF is not aligned， jump out of the loop
+            if ~exist('wf_V','var')
+                break   % 直接跳出整个for循环
             end
-            wheel_move_less_than_200ms= time_to_90<200;
-            wheel_move_over_90=wheel_stops_position-wheel_starts_position<-(30/360*1024);
-            % (get wheel starts when no stim on screen: not sure this works yet)
-            iti_move_idx = interp1(photodiode_times, ...
-                photodiode_values,wheel_starts,'previous') == 0;
-            real_iti_move = wheel_starts(iti_move_idx & wheel_move_over_90 & wheel_move_less_than_200ms );
-            real_iti_move_time=wheel_move_time(iti_move_idx & wheel_move_over_90 & wheel_move_less_than_200ms );
 
-            if length (real_iti_move==1)
-                real_iti_move=[real_iti_move ;real_iti_move];
-                real_iti_move_time=[real_iti_move_time;real_iti_move_time];
 
+
+            ds.load_iti_move
+            if length(iti_move_time)==1
+                iti_move_time=[iti_move_time ;iti_move_time];
             end
 
 
@@ -249,12 +191,12 @@ for curr_animal_idx=1:length(animals)
                 stimOn_times(use_trials); ...
                 stim_move_time(use_trials); ...
                 reward_times(1:end-(length(reward_times)-sum(use_trials)));...
-                real_iti_move];
+                iti_move_time];
 
             if workflow_type(curr_recording)==1|workflow_type(curr_recording)==2
                 % 分类标记，stim 0 move 1 reward 2
                 align_category = [reshape(ones(sum(use_trials),3).*[1,2,3],[],1);...
-                    ones(length(real_iti_move),1)*4];
+                    ones(length(iti_move_time),1)*4];
                 curr_tasktype=[];
             elseif workflow_type(curr_recording)==3
                 curr_tasktype_0=cell2mat({trial_events.values.TaskType});
@@ -262,11 +204,11 @@ for curr_animal_idx=1:length(animals)
                 %分类标记
                 rewarded_tasktype=curr_tasktype(use_trials)';
                 align_category=[rewarded_tasktype ; rewarded_tasktype+10 ; rewarded_tasktype+20;...
-                    ones(length(real_iti_move),1)*4+30];
+                    ones(length(iti_move_time),1)*4+30];
             end
 
 
-            baseline_times = [repmat(stimOn_times(use_trials),3,1); real_iti_move];
+            baseline_times = [repmat(stimOn_times(use_trials),3,1); iti_move_time];
             peri_event_t = reshape(align_times_4,[],1) + reshape(t_task,1,[]);
             baseline_event_t = reshape(baseline_times,[],1) + reshape(baseline_t,1,[]);
             aligned_v = reshape(interp1(use_wf_t,use_V',peri_event_t,'previous'), ...
@@ -288,7 +230,7 @@ for curr_animal_idx=1:length(animals)
             real_reward_times=reward_times(1: sum(rewarded_trials(1:n_trials)==1));
             pho_on_times=photodiode_times(photodiode_values==1);
             pho_off_times=photodiode_times(photodiode_values==0)+2;
-            iti_move_regressors=histcounts(real_iti_move,wf_regressor_bins);
+            iti_move_regressors=histcounts(iti_move_time,wf_regressor_bins);
 
 
             if workflow_type(curr_recording)==1|workflow_type(curr_recording)==2
@@ -298,7 +240,7 @@ for curr_animal_idx=1:length(animals)
 
                 wf_t_only_task= {ones(1,length(wf_t))};
 
-                            all_move_regressor=double(move_regressors{1} | iti_move_regressors);
+                all_move_regressor=double(move_regressors{1} | iti_move_regressors);
 
             elseif workflow_type(curr_recording)==3
                 stim_regressors = {histcounts(real_stimOn_times(curr_tasktype==0),wf_regressor_bins);...
@@ -307,7 +249,7 @@ for curr_animal_idx=1:length(animals)
                     histcounts(real_stim_move_time(curr_tasktype==1),wf_regressor_bins)};
                 reward_regressors= {histcounts(real_reward_times(curr_tasktype(rewarded_trials(1:n_trials))==0),wf_regressor_bins);...
                     histcounts(real_reward_times(curr_tasktype(rewarded_trials(1:n_trials))==1),wf_regressor_bins)};
-                           
+
                 all_move_regressor=double(move_regressors{1} |move_regressors{2} | iti_move_regressors);
 
 
@@ -341,156 +283,100 @@ for curr_animal_idx=1:length(animals)
 
             % move_regressor = histcounts(stim_move_time,wf_regressor_bins);
             temp_regressors=[stim_regressors(:);move_regressors(:);{iti_move_regressors};reward_regressors(:)];
-            
+
 
 
             regressors=cat(1,temp_regressors{:});
 
-            % Set time shifts for regressors
-
-            % t_shifts = [repmat({-10:30}, size(stim_regressors));...
-            %     repmat({-10:30}, size(move_regressors));[-10:30]];
 
             t_shifts=[-10:30];
             % Set cross validation (not necessary if just looking at kernels)
             cvfold = 5;
-            % Do regression
+            % Do encoding regression
             [kernels_encode,predicted_signals,explained_var,predicted_signals_reduced] = ...
                 ap.regresskernel(regressors,wf_V,t_shifts,[],[],cvfold);
-            
-            
-            signals=wf_V;
 
-            %  linear regression:
-       
+            % Do decoding regression
             n_components = 200;
             frame_shifts = -10:30;
             lambda = 15;
 
-            success = false; % 标记变量，判断是否成功运行
-            while ~success
-                try
 
-                    disp(['Running with n_components = ', num2str(n_components)]);
-                    [stim_kernels,predicted_signals,explained_var] = ...
-                        cellfun(@(x,y) ap.regresskernel(wf_V(1:n_components,find(x==1)),y(find(x==1)),-frame_shifts,lambda),...
-                        wf_t_only_task, stim_regressors ,'UniformOutput',false );
+            decrement = 10;       % 每次失败减少多少
+            min_components = 100;
+           
+            for task = 1:5
+                % 为每个任务设定最小值（可按需调整）
+                switch task
+                    case 1,  task_name = 'stim_kernels';
+                    case 2,  task_name = 'move_kernels';
+                    case 3,  task_name = 'iti_move_kernels';
+                    case 4,  task_name = 'all_move_kernels';
+                    case 5,  task_name = 'reward_kernels';
+                end
 
+                % 从当前全局 n_components 开始尝试（局部变量 n_cur）
+                n_cur = n_components;
+                success = false;
+                % 可选：记录捕获的错误信息以供调试
+                error_messages = {};
+                while ~success
+                    try
+                        disp(['Running ', task_name, ' with n_components = ', num2str(n_cur)]);
+                        switch task
+                            case 1 % stim_kernels (cellfun)
+                                [stim_kernels, predicted_signals, explained_var] = ...
+                                    cellfun(@(x,y) ap.regresskernel(wf_V(1:n_cur, find(x==1)), y(find(x==1)), -frame_shifts, lambda), ...
+                                    wf_t_only_task, stim_regressors, 'UniformOutput', false );
 
-                    % [stim_kernels1,predicted_signals,explained_var] = ...
-                    %     ap.regresskernel(wf_V(1:n_components,:),stim_regressors{1},-frame_shifts,lambda)
+                            case 2 % move_kernels (cellfun)
+                                [move_kernels, predicted_signals, explained_var] = ...
+                                    cellfun(@(x,y) ap.regresskernel(wf_V(1:n_cur, find(x==1)), y(find(x==1)), -frame_shifts, lambda), ...
+                                    wf_t_only_task, move_regressors, 'UniformOutput', false );
 
-                    % [BUF_kernels,BUF_predict,exp]= ap.regresskernel(stim_regressors,wf_V,-frame_shifts,lambda);
+                            case 3 % iti_move_kernels (direct call)
+                                [iti_move_kernels, predicted_signals, explained_var] = ...
+                                    ap.regresskernel(wf_V(1:n_cur, wf_t_only_iti), iti_move_regressors(wf_t_only_iti), -frame_shifts, lambda);
 
+                            case 4 % all_move_kernels (direct call)
+                                [all_move_kernels, predicted_signals, explained_var] = ...
+                                    ap.regresskernel(wf_V(1:n_cur, :), all_move_regressor, -frame_shifts, lambda);
 
-                    success = true; % 如果没有报错，则成功运行
-                catch ME
-                    disp(['Error: ', ME.message]);
-                    n_components = n_components - 10; % 变量 a 递减
-                    if n_components < 100 % 避免无限循环（你可以根据实际情况调整）
-                        error('n_components 过小，无法继续运行');
+                            case 5 % reward_kernels (cellfun)
+                                [reward_kernels, predicted_signals, explained_var] = ...
+                                    cellfun(@(x,y) ap.regresskernel(wf_V(1:n_cur, find(x==1)), y(find(x==1)), -frame_shifts, lambda), ...
+                                    wf_t_only_task, reward_regressors, 'UniformOutput', false );
+                        end
+
+                        success = true;
+                        disp([task_name, '_running_successfully']);
+
+                        % 如果你希望后面的任务沿用被降过的 n，更新 start_n
+                        start_n = n_cur;
+
+                    catch ME
+                        % 捕获错误并准备重试（降 n_cur）
+                        disp(['Error in ', task_name, ': ', ME.message]);
+                        error_messages{end+1} = ME.message; %#ok<SAGROW>
+                        n_cur = n_cur - decrement;
+
+                        if n_cur < min_components
+                            % 超过可接受最小值，抛出错误并显示日志
+                            disp(['Failed ', task_name, ': n_components (', num2str(n_cur), ') < min (', num2str(min_components), ')']);
+                            disp('Errors encountered during attempts:');
+                            for ii = 1:length(error_messages)
+                                disp(['  Attempt ', num2str(ii), ': ', error_messages{ii}]);
+                            end
+                            error('n_components 过小，无法继续运行 %s', task_name);
+                        end
+                        % 否则循环继续，尝试更小的 n_cur
                     end
                 end
             end
 
-            disp('stim_kernels_running_successfully');
+            % 最终报告（可选）
+            disp(['All tasks finished. Final n_components = ', num2str(start_n)]);
 
-            success = false; % 标记变量，判断是否成功运行
-            while ~success
-                try
-
-                    disp(['Running with n_components = ', num2str(n_components)]);
-                    % [move_kernels,predicted_signals,explained_var] = ...
-                    % ap.regresskernel(wf_V(1:n_components,:),move_regressors,-frame_shifts,lambda);
-
-
-                    [move_kernels,predicted_signals,explained_var] = ...
-                        cellfun(@(x,y) ap.regresskernel(wf_V(1:n_components,find(x==1)),y(find(x==1)),-frame_shifts,lambda),...
-                        wf_t_only_task, move_regressors ,'UniformOutput',false );
-
-                    success = true; % 如果没有报错，则成功运行
-                catch ME
-                    disp(['Error: ', ME.message]);
-                    n_components = n_components - 10; % 变量 a 递减
-                    if n_components < 100 % 避免无限循环（你可以根据实际情况调整）
-                        error('n_components 过小，无法继续运行');
-                    end
-                end
-            end
-
-            disp('move_kernels_running_successfully');
-
-            success = false; % 标记变量，判断是否成功运行
-            while ~success
-                try
-
-                    disp(['Running with n_components = ', num2str(n_components)]);
-                    [iti_move_kernels,predicted_signals,explained_var] = ...
-                        ap.regresskernel(wf_V(1:n_components,wf_t_only_iti),iti_move_regressors(wf_t_only_iti),-frame_shifts,lambda);
-
-                    success = true; % 如果没有报错，则成功运行
-                catch ME
-                    disp(['Error: ', ME.message]);
-                    n_components = n_components - 10; % 变量 a 递减
-                    if n_components < 50 % 避免无限循环（你可以根据实际情况调整）
-                        error('n_components 过小，无法继续运行');
-                    end
-                end
-            end
-
-            disp('iti_move_kernels_running_successfully');
-
-
-
-            % all movement above threshold
-            success = false; % 标记变量，判断是否成功运行
-            while ~success
-                try
-
-                    disp(['Running with n_components = ', num2str(n_components)]);
-
-                    [all_move_kernels,predicted_signals,explained_var] = ...
-                        ap.regresskernel(wf_V(1:n_components,:),all_move_regressor,-frame_shifts,lambda);
-
-                    success = true; % 如果没有报错，则成功运行
-                catch ME
-                    disp(['Error: ', ME.message]);
-                    n_components = n_components - 10; % 变量 a 递减
-                    if n_components < 100 % 避免无限循环（你可以根据实际情况调整）
-                        error('n_components 过小，无法继续运行');
-                    end
-                end
-            end
-            disp('all_move_kernels_running_successfully');
-
-
-            % reward kernels
-            success = false; % 标记变量，判断是否成功运行
-            while ~success
-                try
-
-                    disp(['Running with n_components = ', num2str(n_components)]);
-                    % [move_kernels,predicted_signals,explained_var] = ...
-                    % ap.regresskernel(wf_V(1:n_components,:),move_regressors,-frame_shifts,lambda);
-
-
-                    [reward_kernels,predicted_signals,explained_var] = ...
-                        cellfun(@(x,y) ap.regresskernel(wf_V(1:n_components,find(x==1)),y(find(x==1)),-frame_shifts,lambda),...
-                        wf_t_only_task, reward_regressors ,'UniformOutput',false );
-
-                    success = true; % 如果没有报错，则成功运行
-                catch ME
-                    disp(['Error: ', ME.message]);
-                    n_components = n_components - 10; % 变量 a 递减
-                    if n_components < 100 % 避免无限循环（你可以根据实际情况调整）
-                        error('n_components 过小，无法继续运行');
-                    end
-                end
-            end
-            disp('reward_kernels_running_successfully');
-
-
-         
 
 
 
@@ -503,7 +389,7 @@ for curr_animal_idx=1:length(animals)
             wf_px_task_all{curr_recording}=aligned_v_avg_all;
             wf_px_task_all_type_id{curr_recording}=align_id;
             wf_px_task_all_reward_id{curr_recording}=repmat(use_trials,3,1);
-            wf_px_task_all_itimove{curr_recording}=real_iti_move_time;
+            wf_px_task_all_itimove{curr_recording}=iti_move_time;
 
             stim2move_correct{curr_recording}=stim_to_move(use_trials);
 
@@ -527,14 +413,14 @@ for curr_animal_idx=1:length(animals)
 
     save([Path 'task\' animal '_task.mat' ],'workflow_type','workflow_type_name',...
         'workflow_type_name_merge','wf_px_task',...
-        'wf_px_task_kernels','wf_px_task_kernels_encode','img_size','workflow_day', '-v7.3')
+        'wf_px_task_kernels','wf_px_task_kernels_encode','workflow_day', '-v7.3')
 
     % save([Path 'task\single_trial\' animal '_task_single_trial.mat' ],'wf_px_task_all',...
     %     'tasktype','stim2move_correct', '-v7.3')
 
-     % save([Path 'task\single_trial\' animal '_task_single_trial.mat' ],'wf_px_task_all',...
-     %    'wf_px_task_all_type_id','wf_px_task_all_reward_id','wf_px_task_all_itimove',...
-     %    'tasktype','stim2move', '-v7.3')
+    % save([Path 'task\single_trial\' animal '_task_single_trial.mat' ],'wf_px_task_all',...
+    %    'wf_px_task_all_type_id','wf_px_task_all_reward_id','wf_px_task_all_itimove',...
+    %    'tasktype','stim2move', '-v7.3')
 
 end
 

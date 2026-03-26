@@ -1,0 +1,261 @@
+clear all
+clc
+
+% Path = '\\qnap-ap001.dpag.ox.ac.uk\APlab\Users\Da_Song\Data process\project_cross_model\wf_data\';
+
+Path = 'D:\Data process\project_cross_model\wf_data\';
+
+save_path = '\\qnap-ap001.dpag.ox.ac.uk\APlab\Lab\Papers\Song_2025\data';
+
+surround_samplerate = 35;
+surround_window_task = [-0.2,1];
+t_kernels=1/surround_samplerate*[-10:30];
+task_boundary1=0;
+task_boundary2=0.2;
+period_kernels=find(t_kernels>task_boundary1&t_kernels<task_boundary2);
+t_task = surround_window_task(1):1/surround_samplerate:surround_window_task(2);
+
+n1_name='';n2_name='';
+use_period=[];
+use_t=[];
+animals={};
+groups={'V_A','A_V'};
+workflow='task';
+
+wf_task_kernel_aligned=cell(2,1);
+wf_task_raw_aligned=cell(2,1);
+
+
+wf_task_kernel_each_mice=cell(2,1);
+wf_task_raw_each_mice=cell(2,1);
+
+for curr_group=1:2
+    wf_task_kernel_aligned{curr_group}=table;
+    main_preload_vars = who;
+    if curr_group==1
+        animals{curr_group} = {'DS007','DS010','AP019','AP021','DS011','AP022'};n1_name='visual position';n2_name='audio volume';
+    elseif curr_group==2
+        animals{curr_group} = {'DS000','DS004','DS014','DS015','DS016'};n1_name='audio volume';n2_name='visual position';
+
+    end
+    wf_task_kernel_aligned{curr_group}.name=animals{curr_group}';
+
+    all_data_video_kernels=cell(length(animals{curr_group}),1);
+    all_data_video_raw=cell(length(animals{curr_group}),1);
+
+    all_data_workflow_name=cell(length(animals{curr_group}),1);
+    all_data_learned_day=cell(length(animals{curr_group}),1);
+    matches=cell(length(animals{curr_group}),1);
+    % all_data_sim2move=cell(length(animals{curr_group}),1);
+    use_t=[];
+    use_period=[];
+
+    for curr_animal=1:length(animals{curr_group})
+        preload_vars = who;
+
+        animal=animals{curr_group}{curr_animal};
+        raw_data_task=load([Path  workflow '\separate_trials\' animal '_' workflow '.mat']);
+        raw_data_behavior=load([Path   'behavior\' animal '_behavior'  '.mat']);
+        [~, temp_idx] = ismember( raw_data_task.workflow_day,raw_data_behavior.workflow_day);
+        temp_p=nan(length(raw_data_behavior.workflow_day),2);
+        idx_v=ismember(raw_data_behavior.workflow_name,'visual position');
+        idx_a=ismember(raw_data_behavior.workflow_name,{'audio volume','audio freque'});
+        idx_m=ismember(raw_data_behavior.workflow_name,'mixed VA');
+        temp_p(idx_v,1)= raw_data_behavior.rxn_l_mad_p(idx_v,1);
+        temp_p(idx_a,1)=raw_data_behavior.rxn_l_mad_p(idx_a,1);
+        temp_p(idx_m,:)= [raw_data_behavior.rxn_l_mad_p(idx_m,1)...
+            raw_data_behavior.rxn_l_mad_p(idx_m,2)];
+        temp_p=temp_p(temp_idx,:);
+        raw_data_task.learned_day=temp_p<0.01;
+
+        idx=cellfun(@(x) ~isempty(x),raw_data_task.wf_px_task_kernels);
+        image_all_kernels(idx)=raw_data_task.wf_px_task_kernels(idx);
+
+        image_all_raw(idx)=raw_data_task.wf_px_task_raw(idx);
+
+        % image_all(idx)=raw_data_task.wf_px_task_kernels(idx);
+
+        use_period=period_kernels;
+        use_t=t_kernels;
+
+        matches{curr_animal}=unique(raw_data_task.workflow_type_name_merge(idx)  ,'stable');
+
+     
+        all_data_video_kernels{curr_animal}=image_all_kernels(idx)';
+          all_data_video_raw{curr_animal}=image_all_raw(idx)';
+
+        all_data_workflow_name{curr_animal}=raw_data_task.workflow_type_name_merge(idx);
+        all_data_learned_day{curr_animal}=raw_data_task.learned_day(idx,:);
+        clearvars('-except',preload_vars{:});
+
+    end
+
+    wf_task_kernel_each_mice{curr_group}=all_data_video_kernels;
+    wf_task_raw_each_mice{curr_group}=all_data_video_raw;
+
+    temp_val={all_data_video_kernels,all_data_video_raw};
+    temp_output=cell(2,1);
+    for curr_tem=1:2
+        % mod1_naive
+        pre_learn_data0=cell(length(animals{curr_group}),1);
+        pre_learn_data0 = cellfun(@(x,y,z,l) ...
+            x(find(strcmp(y,z(find(cellfun(@(idx) strcmp(n1_name, idx),z,'UniformOutput',true))))& l(:,1)==0 ))...
+            ,temp_val{curr_tem},all_data_workflow_name,matches,all_data_learned_day,'UniformOutput',false);
+        pre_learn_data0 = cellfun(@(x) reshape(x(1:max(end-2,0)),[],1),pre_learn_data0,'UniformOutput',false);
+        temp_output{curr_tem}{1}=pre_learn_data0;
+
+        % mod1_pre_learn
+
+        pre_learn_data1=cell(length(animals{curr_group}),1);
+        pre_learn_data1 = cellfun(@(x,y,z,l) ...
+            x(find(strcmp(y,z(find(cellfun(@(idx) strcmp(n1_name, idx),z,'UniformOutput',true))))& l(:,1)==0 ,2,'last'))...
+            ,temp_val{curr_tem},all_data_workflow_name,matches,all_data_learned_day,'UniformOutput',false);
+        temp_output{curr_tem}{2}=pre_learn_data1;
+
+
+        % mod1_post_learn
+        post_learn1_data1=cell(length(animals{curr_group}),1);
+        post_learn1_data1 = cellfun(@(x,y,z,l)...
+            x(find(strcmp(y,z(find(cellfun(@(idx) strcmp(n1_name, idx),z,'UniformOutput',true))))& l(:,1)==1 ,5,'first'))...
+            ,temp_val{curr_tem},all_data_workflow_name,matches,all_data_learned_day,'UniformOutput',false);
+        temp_output{curr_tem}{3}=post_learn1_data1;
+
+        % mod2_pre_learn
+        pre_learn_data2=cell(length(animals{curr_group}),1);
+        pre_learn_data2 = cellfun(@(x,y,z,l) x(find(strcmp(y,z(find(cellfun(@(idx) strcmp(n2_name, idx),z,'UniformOutput',true))))& l(:,1)==0 ,2,'first'))...
+            ,temp_val{curr_tem},all_data_workflow_name,matches,all_data_learned_day,'UniformOutput',false);
+        temp_output{curr_tem}{4}=pre_learn_data2;
+
+        % mod2_post_learn
+        post_learn1_data2=cell(length(animals{curr_group}),1);
+        post_learn1_data2 = cellfun(@(x,y,z,l) x(find(strcmp(y,z(find(cellfun(@(idx) strcmp(n2_name, idx),z,'UniformOutput',true))))& l(:,1)==1 ,5,'first'))...
+            ,temp_val{curr_tem},all_data_workflow_name,matches,all_data_learned_day,'UniformOutput',false);
+        temp_output{curr_tem}{5}=post_learn1_data2;
+
+
+        % mod2_first_6_days
+        first6day_data2=cell(length(animals{curr_group}),1);
+        first6day_data2 = cellfun(@(x,y,z,l) x(find(strcmp(y,z(find(cellfun(@(idx) strcmp(n2_name, idx),z,'UniformOutput',true)))) ,6,'first'))...
+            ,temp_val{curr_tem},all_data_workflow_name,matches,all_data_learned_day,'UniformOutput',false);
+        temp_output{curr_tem}{6}=first6day_data2;
+
+
+        % mix_v& mix_a
+        n3_name='mixed VA';
+        mixed_idx=cellfun(@(x) any(strcmp(n3_name, x)),matches ,'UniformOutput',true);
+        data3=cell(length(animals{curr_group}),1);
+        data3(mixed_idx) = cellfun(@(x,y,z) x(find(strcmp(y,z(find(cellfun(@(idx) strcmp(n3_name, idx),z,'UniformOutput',true)))),3,'last')),...
+            temp_val{curr_tem}(mixed_idx) ,all_data_workflow_name(mixed_idx) ,matches(mixed_idx) ,'UniformOutput',false);
+
+        temp_output{curr_tem}{7}=data3(mixed_idx);
+
+    end
+
+
+    % 简洁版（无辅助函数）
+    names = {'kernels','raw'};
+    % 每行 [ch_v, ch_a]：move_all 的特例用 [1 1]
+    rules = [1 2; 1 2];
+
+    wf = struct();  % 统一容器
+
+    for t = 1:numel(names)
+        if numel(temp_output) < t || isempty(temp_output{t}), continue; end
+        out = temp_output{t};   % temp_output{t} 期望为 cell
+
+        % 填字段（1..6）
+        s = table();
+        s.name=animals{curr_group}';
+        if numel(out) >= 2, s.mod1_naive      = out{1}; else s.mod1_naive = []; end
+        if numel(out) >= 3, s.mod1_pre_learn  = out{2}; else s.mod1_pre_learn = []; end
+        if numel(out) >= 4, s.mod1_post_learn = out{3}; else s.mod1_post_learn = []; end
+        if numel(out) >= 5, s.mod2_pre_learn  = out{4}; else s.mod2_pre_learn = []; end
+        if numel(out) >= 6, s.mod2_post_learn = out{5}; else s.mod2_post_learn = []; end
+        if numel(out) >= 7, s.mod2            = out{6}; else s.mod2 = []; end
+
+        % mix 部分（第7项存在才处理），按 rules 取通道
+         % s.mix_v =[]; s.mix_a = [];
+        if numel(out) >= 7 && ~isempty(out{7})
+            ch_v = rules(t,1);
+            ch_a = rules(t,2);
+            val_v = cellfun(@(x) cellfun(@(n) n(:,:,1:3), x, 'UniformOutput', false), ...
+                out{7}, 'UniformOutput', false);
+            val_a = cellfun(@(x) cellfun(@(n) n(:,:,4:6), x, 'UniformOutput', false), ...
+                out{7}, 'UniformOutput', false);
+            s.mix_v(mixed_idx) = val_v;
+            s.mix_a(mixed_idx) = val_a;
+        end
+
+        % 写回统一容器
+        if ~isfield(wf, names{t}), wf.(names{t}) = {}; end
+        wf.(names{t}) = s;
+    end
+
+    % （可选）保持向后兼容：解包回原变量名
+
+    wf_task_kernel_aligned{curr_group}    = wf.kernels;
+    wf_task_raw_aligned{curr_group}     = wf.raw;
+
+    clearvars('-except',main_preload_vars{:});
+end
+
+
+
+% --- 配置（按需改） ---
+names = {'kernels','raw'};   % 四组变量名后缀
+stage_dim = [nan,1 2 5 1 5 6 3 3];             % 你原来的定义
+min_dim = 170;                                 % 你原来的定义
+use_t = {t_kernels,t_task};  % 假设 work 上已有 use_t
+
+% 把现有四个变量收到 cell 里（按 names 顺序）
+inputs = {wf_task_kernel_aligned, wf_task_raw_aligned};
+
+% 结果容器
+wf_task_across_day = struct();
+
+% 主循环：对每一个输入做和你原来 stim 那段相同的处理
+for idx = 1:numel(names)
+    wk_cell = inputs{idx};  % 对应的 wf_task_kernel_*_aligned cell
+    % tmp = cellfun(@(wk) ... , wf_task_kernel_stim_aligned, 'UniformOutput', false);
+    tmp = cellfun(@(wk) ...
+            arrayfun(@(a) arrayfun(@(s) ...
+                vertcat( wk{a,s}{1}, ...
+                         repmat({NaN(200, numel(use_t{idx}),3)}, ...
+                                max(stage_dim(s) - size(wk{a,s}{1},1), 0), 1) ), ...
+                     2:9, 'UniformOutput', false), ...
+            1:size(wk,1), 'UniformOutput', false), wk_cell,'UniformOutput',false);
+
+    % temp_data = cellfun(@(x) vertcat(x{:}), tmp, 'UniformOutput', false);
+    temp_data = cellfun(@(x) vertcat(x{:}), tmp, 'UniformOutput', false);
+
+    % 替换第1列和第4列为它们在第三维的均值（nanmean）
+    temp_data = cellfun(@(x) subsasgn(x, substruct('()',{':',[1 4]}), ...
+        cellfun(@(a) {nanmean(cat(4, a{:}), 4)}, x(:,[1 4]), 'UniformOutput', false)), ...
+        temp_data, 'UniformOutput', false);
+
+    % 截短到 min_dim 行
+    temp_data = cellfun(@(x) cellfun(@(n) cellfun(@(a) a(1:min_dim,:,:), n, 'UniformOutput', false), x, 'UniformOutput', false), ...
+                        temp_data, 'UniformOutput', false);
+
+    % temp_1: 对每个单元（每个 cell 行）把该行的列 vertcat 到一个大矩阵（按列）
+    temp_1 = cellfun(@(x) arrayfun(@(id) vertcat(x{id,:}), 1:size(x,1), 'UniformOutput', false), ...
+                     temp_data, 'UniformOutput', false);
+
+    % 最终把每个元素的 cell-of-matrices 拼成 4-D array (cat along 4th dim)
+    % 先把每行的 cell-of-matrices cat(3,...)，然后把这些结果 cat(4,...)
+    out = cellfun(@(x) feval(@(C) cat(5, C{:}), cellfun(@(a) cat(4, a{:}), x, 'UniformOutput', false)), ...
+                  temp_1, 'UniformOutput', false);
+
+    % 存到结果结构里
+    wf_task_across_day.(names{idx}) = out;
+end
+
+% 可选：如果你想把结果解包成单独变量（取消下面注释行）
+wf_task_kernels_across_day   = wf_task_across_day.kernels;
+wf_task_raw_across_day   = wf_task_across_day.raw;
+
+
+ save(fullfile(save_path,'revision','wf_task_kernels_separate.mat' ),...
+     'wf_task_kernel_each_mice','wf_task_kernel_aligned','wf_task_kernels_across_day',...
+     'wf_task_raw_each_mice','wf_task_raw_aligned','wf_task_raw_across_day','-v7.3')
+

@@ -1,0 +1,66 @@
+clear all
+Path = 'D:\Data process\project_cross_model\wf_data\';
+
+% Path = 'Y:\Data process\project_cross_model\wf_data\';
+surround_window = [-0.5,1];
+surround_samplerate = 35;
+t = surround_window(1):1/surround_samplerate:surround_window(2);
+t_kernels=[-10:30]/surround_samplerate;
+period=find(t_kernels>0&t_kernels<0.2);
+load('C:\Users\dsong\Documents\MATLAB\Da_Song\DS_scripts_ptereslab\General_information\roi.mat')
+% master_U_fn = fullfile(plab.locations.server_path,'Lab', ...
+%     'widefield_alignment','U_master.mat');
+animals={'DS029','DS030','DS031'};
+workflow_task='stim_wheel_right_stage2_variable_contrast';
+
+kernels_data=table;
+kernels_data.name=animals';
+for curr_animal_idx=1:length(animals)
+    main_preload_vars = who;
+    animal=animals{curr_animal_idx};
+    
+    fprintf('%s\n', ['start  ' animal ]);
+    recordings = plab.find_recordings(animal,[],workflow_task);
+    wf_px_kernels=cell(length(recordings),1);
+    performance=cell(length(recordings),1);
+    react_time=cell(length(recordings),1);
+    for curr_recording =1:length(recordings)
+        preload_vars = who;
+        rec_day = recordings(curr_recording).day;
+        rec_time = recordings(curr_recording).recording{end};
+
+        load_parts.mousecam = true;
+        load_parts.widefield = true;
+        load_parts.widefield_master = true;
+        ap.load_recording;
+
+        ds.process_wf_task;
+        ds.process_behavior;
+
+        wf_px_kernels{curr_recording} = cat(3,kernels.stim_kernels{:});
+        performance{curr_recording}=behavior.performance;
+        react_time{curr_recording}=behavior.stim2move_l_stats(:,3);
+        % Prep for next loop
+        ap.print_progress_fraction(curr_recording,length(recordings));
+        clearvars('-except',preload_vars{:});
+
+    end
+kernels_data.kernels{curr_animal_idx}=cat(4, wf_px_kernels{:});
+kernels_data.performance{curr_animal_idx}=cat(2, performance{:});
+kernels_data.react_time{curr_animal_idx}=cat(2, react_time{:});
+
+end
+
+%%
+U_master = plab.wf.load_master_U;
+load('C:\Users\dsong\Documents\MATLAB\Da_Song\DS_scripts_ptereslab\General_information\roi.mat');
+
+temp_image=cellfun(@(x) plab.wf.svd2px(U_master(:,:,1:size(x,1)),x),kernels_data.kernels,'UniformOutput',false);
+
+
+ap.imscroll(temp_image{3}(:,:,:,:,2),t_kernels);
+% clim(max(abs(clim)).*[-1,1]);
+clim(0.0003.*[-1,1]);
+colormap(ap.colormap('PWG'));
+axis image
+

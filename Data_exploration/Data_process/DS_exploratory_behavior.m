@@ -1,6 +1,6 @@
 %% Exploratory behavior analysis
 clear all
-animal='DS024'
+animal='DS029'
 
 load_parts = struct;
 load_parts.behavior = true;
@@ -18,8 +18,8 @@ quiescent_trials = arrayfun(@(x) ~any(wheel_move(...
 % stim_x = vertcat(trial_events.values.StimFrequence);
 % use_align = stimOn_times(stim_x == 8000  & quiescent_trials);
 
-stim_x = vertcat(trial_events.values.TrialStimX);
-use_align = stimOn_times(quiescent_trials & stim_x == 90);
+% stim_x = vertcat(trial_events.values.TrialStimX);
+% use_align = stimOn_times(quiescent_trials & stim_x == 90);
 
 % stim_x = vertcat(trial_events.values.TrialX);
 % use_align = stimOn_times(stim_x(1:n_trials) == 90);
@@ -29,7 +29,7 @@ use_align = stimOn_times(quiescent_trials & stim_x == 90);
 
 % use_align = reward_times;
 
-% use_align = stimOn_times;
+ use_align = stimOn_times;
 
 % use_align = stimOff_times(trial_opacity == 1);
 
@@ -60,15 +60,15 @@ cam_align_avg = zeros(size(cam_im1,1),size(cam_im1,2), ...
 for curr_align = grab_frames_use'
     curr_clip = double(squeeze(read(vr,grab_frames(curr_align,:))));
     cam_align_avg = cam_align_avg + curr_clip./length(grab_frames_use);
-    AP_print_progress_fraction(curr_align,length(use_align));
+    ap.print_progress_fraction(curr_align,length(use_align));
 end
 
 surround_t = (surround_frames(1):surround_frames(2))./vr.FrameRate;
-AP_imscroll(cam_align_avg,surround_t)
+ap.imscroll(cam_align_avg,surround_t)
 axis image;
 
 surround_t_diff = surround_t(2:end) + diff(surround_t)/2;
-AP_imscroll(abs(diff(cam_align_avg,[],3)),surround_t_diff)
+ap.imscroll(abs(diff(cam_align_avg,[],3)),surround_t_diff)
 axis image;
 
 
@@ -137,7 +137,7 @@ align_times = stimOn_times;
 % align_times = photodiode_times(1:2:end);
 % align_times = stimOn_times(align_category_all == 90);
 % align_times = stimOn_times(stim_x == 90);
-% align_times = stim_move_time;
+ % align_times = stim_move_time;
 % align_times = iti_fastmove_times;
 
 surround_time = [-10,10];
@@ -145,25 +145,48 @@ surround_sample_rate = 100;
 surround_time_points = surround_time(1):1/surround_sample_rate:surround_time(2);
 pull_times = align_times + surround_time_points;
 
-
-
-No_tasktype=unique([trial_events.values.TaskType]);
-tasktype=[trial_events.values.TaskType];
 n_trials = length([trial_events.timestamps.Outcome]);
-tasktype(1:n_trials)
-outcome=[trial_events.values.Outcome];
-
 
 event_aligned_wheel_vel = interp1(timelite.timestamps, ...
     wheel_velocity,pull_times);
 event_aligned_wheel_move = interp1(timelite.timestamps, ...
     +wheel_move,pull_times,'previous');
 
+figure;
+nexttile
+plot(1:n_trials,stim_to_move,'.k')
+% ylim([-0.2 0.2])
+xlim([1 n_trials])
+xlabel('trials')
+ylabel('Reaction time (s)')
+
+nexttile
+imagesc(surround_time_points,[],event_aligned_wheel_vel)
+colormap(ap.colormap('PWG'))
+clim([-2000 2000])
+xlim([-0.5 1])
+ylabel('trials')
+xlabel('time (s)')
+nexttile
+ap.errorfill(surround_time_points,nanmean(event_aligned_wheel_vel,1),std(event_aligned_wheel_vel,0,1,'omitmissing')./sqrt(size(event_aligned_wheel_vel,1)))
+xlim([-0.5 1])
+xlabel('time (s)')
+
+
+%%
+
+if any(contains(fieldnames(trial_events.values),'TaskType'))
+    No_tasktype=unique([trial_events.values.TaskType]);
+    tasktype=[trial_events.values.TaskType];
+else
+    tasktype=ones(n_trials,1)
+    No_tasktype=1
+end
+outcome=[trial_events.values.Outcome]
 
 wheel_vel_by_type=feval(@(x)  cat(2,x{:}) ,arrayfun(@(perform) arrayfun(@(type) ...
     event_aligned_wheel_vel(tasktype(1:n_trials)==type&outcome(1:n_trials)==perform,:),...
     No_tasktype,'UniformOutput',false ), [1,0],'UniformOutput',false ))
-
 
 stim2move_type=arrayfun(@(type) stim_to_move(tasktype(1:n_trials)==type&outcome(1:n_trials)==1),No_tasktype,'UniformOutput',false  )
 stim2outcome_type=arrayfun(@(type) stim_to_outcome(tasktype(1:n_trials)==type&outcome(1:n_trials)==1),No_tasktype,'UniformOutput',false  )

@@ -1,0 +1,55 @@
+
+% Path to the Python executable in venv 
+PYTHON_EXE = 'C:\Users\dsong\AppData\Roaming\uv\tools\sleap\Scripts\python.exe';
+
+% Second model 
+MODEL_DIRS = { 'D:\Data process\project_cross_model\face_data\sleap\nose_cheek\models\260310_142421.centroid.n=376',...
+               'D:\Data process\project_cross_model\face_data\sleap\nose_cheek\models\260310_145117.centered_instance.n=376' };
+
+% GPU device to use
+GPU_DEVICE = 'cuda:0';
+
+% Batch size and tracking options for inference
+BATCH_SIZE = 10; % Default in SLEAP is 4
+DO_TRACKING = true;
+
+modelArgs = '';
+for mi = 1:numel(MODEL_DIRS)
+    modelArgs = [modelArgs ' --model_paths "' MODEL_DIRS{mi} '"']; %#ok<AGROW>
+end
+
+
+trackFlag = '';
+if DO_TRACKING
+    trackFlag = ' --tracking';
+end
+    
+outSLP='D:\Data process\project_cross_model'
+% tStart = tic;
+
+vidPath='Z:\Data\DS004\2024-06-01\Recording_1625\mousecam\mousecam.mj2'
+
+
+cmdTrack = sprintf(['"%s" -m sleap_nn.cli track' ...
+    ' --data_path "%s" %s --output_path "%s"...' ...
+    ' --device %s --batch_size %d %s --max_instances 1 --ensure_grayscale --robust_best_instance 1 ...' ...
+    '--tracking_window_size 3 --max_tracks 1 --track_matching_method hungarian --post_connect_single_breaks'] , ...
+    PYTHON_EXE, vidPath, modelArgs, outSLP, GPU_DEVICE, BATCH_SIZE, trackFlag);
+cmdTrack = sprintf('"%s" -m sleap_nn.cli track --data_path "%s" %s --output_path "%s" --device %s --batch_size %d %s --max_instances 1 --ensure_grayscale --robust_best_instance 1 --tracking_window_size 3 --max_tracks 1 --track_matching_method hungarian --post_connect_single_breaks' , ...
+            PYTHON_EXE, vidPath, modelArgs, outSLP, GPU_DEVICE, BATCH_SIZE, trackFlag);
+
+
+% Clear environment variables that might force CPU
+% (This affects only the spawned process)
+% Windows: use 'set VAR=' before the command in one line; easier: call via system after clearing in MATLAB environment
+setenv('CUDA_VISIBLE_DEVICES','');
+setenv('SLEAP_DEVICE','');
+
+fprintf('Running inference command:\n%s\n', cmdTrack);
+[st, cmdOut] = system([cmdTrack ' 2>&1']); % capture stderr and stdout
+
+
+% elapsed = toc(tStart);
+
+
+
