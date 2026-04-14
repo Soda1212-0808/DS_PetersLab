@@ -1,7 +1,7 @@
 %% Exploratory ephys analysis
 % close all
 clear all
-animal='AP032';
+animal='DS031';
  load_probe=1;
 % rec_day='2026-01-05';
  % rec_day='2026-03-23'
@@ -237,14 +237,17 @@ colormap(ap.colormap('BWR'))
 if contains(bonsai_workflow,{'passive','Image'})
     % (L/C/R passive)
 
-    align_times_all = stimOn_times; 
-    if isfield(trial_events.values,'TrialStimX')
+     if isfield(trial_events.values,'TrialStimX')
         align_category_all = vertcat(trial_events.values.TrialStimX);
     elseif isfield(trial_events.values,'StimFrequence')
         align_category_all = vertcat(trial_events.values.StimFrequence);
     elseif isfield(trial_events.values,'PictureID')
         align_category_all = vertcat(trial_events.values.PictureID);
     end
+minlength=min (length(stimOn_times),length(align_category_all));
+    stimOn_times=stimOn_times(1:minlength);
+    align_times_all = stimOn_times; 
+   
     % (get only quiescent trials)
     stim_window = [0,0.5];
     quiescent_trials = arrayfun(@(x) ~any(wheel_move(...
@@ -316,15 +319,15 @@ elseif contains(bonsai_workflow,'stim_wheel')
     align_times = {stimOn_times,stim_move_time,reward_times};
 end
 
-
-task_types=[trial_events.values.TaskType];
-task_types=task_types(1:n_trials);
-task_outcome=[trial_events.values.Outcome];
+% 
+% task_types=[trial_events.values.TaskType];
+% task_types=task_types(1:n_trials);
+% task_outcome=[trial_events.values.Outcome];
 stimOn_times=stimOn_times(1:n_trials);
 
 % align_times=arrayfun(@(b) arrayfun(@(a) stimOn_times(task_types==a & task_outcome==b) ,0:3,'uni',false),0:1,'uni',false)
-%  align_times=cat(2,align_times{:});
-align_times= arrayfun(@(a) stimOn_times(task_types==a & task_outcome==1) ,0:3,'uni',false)
+ % align_times=cat(2,align_times{:});
+% align_times= arrayfun(@(a) stimOn_times(task_types==a & task_outcome==1) ,0:3,'uni',false)
 
 [unit_psth,~,unit_psth_t] = ...
     ap.psth(spike_times_timelite,align_times,spike_templates, ...
@@ -345,7 +348,7 @@ colormap(ap.colormap('BWR'));
 
 unit=46
 figure;
-for curr_task=1:4
+for curr_task=1:3
     nexttile
     % hold on
     plot(unit_psth_t,nanmean(unit_psth(unit,:,curr_task),1))
@@ -452,7 +455,7 @@ mua_method = 'even'; % depth, click
 
 switch mua_method
 
-    case 'even'm
+    case 'even'
         % (to group multiunit by evenly spaced depths)
         n_depths = 20;
         depth_group_edges = round(linspace(0,4000,n_depths+1));

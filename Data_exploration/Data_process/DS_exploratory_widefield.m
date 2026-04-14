@@ -1,9 +1,11 @@
 %% Exploratory widefield analysis
 clear all
-animal='DS029';
+animal='DS030';
 % load_parts = struct;
 % load_parts.behavior = true;
- % load_parts.widefield_master = true;
+load_parts.widefield_master = false;
+load_parts.widefield = true;
+
 %     recordings= plab.find_recordings(animal,[],'stim_wheel_right_stage2_25contrast');
 
 ap.load_recording;
@@ -32,6 +34,7 @@ if contains(bonsai_workflow,'passive')
     align_category = align_category_all(quiescent_trials);
 
     baseline_times = stimOn_times(quiescent_trials);
+
 
 elseif contains(bonsai_workflow,'stim_wheel')
 
@@ -349,11 +352,12 @@ h = tiledlayout(1,size(kernels_px,4),'TileSpacing','none');
 
 for curr_passive=1:size(kernels_px,4)
 nexttile; 
+
 imagesc(kernels_px_max(:,:,curr_passive)); 
 clim(col_lim); axis image off;
 colormap(gca,ap.colormap('PWG'));
 title(name_id(curr_passive))
- ap.wf_draw('ccf','k');
+ % ap.wf_draw('ccf','k');
 end
 
 load('C:\Users\dsong\Documents\MATLAB\Da_Song\DS_scripts_ptereslab\General_information\roi.mat')
@@ -404,6 +408,13 @@ colormap(ap.colormap('PWG'));
 axis image off
  ap.wf_draw('ccf','k');
 
+
+ figure;
+ imagesc(single(readNPY(plab.locations.filename('server', ...
+     animal,rec_day,[],'widefield','meanImage_blue.npy'))));
+ % colormap(ap.colormap('KW'));
+ axis image off
+
 %% Task kernel separate timelite
 
 
@@ -415,7 +426,8 @@ stim_to_move_idx= curr_tasktype_0(1:n_trials);
 
 
 stim_regressors = repmat({zeros(length(wf_t),1)}, 2, 1);
-stim_regressors(unique(stim_to_move_idx))= arrayfun(@(a)  histcounts(real_stimOn_times(stim_to_move_idx==a),wf_regressor_bins)',...
+ temp_idx=1:length(unique(stim_to_move_idx));
+stim_regressors(temp_idx)= arrayfun(@(a)  histcounts(real_stimOn_times(stim_to_move_idx==a),wf_regressor_bins)',...
     unique(stim_to_move_idx),'UniformOutput',false  );
 
 
@@ -423,7 +435,7 @@ gap_1=seconds([trial_events.timestamps(1:n_trials).ITIStart ] -trial_events.time
 gap_2=stimOn_times(1:n_trials)+stim_to_outcome(1:n_trials);
 
 wf_t_only_task= repmat({false(length(wf_t),1)}, 2, 1);
-wf_t_only_task(unique(stim_to_move_idx))=arrayfun(@(a) interp1([gap_1(stim_to_move_idx==a);gap_2(stim_to_move_idx==a)],...
+wf_t_only_task(temp_idx)=arrayfun(@(a) interp1([gap_1(stim_to_move_idx==a);gap_2(stim_to_move_idx==a)],...
     [ones(sum(stim_to_move_idx==a),1);....
     zeros(sum(stim_to_move_idx==a),1)],...
     wf_t,'previous')==1, unique(stim_to_move_idx),'UniformOutput',false);
@@ -486,7 +498,7 @@ imagesc(kernels_px_all_max(:,:,curr_passive));
 clim(0.0002*[-1 1]); axis image off;
 colormap(gca,ap.colormap('PWG'));
 % title(name_id(curr_passive))
-ap.wf_draw('ccf','k');
+% ap.wf_draw('ccf','k');
 end
 
 

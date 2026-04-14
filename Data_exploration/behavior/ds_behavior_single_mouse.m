@@ -130,6 +130,8 @@ iti_counts_all=cell(length(recordings),1);
         preload_vars = who;
         % Load data
         rec_day = recordings(curr_recording).day;
+
+
         clear time
         if length(recordings(curr_recording).index)>1
             for mm=1:length(recordings(curr_recording).index)
@@ -143,9 +145,18 @@ iti_counts_all=cell(length(recordings),1);
             [~,index_real]=max(time);
         else index_real=1;
         end
+         
+        % [~,index_real]=max( cellfun(@(rt) ...
+        %     numel(load( ...
+        %     plab.locations.filename('server', animal, rec_day, rt, 'timelite.mat'), ...
+        %     'timestamps').timestamps), ...
+        %     recordings(curr_recording).recording));
+
 
 
         rec_time = recordings(curr_recording).recording{index_real};
+
+
         workflow_name_full{curr_recording}=recordings(curr_recording).workflow{index_real};
 
         if strcmp(recordings(curr_recording).workflow{index_real},'stim_wheel_right_stage1_audio_volume')...

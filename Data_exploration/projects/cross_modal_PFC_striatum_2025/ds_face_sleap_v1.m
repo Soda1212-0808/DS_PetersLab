@@ -25,9 +25,26 @@ recordings=recordings(find(cellfun(@(x) any(x == 1), {recordings.widefield})));
 workflow_days={recordings.day}';
 % workflow_names=cell(length(workflow_days),1);
 
-workflows={ 'stim_wheel_right_stage*','lcr_passive','hml_passive_audio'};
+% workflows={ 'stim_wheel_right_stage*','lcr_passive','hml_passive_audio'};
 
-face_data=table( 'Size', [0 5], 'VariableTypes',{'cell','cell','cell','cell','cell'},...
+workflows={ ['stim_wheel_right_stage1$|' ...
+    'stim_wheel_right_stage2$|' ...
+    'stim_wheel_right_stage1_opacity$|' ...
+    'stim_wheel_right_stage2_opacity$|' ...
+    'stim_wheel_right_stage1_angle$|' ...
+    'stim_wheel_right_stage2_angle$|' ...
+    'stim_wheel_right_stage2_angle_size60$|' ...
+    'stim_wheel_right_stage1_size_up$|' ...
+    'stim_wheel_right_stage2_size_up$|' ...
+    'stim_wheel_right_stage1_audio_volume*$|'...
+    'stim_wheel_right_stage2_audio_volume*$|' ...
+    'stim_wheel_right_stage1_audio_frequency$|' ...
+    'stim_wheel_right_stage2_audio_frequency$|' ...
+    'stim_wheel_right_frequency_stage2_mixed_VA$|' ...
+    'stim_wheel_right_stage2_mixed_VA$'],...
+    'lcr_passive','hml_passive_audio'};
+
+face_data=table( 'Size', [length(workflow_days) 5], 'VariableTypes',{'cell','cell','cell','cell','cell'},...
     'VariableNames', {'day','task_name','task', 'lcr_passive','hml_passive_audio'});
 
 for curr_day=1:length(workflow_days)
@@ -53,10 +70,9 @@ for curr_day=1:length(workflow_days)
 
 
 
-        Path_name=sprintf('%s_%s_Recording_%s_mousecam.analysis.h5',animal,rec_day,rec_time);
-
-        mousecam_path=fullfile(Sleap_Paths{1},animal,Path_name);
-        if ~isfile(mousecam_path)
+        file_name=sprintf('%s_%s_Recording_%s_mousecam.analysis.h5',animal,rec_day,rec_time);
+        temp_mousecam_path=fullfile(Sleap_Paths{1},animal,file_name);
+        if ~isfile(temp_mousecam_path)
             continue;
         end
 
@@ -71,6 +87,7 @@ for curr_day=1:length(workflow_days)
         temp_face_tracks=cell(2,1);
         temp_node_names=cell(2,1);
         for curr_model=1:2
+        mousecam_path=fullfile(Sleap_Paths{curr_model},animal,file_name);
 
             temp_data = h5read(mousecam_path, '/tracks');
             temp_face_tracks{curr_model}  = cat(1, temp_data, ...
@@ -86,12 +103,11 @@ for curr_day=1:length(workflow_days)
 
 
 
-
-
         switch curr_workflow
             case 1
-                if contains(workflow ,'mixed')
+                if contains(bonsai_workflow ,'mixed')
                     stim_type =vertcat(trial_events.values.TaskType);
+                    stimOn_times=stimOn_times(1:length([trial_events.values.Outcome]));
                 else
                     stim_type=ones(length(stimOn_times),1);
                 end
@@ -102,9 +118,13 @@ for curr_day=1:length(workflow_days)
         end
 
         pull_times = stimOn_times + time_period;
-        event_aligned_track_position = interp1(mousecam_exposeOn_times(mousecam_frame_timelite_idx), ...
-            face_tracks,pull_times);
 
+
+        % event_aligned_track_position = interp1(mousecam_exposeOn_times(mousecam_frame_timelite_idx), ...
+        %     face_tracks,pull_times);
+
+         event_aligned_track_position = interp1(mousecam_times, ...
+            face_tracks,pull_times);
 
         stim_type =stim_type(1:length(stimOn_times));
 
@@ -126,26 +146,6 @@ save(fullfile(Path,[ animal '_face.mat' ]),'face_data','node_names','-v7.3')
 end
 %%
 
-cat(2,{face_data.lcr_passive{17:24}})
-
-
-temp_data=cellfun(@(x)   vecnorm(diff(x,1,2), 2, 4) ,...
-    face_data.lcr_passive{21},'UniformOutput',false);
-
-
-temp_mean=cellfun(@(x) permute(nanmean(x,1),[2,3,1]),temp_data,'UniformOutput',false);
-temp_error=cellfun(@(x) permute(std(x,0,1,'omitmissing')./sqrt(size(x,1)),[2,3,1]),...
-    temp_data,'UniformOutput',false);
-
-figure;
-hold on
-colors={[0 0 1],[0 0 0],[ 1 0 0]}
-for curr_passive=1:3
-% plot(temp_data{curr_passive}(:,3),'Color',colors{curr_passive})
-ap.errorfill(time_period(1:end-1)',temp_mean{curr_passive}(:,3),temp_error{curr_passive}(:,3),colors{curr_passive})
-end
-ylim([0 2])
-% save(fullfile(Path,[ animal '_face.mat' ]),face_data,node_names,'-v7.3')
 
 %%
 
@@ -159,9 +159,9 @@ ap.load_recording
 
 
 Path='D:\Data process\project_cross_model\face_data\sleap\track_data\nose_cheek';
-Path_name=sprintf('%s_%s_Recording_%s_mousecam.analysis.h5',animal,rec_day,rec_time)
+file_name=sprintf('%s_%s_Recording_%s_mousecam.analysis.h5',animal,rec_day,rec_time)
 
-mousecam_path=fullfile(Path,animal,Path_name);
+mousecam_path=fullfile(Path,animal,file_name);
 
 
 temp_face_tracks = h5read(mousecam_path, '/tracks');

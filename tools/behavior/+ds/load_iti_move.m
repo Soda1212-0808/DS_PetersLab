@@ -18,6 +18,7 @@ time_to_90 = nan(size(start_idx));
 time_to_90(~cellfun(@isempty   , temp_idx, 'UniformOutput', true))=cell2mat(temp_idx);
 
 
+
 wheel_time_thres= time_to_90<0.3;
 wheel_angle_thres=wheel_stops_position-wheel_starts_position<-delta90;
 wheel_whole_time_thres=wheel_move_time<1;
@@ -26,7 +27,7 @@ iti_move_idx = interp1(photodiode_times, ...
     photodiode_values,wheel_starts,'previous') == 0;
 
 iti_move_time=wheel_starts(iti_move_idx & wheel_angle_thres & wheel_time_thres & wheel_whole_time_thres );
-
+all_iti_move_time=wheel_starts(iti_move_idx & wheel_whole_time_thres );
 
 
 

@@ -52,10 +52,10 @@ nexttile
 imagesc(task_mean{curr_stage})
 axis image off;
 clim(0.0003 .* [0, 1]);
-colormap( ap.colormap('WG'));
+colormap( ap.colormap('WP'));
 ap.wf_draw('ccf', [0.5 0.5 0.5]);
-
 end
+colorbar
 
 
 

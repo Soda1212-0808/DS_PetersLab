@@ -26,7 +26,7 @@ main_preload_vars = who;
 load_dataset='wf_task_kernels';
 load(fullfile(Path,'data','revision/',load_dataset));
 
-tem_image=cellfun(@(x) plab.wf.svd2px(U_master(:,:,1:size(x,1)),x),  wf_task_kernels_move_across_day,'UniformOutput',false);
+tem_image=cellfun(@(x) plab.wf.svd2px(U_master(:,:,1:size(x,1)),x),  wf_task_kernels_move_iti_across_day,'UniformOutput',false);
 % tem_image=cellfun(@(x) plab.wf.svd2px(U_master(:,:,1:size(x,1)),x),  wf_task_kernels_reward_across_day,'UniformOutput',false);
 
 tem_image_video=cellfun(@(x)   cat(4,nanmean(x(:,:,:,[1 2 3],:),[4,5]), nanmean(x(:,:,:,[7 8],:),[4,5])),   tem_image, 'UniformOutput',false )
@@ -112,7 +112,6 @@ end
 % drawnow;
 
 %%
-
 
 load(fullfile(Path,'data','behavior'));
 

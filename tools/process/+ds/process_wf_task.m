@@ -1,5 +1,31 @@
     fprintf('%s...\n', ['start processing widefield data in ' bonsai_workflow ]);
 
+%% Define what to process
+
+if ~exist('wf_task_prcoess_parts','var')
+    wf_task_prcoess_parts = struct('stim', true, 'move', true, 'iti_move', true, 'reward', true, 'all_iti_move', true);
+else
+    if ~isfield(wf_task_prcoess_parts,'stim'),     wf_task_prcoess_parts.stim = false; end
+    if ~isfield(wf_task_prcoess_parts,'move'),     wf_task_prcoess_parts.move = false; end
+    if ~isfield(wf_task_prcoess_parts,'iti_move'), wf_task_prcoess_parts.iti_move = false; end
+    if ~isfield(wf_task_prcoess_parts,'reward'), wf_task_prcoess_parts.reward = false; end
+    if ~isfield(wf_task_prcoess_parts,'all_iti_move'), wf_task_prcoess_parts.all_iti_move = false; end
+
+end
+
+% 任务配置
+task_names = {'stim_kernels','move_kernels','iti_move_kernels','reward_kernels','all_iti_move_kernels'};
+task_flags = [wf_task_prcoess_parts.stim, wf_task_prcoess_parts.move, ...
+    wf_task_prcoess_parts.iti_move, wf_task_prcoess_parts.reward,...
+     wf_task_prcoess_parts.all_iti_move];
+
+% 只处理被选中的任务
+selected_tasks = find(task_flags);
+
+%%
+
+
+task_data=struct;
 ds.load_iti_move
 if length(iti_move_time)==1
     iti_move_time=[iti_move_time ;iti_move_time];
@@ -35,47 +61,51 @@ real_reward_times=reward_times(1: sum(rewarded_trials(1:n_trials)==1));
 pho_on_times=photodiode_times(photodiode_values==1);
 pho_off_times=photodiode_times(photodiode_values==0)+2;
 iti_move_regressors=histcounts(iti_move_time,wf_regressor_bins);
+all_iti_move_regressors=histcounts(all_iti_move_time,wf_regressor_bins);
 
 
-if ~contains('TaskType', fieldnames(trial_events.values))
+if ~isfield(trial_events.values,'TaskType')
+
     move_regressors = {histcounts(real_stim_move_time,wf_regressor_bins)};
     stim_regressors = {histcounts(real_stimOn_times,wf_regressor_bins)};
     reward_regressors = {histcounts(real_reward_times,wf_regressor_bins)};
-
     wf_t_only_task= {ones(1,length(wf_t))};
-    all_move_regressor=double(move_regressors{1} | iti_move_regressors);
+    % all_move_regressor=double(move_regressors{1} | iti_move_regressors);
 
-elseif  contains('TaskType', fieldnames(trial_events.values))
+elseif  isfield(trial_events.values,'TaskType')
     curr_tasktype_0=vertcat(trial_events.values.TaskType);
     stim_to_move_idx= curr_tasktype_0(1:n_trials);
+    temp_idx=1:length(unique(stim_to_move_idx));
 
-    stim_regressors = repmat({zeros(length(wf_t),1)}, 2, 1);
-    stim_regressors(unique(stim_to_move_idx))= arrayfun(@(a)  histcounts(real_stimOn_times(stim_to_move_idx==a),wf_regressor_bins)',...
+    stim_regressors = repmat({zeros(1,length(wf_t))}, 2, 1);
+    stim_regressors(temp_idx)= arrayfun(@(a)  histcounts(real_stimOn_times(stim_to_move_idx==a),wf_regressor_bins),...
         unique(stim_to_move_idx),'UniformOutput',false  );
 
-      move_regressors = repmat({zeros(length(wf_t),1)}, 2, 1);
-    move_regressors(unique(stim_to_move_idx))= arrayfun(@(a)  histcounts(real_stim_move_time(stim_to_move_idx==a),wf_regressor_bins)',...
+    move_regressors = repmat({zeros(1,length(wf_t))}, 2, 1);
+    move_regressors(temp_idx)= arrayfun(@(a)  histcounts(real_stim_move_time(stim_to_move_idx==a),wf_regressor_bins),...
+        unique(stim_to_move_idx),'UniformOutput',false  );
+      
+    reward_regressors = repmat({zeros(1,length(wf_t))}, 2, 1);
+    reward_regressors(temp_idx)= arrayfun(@(a)  histcounts(real_reward_times(stim_to_move_idx(rewarded_trials(1:n_trials))==a),wf_regressor_bins),...
         unique(stim_to_move_idx),'UniformOutput',false  );
 
-   
 
     gap_1=seconds([trial_events.timestamps(1:n_trials).ITIStart ] -trial_events.timestamps(1).StimOn (1))'+photodiode_on_times(1);
     gap_2=stimOn_times(1:n_trials)+stim_to_outcome(1:n_trials);
 
-    wf_t_only_task= repmat({false(length(wf_t),1)}, 2, 1);
-    wf_t_only_task(unique(stim_to_move_idx))=arrayfun(@(a) interp1([gap_1(stim_to_move_idx==a);gap_2(stim_to_move_idx==a)],...
+    wf_t_only_task= repmat({false(1,length(wf_t))}, 2, 1);
+    wf_t_only_task(temp_idx)=arrayfun(@(a) (interp1([gap_1(stim_to_move_idx==a);gap_2(stim_to_move_idx==a)],...
         [ones(sum(stim_to_move_idx==a),1);....
         zeros(sum(stim_to_move_idx==a),1)],...
-        wf_t,'previous')==1, unique(stim_to_move_idx),'UniformOutput',false);
+        wf_t,'previous')==1)', unique(stim_to_move_idx),'UniformOutput',false);
 end
 
 
-  wf_t_only_iti = interp1([pho_on_times;pho_off_times], ...
-                [zeros(sum(photodiode_values==1),1);ones(sum(photodiode_values==0),1)], ...
-                wf_t,'previous')==1;
+wf_t_only_iti = interp1([pho_on_times;pho_off_times], ...
+    [zeros(sum(photodiode_values==1),1);ones(sum(photodiode_values==0),1)], ...
+    wf_t,'previous')==1;
 
   % Do decoding regression
-  kernels=struct;
   n_components = 200;
   frame_shifts = -10:30;
   lambda = 15;
@@ -83,12 +113,16 @@ end
   decrement = 10;       % 每次失败减少多少
   min_components = 100;
 
-  for task = 1:3
+  for task = selected_tasks
       % 为每个任务设定最小值（可按需调整）
+
       switch task
-          case 1,  task_name = 'stim_kernels';
-          case 2,  task_name = 'move_kernels';
-          case 3,  task_name = 'iti_move_kernels';
+          case 1,  task_name = task_names{1};
+          case 2,  task_name = task_names{2};
+          case 3,  task_name = task_names{3};
+          case 4,  task_name = task_names{4};
+          case 5,  task_name = task_names{5};
+
 
       end
 
@@ -102,18 +136,25 @@ end
               disp(['Running ', task_name, ' with n_components = ', num2str(n_cur)]);
               switch task
                   case 1 % stim_kernels (cellfun)
-                      kernels.stim_kernels = ...
-                          cellfun(@(x,y) ap.regresskernel(wf_V(1:n_cur, find(x==1)), y(find(x==1))', -frame_shifts, lambda), ...
+                      task_data.stim_kernels = ...
+                          cellfun(@(x,y) ap.regresskernel(wf_V(1:n_cur, find(x==1)), y(find(x==1)), -frame_shifts, lambda), ...
                           wf_t_only_task, stim_regressors, 'UniformOutput', false );
 
                   case 2 % move_kernels (cellfun)
-                      kernels.move_kernels = ...
-                          cellfun(@(x,y) ap.regresskernel(wf_V(1:n_cur, find(x==1)), y(find(x==1))', -frame_shifts, lambda), ...
+                      task_data.move_kernels = ...
+                          cellfun(@(x,y) ap.regresskernel(wf_V(1:n_cur, find(x==1)), y(find(x==1)), -frame_shifts, lambda), ...
                           wf_t_only_task, move_regressors, 'UniformOutput', false );
 
                   case 3 % iti_move_kernels (direct call)
-                      kernels.iti_move_kernels = ...
-                          ap.regresskernel(wf_V(1:n_cur, wf_t_only_iti), iti_move_regressors(wf_t_only_iti), -frame_shifts, lambda);
+                      task_data.iti_move_kernels = ...
+                          {ap.regresskernel(wf_V(1:n_cur, wf_t_only_iti), iti_move_regressors(wf_t_only_iti), -frame_shifts, lambda)};
+                  case 4 % iti_move_kernels (direct call)
+                       task_data.reward_kernels = ...
+                          cellfun(@(x,y) ap.regresskernel(wf_V(1:n_cur, find(x==1)), y(find(x==1)), -frame_shifts, lambda), ...
+                          wf_t_only_task, reward_regressors, 'UniformOutput', false );
+                  case 5 % iti_move_kernels (direct call)
+                      task_data.all_iti_move_kernels = ...
+                          {ap.regresskernel(wf_V(1:n_cur, wf_t_only_iti), all_iti_move_regressors(wf_t_only_iti), -frame_shifts, lambda)};
 
               end
 

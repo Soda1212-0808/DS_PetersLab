@@ -1,9 +1,11 @@
 %% Exploratory behavior analysis
 clear all
-animal='DS029'
+animal='AM011'
 
 load_parts = struct;
 load_parts.behavior = true;
+load_parts.mousecam = true;
+
 ap.load_recording;
 
 %% Align mousecam to event
@@ -18,8 +20,8 @@ quiescent_trials = arrayfun(@(x) ~any(wheel_move(...
 % stim_x = vertcat(trial_events.values.StimFrequence);
 % use_align = stimOn_times(stim_x == 8000  & quiescent_trials);
 
-% stim_x = vertcat(trial_events.values.TrialStimX);
-% use_align = stimOn_times(quiescent_trials & stim_x == 90);
+stim_x = vertcat(trial_events.values.TrialStimX);
+use_align = stimOn_times(quiescent_trials & stim_x == 90);
 
 % stim_x = vertcat(trial_events.values.TrialX);
 % use_align = stimOn_times(stim_x(1:n_trials) == 90);
@@ -29,7 +31,7 @@ quiescent_trials = arrayfun(@(x) ~any(wheel_move(...
 
 % use_align = reward_times;
 
- use_align = stimOn_times;
+ % use_align = stimOn_times;
 
 % use_align = stimOff_times(trial_opacity == 1);
 

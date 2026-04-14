@@ -20,7 +20,10 @@ function [p,rxn_stat,rxn_null_stat] = AP_stimwheel_association_pvalue2(stimOn_ti
 % rxn_null_stat: statistic for null reaction times
 
 % Only look at completed trials
-n_trials = length([trial_events.timestamps.Outcome]);
+
+ % n_trials = length([trial_events.timestamps.Outcome]);
+   
+n_trials = min(length(stimOn_times),length([trial_events.timestamps.Outcome]));
 
 
 if ~exist('tasktype', 'var')

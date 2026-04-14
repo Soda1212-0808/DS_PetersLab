@@ -194,9 +194,10 @@ end
 buffer_event_response_p= cat(2,event_response_p{:})>0.95;
 % all(buffer_event_response_p == 1, 2);
 
+unit_dots = ap.plot_unit_depthrate(spike_templates,spike_templates,template_depths,probe_areas);
 
 % Plot responsive units by depth
-unit_dots = ap.plot_unit_depthrate(spike_templates,template_depths,probe_areas);
+% unit_dots = ap.plot_unit_depthrate(spike_templates,template_depths,probe_areas);
 % unit_dots.CData = +([1,0,0].*(event_response_p > 0.95)) + ([0,0,1].*(event_response_p < 0.05));
 unit_dots.CData = +([1,1,0].*(  buffer_event_response_p(:, 1) == 1 & buffer_event_response_p(:, 2) == 1      )) ...
     +([1,0,0].*(buffer_event_response_p(:, 1) == 1 & buffer_event_response_p(:, 2) == 0))...
