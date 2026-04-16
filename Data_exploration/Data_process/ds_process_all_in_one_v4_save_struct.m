@@ -11,6 +11,8 @@ animals = { ...
     'DS000','DS004','DS014','DS015','DS016'};
 % animals={'DS029','DS030','DS031','AP032'}
 
+
+
 % if ~exist('workflows','var') || isempty(workflows)
 %     all_recordings = feval(@(a) cat(2,a{:}) ,cellfun(@(x) plab.find_recordings(x, [], '*'),animals,'UniformOutput',false));
 %     all_workflows= unique(cat(1,all_recordings.workflow));
@@ -102,8 +104,8 @@ default_cfg = struct( 'run_behavior', false,  'run_wf_task', false, ...
 cfg1 = default_cfg;
 cfg1.run_behavior = 1;
 cfg1.run_wf_task = 1;
-cfg1.run_ephys = 0;
-cfg1.run_face = 0;
+cfg1.run_ephys = 1;
+cfg1.run_face = 1;
 cfg1.field_task_name = 'task_name';
 cfg1.field_behavior = 'behavior_task';
 cfg1.field_wf = 'wf_task';
@@ -116,13 +118,15 @@ for k = 2:numel(workflows)
     cfg.field_wf = ['wf_' workflows{k}];
     cfg.field_face = ['face_' workflows{k}];
     cfg.field_ephys = ['ehpys_' workflows{k}];
-    cfg.run_ephys = 0;
+    cfg.run_ephys = 1;
     cfg.run_wf_passive = 1;
     cfg.run_face = 1;
 
     workflow_cfg{k} = cfg;
 end
-
+ struct_names={'day',cfg1.field_task_name,cfg1.field_behavior,cfg1.field_wf,cfg1.field_ephys,cfg1.field_face,...
+     workflow_cfg{2}.field_wf,workflow_cfg{2}.field_ephys,workflow_cfg{2}.field_face,...
+     workflow_cfg{3}.field_wf,workflow_cfg{3}.field_ephys,workflow_cfg{3}.field_face}';
 
 % task / passive 处理部分
 % which kernels to process in task
@@ -137,8 +141,8 @@ wf_task_process_parts = struct( ...
 wf_passive_process_parts = struct( ...
     'averaged_data', 0, ...
     'kernels', 1);
-
-for curr_animal = 1:length(animals)
+ 
+for curr_animal = 5:length(animals)
     main_preload_vars = who;
     animal = animals{curr_animal};
 
@@ -150,14 +154,24 @@ for curr_animal = 1:length(animals)
     data_file = fullfile(Path, [animal '_all_data.mat']);
 
     if isfile(data_file)
-        load(data_file);
+        data_all=load(data_file);
         disp('文件已加载');
+        % data_all_index=data_all.data_all_index;
     else
         disp('文件不存在');
-        data_all = struct('day',workflow_days);
+        data_all = cell2struct(repmat({cell(length(workflow_days),1)},1,length(struct_names)), struct_names, 2);
+        data_all.day=workflow_days;
+        data_all.data_all_index= repmat( ...
+            cell2struct(repmat({[]},1,numel(struct_names)), struct_names, 2),length(workflow_days), 1);
+        [data_all.data_all_index.day] = workflow_days{:};
+
     end
 
-    for curr_day =1:length(workflow_days)
+
+    % for curr_day =1:length(workflow_days)
+    for curr_day =find(cellfun(@isempty,{data_all.data_all_index.wf_lcr_passive}))
+
+
         preload_vars = who;
         rec_day = workflow_days{curr_day};
 
@@ -170,14 +184,14 @@ for curr_animal = 1:length(animals)
                 continue;
             end
 
-           
+
 
             [~, index_real] = max(cellfun(@(rt) ...
                 numel(load(plab.locations.filename('server', animal, rec_day, rt, 'timelite.mat'), ...
                 'timestamps').timestamps), temp_recording.recording));
             rec_time = temp_recording.recording{index_real};
 
-             if ~((temp_recording.ephys==1&&cfg.run_ephys==1)||...
+            if ~((temp_recording.ephys==1&&cfg.run_ephys==1)||...
                     (temp_recording.widefield(index_real)==1 && (cfg.run_wf_passive==1||cfg.run_wf_task==1)))
                 continue;
             end
@@ -191,11 +205,11 @@ for curr_animal = 1:length(animals)
             if cfg.run_face
                 load_parts.mousecam = true;
             end
-            if (cfg.run_wf_passive ||cfg.run_wf_task)
+            if (cfg.run_wf_passive ||cfg.run_wf_task)&& any(recordings(curr_day).widefield)
                 load_parts.widefield_master = true;
                 load_parts.widefield = true;
             end
-            if cfg.run_ephys
+            if cfg.run_ephys&& recordings(curr_day).ephys
                 load_parts.ephys = true;
             end
 
@@ -203,50 +217,58 @@ for curr_animal = 1:length(animals)
 
             % workflow 1 才有 task_name
             if ~isempty(cfg.field_task_name)
-                data_all(curr_day).(cfg.field_task_name) = bonsai_workflow;
+                data_all.(cfg.field_task_name){curr_day,1} = bonsai_workflow;
+                data_all.data_all_index(curr_day).(cfg.field_task_name) = bonsai_workflow;
             end
 
             % behavior
             if cfg.run_behavior
                 ds.process_behavior;
-                data_all(curr_day).(cfg.field_behavior) = behavior;
+                data_all.(cfg.field_behavior){curr_day,1} = behavior;
+                data_all.data_all_index(curr_day).(cfg.field_behavior) = 1;
             end
 
             % task widefield
-            if cfg.run_wf_task
+            if cfg.run_wf_task&& any(recordings(curr_day).widefield)
                 ds.process_wf_task;
-                fn = fieldnames(task_data);
+                fn = fieldnames(wf_task_data);
                 for i = 1:numel(fn)
-                    data_all(curr_day).(cfg.field_wf).(fn{i}) = task_data.(fn{i});
+                    data_all.(cfg.field_wf).(fn{i}){curr_day,1} = wf_task_data.(fn{i});
+                    data_all.data_all_index(curr_day).(cfg.field_wf).(fn{i})=1;
                 end
             end
 
             % passive widefield
-            if cfg.run_wf_passive
+            if cfg.run_wf_passive&& any(recordings(curr_day).widefield)
                 ds.process_wf_passive;
-                data_all(curr_day).(cfg.field_wf) = passive_data;
+                data_all.(cfg.field_wf){curr_day,1} =wf_passive_data;
+                data_all.data_all_index(curr_day).(cfg.field_wf) =1;
             end
 
             % face tracking
             if cfg.run_face
                 ds.process_face_tracking;
-                data_all(curr_day).(cfg.field_face) = sleap_data;
+                data_all.(cfg.field_face){curr_day,1} = sleap_data;
+                data_all.data_all_index(curr_day).(cfg.field_face) = 1;
             end
 
-             % ephys data
-            if cfg.run_ephys
+            % ephys data
+            if cfg.run_ephys&& recordings(curr_day).ephys
                 ds.process_ephys;
-                data_all(curr_day).(cfg.field_ephys) = ephys_data;
+                data_all.(cfg.field_ephys){curr_day,1} = ephys_data;
+                data_all.data_all_index(curr_day).(cfg.field_ephys) = 1;
             end
         end
 
         clearvars('-except', preload_vars{:});
     end
 
-     save(data_file, 'data_all', '-v7.3');
+    % data_all.data_all_index=data_all_index;
+    data_all.data_all_index= orderfields(data_all.data_all_index, struct_names);
+
+    save(data_file, '-struct', 'data_all', '-v7.3');
 
     clearvars('-except', main_preload_vars{:});
 end
-
 
 

@@ -1,3 +1,4 @@
+
 % which workflow
     fprintf('%s...\n', ['start processing widefield data in ' bonsai_workflow ]);
 
@@ -5,18 +6,18 @@
 %%
 
 
-if ~exist('wf_passive_prcoess_parts','var')
-    wf_passive_prcoess_parts = struct('averaged_data', true, 'kernels', true);
+if ~exist('wf_passive_process_parts','var')
+    wf_passive_process_parts = struct('averaged_data', true, 'kernels', true);
 else
-    if ~isfield(wf_passive_prcoess_parts,'averaged_data'),     wf_passive_prcoess_parts.averaged_data = false; end
-    if ~isfield(wf_passive_prcoess_parts,'kernels'),     wf_passive_prcoess_parts.kernels = false; end
+    if ~isfield(wf_passive_process_parts,'averaged_data'),     wf_passive_process_parts.averaged_data = false; end
+    if ~isfield(wf_passive_process_parts,'kernels'),     wf_passive_process_parts.kernels = false; end
 
 end
 
 
 
 
-passive_data=struct;
+wf_passive_data=struct;
 
 switch bonsai_workflow
     case {'lcr_passive','lcr_passive_size60','r_passive_contrast','lcr_passive_grating_size40','lcr_passive_contrast25','r_passive_contrast_up_to25'}
@@ -48,7 +49,7 @@ align_category = align_category_all(quiescent_trials);
 
 
 %% wf_V raw data
-if wf_passive_prcoess_parts.averaged_data
+if wf_passive_process_parts.averaged_data
 
 % Align to stim onset
 surround_window = [-0.5,1];
@@ -80,19 +81,19 @@ end
 aligned_v_avg = permute(aligned_v_avg1, [3, 2, 1]);
 
 % aligned_v_avg = permute(splitapply(@nanmean,aligned_v,align_id),[3,2,1]);
-passive_data.wf_aligned_averged = aligned_v_avg - nanmean(aligned_v_avg(:,t_passive < 0,:),2);
+wf_passive_data.wf_aligned_averged = aligned_v_avg - nanmean(aligned_v_avg(:,t_passive < 0,:),2);
 
 %%all_trials
 peri_event_t_all= reshape(stimOn_times,[],1) + reshape(t_passive,1,[]);
 aligned_v_all = permute((reshape(interp1(wf_t,wf_V',peri_event_t_all,'previous'), length(stimOn_times),length(t_passive),[])), [3, 2, 1]);
-passive_data.wf_aligned_all = aligned_v_all-nanmean(aligned_v_all(:,t_passive < 0,:),2);
+wf_passive_data.wf_aligned_all = aligned_v_all-nanmean(aligned_v_all(:,t_passive < 0,:),2);
 end
 
 
 
 %%  decoding kernels
 
-if wf_passive_prcoess_parts.kernels
+if wf_passive_process_parts.kernels
 
     wf_regressor_bins = [wf_t;wf_t(end)+1/wf_framerate];
 
@@ -123,7 +124,7 @@ if wf_passive_prcoess_parts.kernels
             %     cellfun(@(x,y) ap.regresskernel(wf_V(1:n_components,find(x==1)),y(find(x==1))',-frame_shifts,lambda),...
             %     wf_t_only_passive, stim_regressor ,'UniformOutput',false );
 
-            passive_data.kernels_decoding = ...
+            wf_passive_data.kernels_decoding = ...
                 cellfun(@(x,y) ap.regresskernel(wf_V(1:n_components,find(x==1)),y(find(x==1))',-frame_shifts,lambda),...
                 wf_t_only_passive, stim_regressor ,'UniformOutput',false );
 
@@ -171,7 +172,7 @@ if wf_passive_prcoess_parts.kernels
     % Set cross validation (not necessary if just looking at kernels)
     cvfold = 5;
     % Do regression
-    passive_data.kernels_encoding = ...
+    wf_passive_data.kernels_encoding = ...
         ap.regresskernel(regressors,wf_V,t_shifts,[],[],cvfold);
 
     % [kernels_encoding,predicted_signals_encoding,explained_var_encoding,predicted_signals_reduced_encoding] = ...

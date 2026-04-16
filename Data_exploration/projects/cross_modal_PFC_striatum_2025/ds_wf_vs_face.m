@@ -35,10 +35,11 @@ for curr_group=1:2
         for curr_animal=1:length(animals)
             preload_vars=who;
             animal=animals{curr_animal};
-            load(fullfile(Path,[animal '_all_data.mat']));
+            data_all=load(fullfile(Path,[animal '_all_data.mat']));
             switch curr_mode
                 case 1
-                    select_id=(strcmp([data_all.task_name],'stim_wheel_right_stage1')|strcmp([data_all.task_name],'stim_wheel_right_stage2'))&...
+                    select_id=(strcmp([data_all.task_name],'stim_wheel_right_stage1')|...
+                        strcmp([data_all.task_name],'stim_wheel_right_stage2'))&...
                         ~cellfun(@isempty ,data_all.wf_lcr_passive);
                     all_face_passive=[data_all.face_lcr_passive(select_id)];
                 case 2
@@ -49,13 +50,16 @@ for curr_group=1:2
             end
 
 
+            temp_pupil=cellfun(@(x)  cat(3,x.pupil_data.diameterZ_filt_sav{:}) ,all_face_passive,'UniformOutput',false)
+
+
             tem_nose_passive= cellfun(@(id)  cellfun(@(x)   vecnorm(diff(x(:,:,1:9,:),1,2), 2, 4) ,...
                 id.face_data,'UniformOutput',false),all_face_passive,'UniformOutput',false);
 
             temp_nose_mean=...
                 feval(@(b)  cat(4,b{:}), cellfun(@(id) feval(@(a)  cat(3,a{:}) ,cellfun(@(x) permute(nanmean(x,1),[2,3,1]), id,'UniformOutput',false)),...
                 tem_nose_passive,'UniformOutput',false));
-            temp_feace_error= feval(@(b)  cat(4,b{:}), cellfun(@(id) feval(@(a)  cat(3,a{:}) ,cellfun(@(x) permute(std(x,0,1)./sqrt(size(x,1)),[2,3,1]), id,'UniformOutput',false)),...
+            temp_face_error= feval(@(b)  cat(4,b{:}), cellfun(@(id) feval(@(a)  cat(3,a{:}) ,cellfun(@(x) permute(std(x,0,1)./sqrt(size(x,1)),[2,3,1]), id,'UniformOutput',false)),...
                 tem_nose_passive,'UniformOutput',false));
 
             temp_p_val=arrayfun(@(id)  data_all.behavior_task{id}.rxn_l_p(1)<0.05, find(select_id),'UniformOutput',true);
@@ -63,9 +67,11 @@ for curr_group=1:2
 
             temp_data_all.nose_passive{curr_animal}=temp_nose_mean;
             temp_data_all.rxt{curr_animal}=temp_p_val;
-
+temp_data_all.pupil_size{curr_animal}=temp_pupil;
             clearvars('-except',preload_vars{:});
         end
+       
+        
         all_data.([groups_name{curr_group} '_' modes_name{curr_mode}])=temp_data_all;
 
         nose_data_all=cellfun(@(x,y)  cat(4, x(:,:,:,find(y==1,5,'first')),nan(size(x,1), size(x,2),size(x,3),5-length(find(y==1,5,'first'))))...

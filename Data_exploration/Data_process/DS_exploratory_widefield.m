@@ -1,12 +1,12 @@
 %% Exploratory widefield analysis
 clear all
-animal='DS030';
+animal='DS029';
 % load_parts = struct;
 % load_parts.behavior = true;
 load_parts.widefield_master = false;
 load_parts.widefield = true;
 
-%     recordings= plab.find_recordings(animal,[],'stim_wheel_right_stage2_25contrast');
+% recordings= plab.find_recordings(animal,[],'stim_wheel_right_stage2_25contrast');
 
 ap.load_recording;
 

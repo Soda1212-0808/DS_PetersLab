@@ -11,12 +11,13 @@ time_period = surround_window(1):1/mousecam_framerate:surround_window(2);
 
 face_name=sprintf('%s_%s_Recording_%s_mousecam.analysis.h5',animal,rec_day,rec_time);
 
-temp_mousecam_path=fullfile(Sleap_Paths{1},animal,face_name);
-if ~isfile(temp_mousecam_path)
+temp_mousecam_path=cellfun(@(x) fullfile(x,animal,face_name),Sleap_Paths,'UniformOutput',false);
+if any(~cellfun(@isfile, temp_mousecam_path))
     sleap_data=[];
-    disp(['File not found: ', temp_mousecam_path]);
+    disp(['File not found: ', temp_mousecam_path{(cellfun(@isfile, temp_mousecam_path)==0)}]);
     return;   % 直接停止当前函数/脚本
 end
+
 
 temp_face_tracks=cell(2,1);
 temp_node_names=cell(2,1);

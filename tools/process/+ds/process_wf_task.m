@@ -2,22 +2,22 @@
 
 %% Define what to process
 
-if ~exist('wf_task_prcoess_parts','var')
-    wf_task_prcoess_parts = struct('stim', true, 'move', true, 'iti_move', true, 'reward', true, 'all_iti_move', true);
+if ~exist('wf_task_process_parts','var')
+    wf_task_process_parts = struct('stim', true, 'move', true, 'iti_move', true, 'reward', true, 'all_iti_move', true);
 else
-    if ~isfield(wf_task_prcoess_parts,'stim'),     wf_task_prcoess_parts.stim = false; end
-    if ~isfield(wf_task_prcoess_parts,'move'),     wf_task_prcoess_parts.move = false; end
-    if ~isfield(wf_task_prcoess_parts,'iti_move'), wf_task_prcoess_parts.iti_move = false; end
-    if ~isfield(wf_task_prcoess_parts,'reward'), wf_task_prcoess_parts.reward = false; end
-    if ~isfield(wf_task_prcoess_parts,'all_iti_move'), wf_task_prcoess_parts.all_iti_move = false; end
+    if ~isfield(wf_task_process_parts,'stim'),     wf_task_process_parts.stim = false; end
+    if ~isfield(wf_task_process_parts,'move'),     wf_task_process_parts.move = false; end
+    if ~isfield(wf_task_process_parts,'iti_move'), wf_task_process_parts.iti_move = false; end
+    if ~isfield(wf_task_process_parts,'reward'), wf_task_process_parts.reward = false; end
+    if ~isfield(wf_task_process_parts,'all_iti_move'), wf_task_process_parts.all_iti_move = false; end
 
 end
 
 % 任务配置
 task_names = {'stim_kernels','move_kernels','iti_move_kernels','reward_kernels','all_iti_move_kernels'};
-task_flags = [wf_task_prcoess_parts.stim, wf_task_prcoess_parts.move, ...
-    wf_task_prcoess_parts.iti_move, wf_task_prcoess_parts.reward,...
-     wf_task_prcoess_parts.all_iti_move];
+task_flags = [wf_task_process_parts.stim, wf_task_process_parts.move, ...
+    wf_task_process_parts.iti_move, wf_task_process_parts.reward,...
+     wf_task_process_parts.all_iti_move];
 
 % 只处理被选中的任务
 selected_tasks = find(task_flags);
@@ -25,7 +25,7 @@ selected_tasks = find(task_flags);
 %%
 
 
-task_data=struct;
+wf_task_data=struct;
 ds.load_iti_move
 if length(iti_move_time)==1
     iti_move_time=[iti_move_time ;iti_move_time];

@@ -87,5 +87,6 @@ event_response_p=cellfun(@(x) x(:,1)./(n_shuff+1),event_response_rank,'UniformOu
 ephys_data.psth=all_unit_psth_smooth_norm;
 ephys_data.raster=temp_raster;
 ephys_data.response_p=event_response_p;
+ephys_data.depth=template_depths;
 
 
