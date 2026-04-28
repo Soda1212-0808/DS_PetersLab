@@ -43,7 +43,7 @@ elapsed = toc(tStart);
 
 if st ~= 0
     % Failure
-    fprintf('Inference failed for %s\nOutput:\n%s\n', vidPath, cmdOut); 
+    fprintf('Inference failed for %s\nOutput:\n%s\n', mousecam_fn, cmdOut); 
 else
     fprintf('Inference completed. Time: %.1f s\n', elapsed);
 end

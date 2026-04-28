@@ -48,12 +48,12 @@ task_mean=feval(@(b)     arrayfun(@(id)  nanmean(cat(3,b{id,:}),3)   ,1:2,'uni',
 
 figure;
 for curr_stage=1:2
-nexttile
-imagesc(task_mean{curr_stage})
-axis image off;
-clim(0.0003 .* [0, 1]);
-colormap( ap.colormap('WP'));
-ap.wf_draw('ccf', [0.5 0.5 0.5]);
+    nexttile
+    imagesc(task_mean{curr_stage})
+    axis image off;
+    clim(0.0003 .* [0, 1]);
+    colormap( ap.colormap('WP'));
+    ap.wf_draw('ccf', [0.5 0.5 0.5]);
 end
 colorbar
 

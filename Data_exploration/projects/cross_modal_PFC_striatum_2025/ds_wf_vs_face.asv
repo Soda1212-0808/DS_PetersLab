@@ -368,7 +368,7 @@ end
 passive_id={[3 1 2],[2 1 3]};
 
 % pupil saccade  trace
-colors={[0 0 1;0 0 0;1 0 0],[0 0 1;0 0 0;1 0 0]}
+colors={[0 0 1;0 0 0],[1 0 0;0 0 0]}
 for curr_group=1:2
     for curr_mode=1:2
 
@@ -379,9 +379,9 @@ for curr_group=1:2
             cat(1, all_data.([groups_name{curr_group} '_' modes_name{curr_mode}]).pupil_center_single{:}));
 
         % temp_pupil_center_trace=cellfun(@(x) permute( vecnorm((x-x(:,1,:,:,:)),2,3),[2,3,4,5,1]),pupil_center_single,'UniformOutput',false);
-        temp_pupil_center_trace=cellfun(@(x) permute( vecnorm(diff(x,1,2),2,3),[2,4,5,3,1]),pupil_center_single,'UniformOutput',false);
+        temp_pupil_center_trace=cellfun(@(x) permute( vecnorm(diff(x,1,2),2,3),[2,3,4,5,1]),pupil_center_single,'UniformOutput',false);
 
-        temp_pupi_center_trace_2=cellfun(@(x) cat(2,x(:,passive_id{curr_mode}(1),:),nanmean(x(:,passive_id{curr_mode}(2:3),:),2)),...
+        temp_pupil_trace_2=cellfun(@(x) permute(cat(3,x(:,:,passive_id{curr_mode}(1),:),nanmean(x(:,:,passive_id{curr_mode}(2:3),:),3)),[1,3,4,2]),...
             temp_pupil_center_trace,'UniformOutput',false);
 
 
@@ -394,8 +394,8 @@ for curr_group=1:2
         for curr_state=1:3
             nexttile
             hold on
-            ap.errorfill(face_time(2:end)',nanmean(temp_pupil_center_trace{curr_state},3),...
-                nanstd(temp_pupil_center_trace{curr_state},0,3)./sqrt(size(temp_pupil_trace_2{curr_state},3)),colors{curr_group})
+            ap.errorfill(face_time(2:end)',nanmean(temp_pupil_trace_2{curr_state},3),...
+                nanstd(temp_pupil_trace_2{curr_state},0,3)./sqrt(size(temp_pupil_trace_2{curr_state},3)),colors{curr_group})
             xlim([-0.2 1])
             % ylim([0 0.03])
             xline(0)

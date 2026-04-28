@@ -9,9 +9,12 @@ MODEL_DIRS = { 'D:\Data process\project_cross_model\face_data\sleap\pupil\251117
 % MODEL_DIRS = { 'D:\Data process\project_cross_model\face_data\sleap\nose_cheek\models\260310_142421.centroid.n=376',...
 %                'D:\Data process\project_cross_model\face_data\sleap\nose_cheek\models\260310_145117.centered_instance.n=376' };
 % 
-
+% 
 animals =     { 'DS007','DS010','AP019','AP021','DS011','AP022',...
     'DS000','DS004','DS014','DS015','DS016'};
+
+% animals =     { 'AP030','AP032','DS030','DS031','DS029'};
+
 all_workflow={ ['stim_wheel_right_stage1$|' ...
     'stim_wheel_right_stage2$|' ...
     'stim_wheel_right_stage1_opacity$|' ...
@@ -36,7 +39,7 @@ for curr_animal=1:length(animals)
     outDirID = fullfile(OUTPUT_ROOT, animal);
     if ~exist(outDirID, 'dir'), mkdir(outDirID); end
 
-    for curr_workflow=2:3
+    for curr_workflow=1
 
         recordings = plab.find_recordings(animal,[],all_workflow{curr_workflow});
         for curr_recording =1:length(recordings)

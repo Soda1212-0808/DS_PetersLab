@@ -1,6 +1,6 @@
 %% Exploratory widefield analysis
 clear all
-animal='DS029';
+animal='AP032';
 % load_parts = struct;
 % load_parts.behavior = true;
 load_parts.widefield_master = false;
@@ -392,7 +392,7 @@ t_kernels=1/surround_samplerate*[-10:20];
 
 kernels_px = plab.wf.svd2px(wf_U(:,:,1:size(kernels,1)),kernels);
 ap.imscroll(kernels_px,t_kernels);
-% clim(0.5*max(abs(clim)).*[-1,1]);
+% clim(max(abs(clim)).*[-1,1]);
 clim(0.0003.*[-1,1]);
 colormap(ap.colormap('PWG'));
  ap.wf_draw('ccf','k');

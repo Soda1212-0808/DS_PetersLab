@@ -6,8 +6,11 @@ surround_time = [-5,5];
 surround_sample_rate = 100;
 surround_time_points = surround_time(1):1/surround_sample_rate:surround_time(2);
 
-
-
+surround_samplerate = 35;
+surround_window = [-0.2,1];
+baseline_window = [-0.5,-0.1];
+t_task = surround_window(1):1/surround_samplerate:surround_window(2);
+baseline_t = baseline_window(1):1/surround_samplerate:baseline_window(2);
 
 
 % variable definition
@@ -127,7 +130,9 @@ for curr_animal_idx=1:length(animals)
         % process behavioral data
         real_stimOn_times=stimOn_times(1:n_trials);
         real_stim_to_move=stim_to_move(1:n_trials);
+
         edges = [-Inf, 0, 0.1, 0.2, 0.3, Inf];
+
         stim_to_move_idx = discretize(real_stim_to_move, edges);
         stim_to_move_all{curr_recording}=real_stim_to_move;
         stim_to_move_idx_all{curr_recording}=stim_to_move_idx;
@@ -219,20 +224,123 @@ for curr_animal_idx=1:length(animals)
 
 end
 
+%%
 
-%     tem_image_passive=cellfun(@(x) plab.wf.svd2px(U_master(:,:,1:size(x,1)),x),stim_kernels,'UniformOutput',false);
-% 
-% ap.imscroll(cat(4, tem_image_passive{:}))
-% axis image off
-% clim( 0.0003*[-1,1]);
-% ap.wf_draw('ccf',[0.5 0.5 0.5]);
-% colormap( ap.colormap(['BWR']));
-% 
+for curr_animal_idx=1:length(animals)
+    animal=animals{curr_animal_idx};
+    fprintf('%s\n', ['start  ' animal ]);
+    fprintf('%s\n', ['start saving tasks files...']);
+
+    passive_workflow = 'lcr_passive';
+    recordings_passive = plab.find_recordings(animal,[],passive_workflow);
+
+    recordings_training = plab.find_recordings(animal,[],training_workflow);
+
+    recordings2 = recordings_training( ...
+        cellfun(@any,{recordings_training.widefield}) & ...
+        ~[recordings_training.ephys] & ...
+        ismember({recordings_training.day},{recordings_passive.day}));
+
+
+    curr_group_type=group_type{curr_animal_idx};
+    switch curr_group_type
+        case {'VA'}
+            recordings2=recordings2(find(~contains(cellfun(@(c) c{1}, {recordings2.workflow}, 'UniformOutput', false),'audio'),5,'last'));
+        case {'AV'}
+            recordings2=recordings2(find(contains(cellfun(@(c) c{1}, {recordings2.workflow}, 'UniformOutput', false),'audio'),5,'last'));
+    end
+
+
+    %%是否存在保存过之前的数据的文
+
+
+    wf_raw=cell(length(recordings2),1);
+    for curr_recording =1:length(recordings2)
+        fprintf('The number of files is %d This file is: %d\n', length(recordings2),curr_recording);
+
+        % Grab pre-load vars
+        preload_vars = who;
+        % Load data
+        rec_day = recordings2(curr_recording).day;
+
+        [~,index_real]=max( cellfun(@(rt) ...
+            numel(load( ...
+            plab.locations.filename('server', animal, rec_day, rt, 'timelite.mat'), ...
+            'timestamps').timestamps), ...
+            recordings2(curr_recording).recording));
+
+        rec_time = recordings2(curr_recording).recording{index_real};
+
+        verbose=true;
+        load_parts = struct;
+        load_parts.behavior = true;
+        load_parts.widefield_master = true;
+        load_parts.widefield = true;
+        ap.load_recording;
+
+
+
+        if length(stimOn_times)< length([trial_events.timestamps.Outcome])
+            n_trials =length(stimOn_times);
+        else
+            n_trials = length([trial_events.timestamps.Outcome]);
+        end
+
+        % process behavioral data
+        real_stimOn_times=stimOn_times(1:n_trials);
+        real_stim_to_move=stim_to_move(1:n_trials);
+
+        edges = [-Inf, 0, 0.1, 0.2, 0.3, Inf];
+
+        stim_to_move_idx = discretize(real_stim_to_move, edges);
+
+
+
+        align_category = ones(n_trials,1);
+        baseline_times = real_stimOn_times;
+        peri_event_t = real_stimOn_times+ reshape(t_task,1,[]);
+        baseline_event_t = reshape(baseline_times,[],1) + reshape(baseline_t,1,[]);
+        aligned_v = interp1(wf_t,wf_V',peri_event_t,'previous');
+
+        aligned_baseline_v = nanmean(reshape(interp1(wf_t,wf_V',baseline_event_t,'previous'), ...
+            length(baseline_times),length(baseline_t),[]),2);
+        % 减去baseline数据
+        aligned_v_baselinesub = aligned_v - aligned_baseline_v;
+
+        align_id = findgroups(reshape(stim_to_move_idx,[],1));
+        % aligned_v_avg = permute(splitapply(@nanmean,aligned_v_baselinesub,align_id),[3,2,1]);
+        wf_raw{curr_recording} = repmat({nan(2000,length(t_task),'single')}, 5, 1);
+        wf_raw{curr_recording}(unique(stim_to_move_idx))=arrayfun(@(id) permute(aligned_v_baselinesub(stim_to_move_idx==id,:,:),[3,2,1]),...
+            unique(stim_to_move_idx),'UniformOutput',false);
+
+        % tem_image_passive=plab.wf.svd2px(U_master(:,:,1:size(aligned_v_avg,1)),aligned_v_avg);
+        % tem_image_passive=plab.wf.svd2px(U_master(:,:,1:size(wf_raw,1)),wf_raw);
+        %
+        % ap.imscroll(tem_image_passive,t_task)
+        % axis image off
+        % clim( 0.03*[-1,1]);
+        % ap.wf_draw('ccf',[0.5 0.5 0.5]);
+        % colormap( ap.colormap(['BWR']));
+        %
+        clearvars('-except',preload_vars{:});
+        ap.print_progress_fraction(curr_recording,length(recordings2));
+        fprintf('\n');
+
+    end
+
+    wf_stim_kernels_concat.wf_raw(curr_animal_idx)={wf_raw};
+end
+
+
+
 
 save_path = '\\qnap-ap001.dpag.ox.ac.uk\APlab\Lab\Papers\Song_2025\data';
 save(fullfile(save_path,'revision','wf_task_decoding_concatnate.mat'),'wf_stim_kernels_concat','-v7.3');
 
 %%
+
+
+
 clear all
 
 Path = '\\qnap-ap001.dpag.ox.ac.uk\APlab\Lab\Papers\Song_2025';
@@ -243,9 +351,13 @@ U_master = plab.wf.load_master_U;
 
 
 local_data_path= 'D:\Data process\project_cross_model\wf_data\';
-
+animals =     { 'DS007','DS010','AP019','AP021','DS011','AP022'...
+    'DS000','DS004','DS014','DS015','DS016'};
 surround_samplerate = 35;
 t_kernels=1/surround_samplerate*[-10:30];
+
+surround_window = [-0.2,1];
+t_task = surround_window(1):1/surround_samplerate:surround_window(2);
 
 surround_time = [-5,5];
 surround_sample_rate = 100;
@@ -265,14 +377,17 @@ colors = [
 groups={'VA','AV'};
 passive_workflows={'lcr_passive','hml_passive_audio'};
 passive_id={3,2};
-for curr_group=1
+task_name={'visual position','audio volume'}
+used_roi= [7 10];
+for curr_group=1:2
     animals_in_groups=wf_stim_kernels_concat.name(ismember(wf_stim_kernels_concat.group,groups{curr_group}))
 
     for curr_animal=1:length(animals_in_groups)
         animal=animals_in_groups{curr_animal};
         temp_passive_data=load(fullfile (local_data_path,passive_workflows{curr_group},[animal '_' passive_workflows{curr_group},'.mat']));
 
-        temp_passive_wf= nanmean(cat(4,temp_passive_data.wf_px_kernels{find(temp_passive_data.workflow_type==curr_group,5,'last')}),4);
+        temp_passive_wf= nanmean(cat(4,temp_passive_data.wf_px_kernels{find(  ismember (temp_passive_data.workflow_type_name_merge,task_name{curr_group}),5,'last')}),4);
+
 
         wf_stim_kernels_concat.wf_passive_kernels(find(contains(wf_stim_kernels_concat.name,animal)))={temp_passive_wf};
     end
@@ -293,12 +408,13 @@ for curr_group=1
     temp_vel_mean=cellfun(@(x)  median(x,2,'omitmissing'),temp_vel2,'UniformOutput',false  );
     temp_vel_error=cellfun(@(x)  std(x,0,2)./sqrt(size(x,2)),temp_vel2,'UniformOutput',false  );
 
-    % % tem_image_nanmean=feval(@(c) cat(4,c{:}), arrayfun(@(id)  nanmean(cat(4,tem_image{id,:}),4)         ,1:5,'UniformOutput',false));
-    % ap.imscroll(tem_image{1,1},t_kernels)
-    % axis image off
-    % clim( 0.0003*[-1,1]);
-    % ap.wf_draw('ccf',[0.5 0.5 0.5]);
-    % colormap( ap.colormap(['BWR']));
+     tem_image_kernels_mean=feval(@(c) cat(4,c{:}), arrayfun(@(id)  nanmean(cat(4,tem_image{id,:}),4)         ,1:5,'UniformOutput',false));
+    
+     ap.imscroll(tem_image_kernels_mean,t_kernels)
+    axis image off
+    clim( 0.0003*[-1,1]);
+    ap.wf_draw('ccf',[0.5 0.5 0.5]);
+    colormap( ap.colormap(['BWR']));
 
     tem_trace=cellfun(@(x)   ds.make_each_roi(x,t_kernels,roi1),tem_image,'UniformOutput',false);
     tem_trace_mean=arrayfun(@(id)    median(cat(3,tem_trace{id,:}),3,'omitmissing')  ,1:5,'UniformOutput',false);
@@ -306,81 +422,190 @@ for curr_group=1
     tem_trace_peak=arrayfun(@(id)   permute(max(cat(3,tem_trace{id,:}),[],2),[3,1,2])  ,1:5,'UniformOutput',false);
     tem_trace_peak_error=arrayfun(@(id)    std(max(cat(3,tem_trace{id,:}),[],2),0,3)./sqrt(size(tem_trace,2))  ,1:5,'UniformOutput',false);
 
-    figure;
-    tiledlayout(2,6,'Padding','tight','TileSpacing','none','TileIndexing','columnmajor')
-    for curr_state=1:5
+    figure('Position',[50 50 200 600]);
+    tiledlayout(5,1,'Padding','tight','TileSpacing','none','TileIndexing','rowmajor')
+    % cmap = parula(5);
+    cmap = [
+        0.3 0.3 0.8;
+        0.8 0.3 0.3;
+        0.3 0.8 0.3;
+        0.75 0.7 0.3;
+        0.55 0.55 0.55
+        ];% 或者 lines(5), turbo(5)
+    Colors = mat2cell(cmap, ones(5,1), 3);
+    for curr_roi=[used_roi(curr_group) 1 3  14]
         nexttile
-        % ap.errorfill(t_kernels,tem_trace_mean{curr_state}(1,:),tem_trace_error{curr_state}(1,:),colors(curr_state,:),0.5)
-        ap.errorfill(t_kernels,tem_trace_mean{curr_state}(1,:),tem_trace_error{curr_state}(1,:),[ 0.75 0.25 0.23],0.5)
+        for curr_state=1:5
+            hold on
+            ap.errorfill(t_kernels,tem_trace_mean{curr_state}(curr_roi,:),...
+                tem_trace_error{curr_state}(curr_roi,:),Colors{curr_state},0.5);
+            xlim([-0.1 0.50])
+            % if curr_roi
 
-        xlim([-0.1 1])
-        ylim([-0.7 4]*0.0001)
-        xline(0)
-        xline(temp_stim2move_mean(curr_state))
-        axis off
+            if curr_roi==7 ||curr_roi==10
+                temp_max=feval(@(a) max(a(curr_roi,:,:),[],'all'),cat(5,tem_trace_mean{:}))*1.2;
+                temp_min=feval(@(a) min(a(curr_roi,:,:),[],'all'),cat(5,tem_trace_mean{:}))*1.5;
+            else
+                temp_max=0.0003;
+                temp_min=-0.0001;
+            end
 
-        nexttile
-        % ap.errorfill(surround_time_points,temp_vel_mean{curr_state},temp_vel_error{curr_state},colors(curr_state,:),0.5)
-        ap.errorfill(surround_time_points,temp_vel_mean{curr_state},temp_vel_error{curr_state},[ 0.75 0.25 0.23],0.5)
-
-        ylim([-3000 2000])
-        xlim([-0.1 1])
-                xline(temp_stim2move_mean(curr_state))
-
-        xline(0)
-        axis off
-
-
+            ylim([temp_min temp_max ])
+            % ylim([-0.0002 0.0003])
+            xline(0,'.k')
+            xline(temp_stim2move_mean(curr_state),'Color',Colors{curr_state})
+            axis off
+        end
 
     end
 
     nexttile
-
-    ap.errorfill(t_kernels,tem_trace_passive_mean(1,:,passive_id{curr_group}),tem_trace_passive_error(1,:,passive_id{curr_group}),[0.5 0.5 0.5],0.5)
+    hold on
+    cellfun(@(x,y,z) ap.errorfill(surround_time_points,x,y,z,0.5),...
+        temp_vel_mean,temp_vel_error,Colors','UniformOutput',false)
+    temp_max2 = feval(@(a)  max(a,[],'all') ,  cat(1,temp_vel_mean{:}));
+    temp_min2 = feval(@(a)  min(a,[],'all') ,  cat(1,temp_vel_mean{:}))*1.2;
+    ylim([temp_min2 temp_max2])
+    % ylim([-1500 2000])
     xlim([-0.1 0.5])
-    ylim([-0.7 4]*0.0001)
-    xline(0)
+    xline(temp_stim2move_mean(curr_state),'.r')
+    xline(0,'.k')
     axis off
 
 
+    scale_image=0.0004;
+    Color={'B','R'};
+    figure('Position', [50 50 900 400] )
+    mainfig=tiledlayout(5,1,'TileSpacing','none')
 
-    temp_passive_peak=permute(max(cat(4,tem_trace_passive{:}),[],2),[4,1,3,2]);
-    tem_trace_peak_mpfc= [cellfun(@(x) x(:,1) , tem_trace_peak,'uni',false) {temp_passive_peak(:,1,passive_id{curr_group})}];
+    for curr_state=1:5
+        subfig=tiledlayout(mainfig,1,sum(t_kernels>-0.2& t_kernels<0.25),'TileSpacing','none')
+
+        subfig.Layout.Tile=curr_state;
+        for curr_frame=find(t_kernels>-0.2& t_kernels<0.25)
+            ax=nexttile(subfig)
+            imagesc(tem_image_kernels_mean(:,:,curr_frame,curr_state))
+            axis image off;
+            clim(scale_image .* [0, 1]);
+            colormap(ax, ap.colormap(['W' Color{curr_group}] ));
+            ap.wf_draw('ccf', [0.5 0.5 0.5]);
+            if curr_state==1
+                title( num2str(t_kernels(curr_frame),'%.2f'),'FontWeight','normal')
+            end
+
+        end
+    end
 
 
 
-    % figure
-    % ds.make_bar_plot(tem_trace_peak_mpfc)
-
-    kernels_plot_mean=nanmean(cat(2,tem_trace_peak_mpfc{:}),1)
-    kernels_plor_error=std(cat(2,tem_trace_peak_mpfc{:}),0,1,'omitmissing')./sqrt(length(tem_trace_peak_mpfc{1}));
 
 
 
 
-    vel_plot=cellfun(@(x) abs(min(x,[],1)), temp_vel2,'UniformOutput',false     );
-    vel_plot_mean=cellfun(@(x)  nanmean(x),vel_plot,'UniformOutput',true)
-    vel_plor_error=cellfun(@(x)  std(x)./sqrt(length(x)),vel_plot,'UniformOutput',true)
 
-    figure;
+    temp_wf_raw=feval(@(a)  cat(1,a{:}), cellfun(@(a) arrayfun(@(id)  nanmean(cat(3,a{id,:}),3) ,1:5,'uni',false)  ,...
+        cellfun(@(x)  cat(2,x{:})         ,...
+       wf_stim_kernels_concat.wf_raw(ismember(wf_stim_kernels_concat.group,groups{curr_group})),'uni',false),...
+       'UniformOutput',false))
+
+    tem_image_raw=cellfun(@(x) plab.wf.svd2px(U_master(:,:,1:size(x,1)),x),temp_wf_raw,'UniformOutput',false);
+    tem_trace_raw=cellfun(@(x)   ds.make_each_roi(x,t_kernels,roi1),tem_image_raw,'UniformOutput',false);
+
+
+   tem_image_raw_mean= arrayfun(@(a) nanmean(cat(3,tem_trace_raw{:,a}),3) ,1:5,'uni',false);
+    tem_image_raw_error=arrayfun(@(a) nanstd(cat(3,tem_trace_raw{:,a}),0,3)./sqrt(size(tem_trace_raw,1)) ,1:5,'uni',false);
+
+    tem_image_nanmean=feval(@(a)   cat(4,a{:}), arrayfun(@(a) nanmean(cat(4,tem_image_raw{:,a}),4) ,1:5,'uni',false));
+    ap.imscroll(tem_image_nanmean,t_task)
+    axis image off
+    clim( 0.03*[-1,1]);
+    ap.wf_draw('ccf',[0.5 0.5 0.5]);
+    colormap( ap.colormap(['BWR']));
+
+
+    figure('Position',[50 50 400 300]);
+    tiledlayout(5,5,'Padding','tight','TileSpacing','none','TileIndexing','columnmajor')
+    % for curr_roi=[1 3]
+    for curr_state=1:5
+        for curr_roi=[used_roi(curr_group) 1 3  14]
+            nexttile
+            % hold on
+            ap.errorfill(t_task,tem_image_raw_mean{curr_state}(curr_roi,:),tem_image_raw_error{curr_state}(curr_roi,:),[ 0.23 0.25 0.75],0.5)
+
+            xlim([-0.1 0.5])
+          
+             ylim([-0.01 0.02 ])
+
+            
+            xline(0,'.k')
+            xline(temp_stim2move_mean(curr_state),'.r')
+             axis off
+        end
+        nexttile
+        ap.errorfill(surround_time_points,temp_vel_mean{curr_state},temp_vel_error{curr_state},[ 0.7 0.7 0.7],0.5)
+        temp_max2 = feval(@(a)  max(a,[],'all') ,  cat(1,temp_vel_mean{:}));
+        temp_min2 = feval(@(a)  min(a,[],'all') ,  cat(1,temp_vel_mean{:}))*1.4;
+
+        ylim([temp_min2 temp_max2])
+
+        % ylim([-1500 2000])
+        xlim([-0.1 0.5])
+        xline(temp_stim2move_mean(curr_state),'.r')
+        xline(0,'.k')
+        axis off
+    end
+
+
+
+    figure('Position',[50 50 200 600]);
+    tiledlayout(5,1,'Padding','tight','TileSpacing','none','TileIndexing','rowmajor')
+    % cmap = parula(5);
+    cmap = [
+        0.3 0.3 0.8;
+        0.8 0.3 0.3;
+        0.3 0.8 0.3;
+        0.75 0.7 0.3;
+        0.55 0.55 0.55
+        ];% 或者 lines(5), turbo(5)
+    Colors = mat2cell(cmap, ones(5,1), 3);
+    for curr_roi=[used_roi(curr_group) 1 3  14]
+        nexttile
+        for curr_state=1:5
+            hold on
+            ap.errorfill(t_ta,tem_image_raw_mean{curr_state}(curr_roi,:),...
+                tem_image_raw_error{curr_state}(curr_roi,:),Colors{curr_state},0.5);
+            xlim([-0.1 0.50])
+            % if curr_roi
+
+            if curr_roi==7 ||curr_roi==10
+                temp_max=feval(@(a) max(a(curr_roi,:,:),[],'all'),cat(5,tem_trace_mean{:}))*1.2;
+                temp_min=feval(@(a) min(a(curr_roi,:,:),[],'all'),cat(5,tem_trace_mean{:}))*1.5;
+            else
+                temp_max=0.0003;
+                temp_min=-0.0001;
+            end
+
+            ylim([temp_min temp_max ])
+            % ylim([-0.0002 0.0003])
+            xline(0,'.k')
+            xline(temp_stim2move_mean(curr_state),'Color',Colors{curr_state})
+            axis off
+        end
+
+    end
+
     nexttile
-    ap.errorfill(1:6,kernels_plot_mean,kernels_plor_error,[0.5 0.5 0.5],0.5)
-    ylim([0 0.0003])
-    xlim([1 6])
-
-    nexttile
-    ap.errorfill(1:5,vel_plot_mean,vel_plor_error,[0.5 0.5 0.5],0.5)
-    xlim([1 6])
-
-
-
-
+    hold on
+    cellfun(@(x,y,z) ap.errorfill(surround_time_points,x,y,z,0.5),...
+        temp_vel_mean,temp_vel_error,Colors','UniformOutput',false)
+    temp_max2 = feval(@(a)  max(a,[],'all') ,  cat(1,temp_vel_mean{:}));
+    temp_min2 = feval(@(a)  min(a,[],'all') ,  cat(1,temp_vel_mean{:}))*1.2;
+    ylim([temp_min2 temp_max2])
+    % ylim([-1500 2000])
+    xlim([-0.1 0.5])
+    xline(temp_stim2move_mean(curr_state),'.r')
+    xline(0,'.k')
+    axis off
 end
 
-% colors = [
-%     0.75 0.25 0.23
-%     0.85 0.45 0.40
-%     0.90 0.65 0.60
-%     0.95 0.80 0.78
-%     0.98 0.90 0.88
-% ];
+   

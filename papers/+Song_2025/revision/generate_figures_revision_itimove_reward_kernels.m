@@ -26,23 +26,25 @@ main_preload_vars = who;
 load_dataset='wf_task_kernels';
 load(fullfile(Path,'data','revision/',load_dataset));
 
-tem_image=cellfun(@(x) plab.wf.svd2px(U_master(:,:,1:size(x,1)),x),  wf_task_kernels_move_iti_across_day,'UniformOutput',false);
+% tem_image=cellfun(@(x) plab.wf.svd2px(U_master(:,:,1:size(x,1)),x),  wf_task_kernels_move_iti_across_day,'UniformOutput',false);
 % tem_image=cellfun(@(x) plab.wf.svd2px(U_master(:,:,1:size(x,1)),x),  wf_task_kernels_reward_across_day,'UniformOutput',false);
+tem_image=cellfun(@(x) plab.wf.svd2px(U_master(:,:,1:size(x,1)),x),  wf_task_kernels_move_across_day,'UniformOutput',false);
+ % tem_image=cellfun(@(x) plab.wf.svd2px(U_master(:,:,1:size(x,1)),x),  wf_task_kernels_move_all_across_day,'UniformOutput',false);
 
 tem_image_video=cellfun(@(x)   cat(4,nanmean(x(:,:,:,[1:3],:),[4,5]), nanmean(x(:,:,:,[4:8],:),[4,5])),   tem_image, 'UniformOutput',false )
 
 
-scale_image=0.0002;
+scale_image=0.0003;
 Color={'B','R'};
 figure('Position', [50 50 900 400] )
 mainfig=tiledlayout(4,1,'TileSpacing','none')
 for curr_group=1:2
 
     for curr_stage=1:2
-            subfig=tiledlayout(mainfig,1,sum(t_kernels>-0.1& t_kernels<0.2),'TileSpacing','none')
+            subfig=tiledlayout(mainfig,1,sum(t_kernels>-0.3& t_kernels<0.25),'TileSpacing','none')
 
     subfig.Layout.Tile=2*curr_group+curr_stage-2;
-    for curr_frame=find(t_kernels>-0.1& t_kernels<0.2)
+    for curr_frame=find(t_kernels>-0.3& t_kernels<0.25)
         ax=nexttile(subfig)
         imagesc(tem_image_video{curr_group}(:,:,curr_frame,curr_stage))
         axis image off;
@@ -58,7 +60,7 @@ for curr_group=1:2
 end
 
 
-% 
+ 
 % ap.imscroll(tem_image_video{2},t_kernels)
 % axis image off
 % clim( 0.0003*[-1,1]);

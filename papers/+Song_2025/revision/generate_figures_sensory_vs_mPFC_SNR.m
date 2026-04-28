@@ -67,7 +67,8 @@ sensory_name={'visual','auditory'}
 figure
 for curr_group=1:2
     % a1{curr_roi,curr_group}=nexttile(t1,curr_roi*8-8+curr_group*3+1)
-    a1=nexttile
+    % a1=nexttile
+    a1=axes
     hold on
     % h1 = scatter(NaN,NaN,20,'filled','MarkerFaceColor',[0.2 0.2 0.2],'LineWidth',1);
     % cellfun(@(t2,l2)   scatter(t2(l2==0,sensory_id(curr_group)),t2(l2==0,1),20,'filled',...
@@ -131,31 +132,34 @@ for curr_group=1:2
     %
     %
 
-    x1max=feval(@(a) max(a(cat(1,temp_learn{curr_group}{:})==1,sensory_id(curr_group))),   cat(1,temp_task_peak2{curr_group}{:}))
-    y1max=feval(@(a) max(a(cat(1,temp_learn{curr_group}{:})==1,1)),   cat(1,temp_task_peak2{curr_group}{:}))
+    % x1max=feval(@(a) max(a(cat(1,temp_learn{curr_group}{:})==1,sensory_id(curr_group))),   cat(1,temp_task_peak2{curr_group}{:}))
+    % y1max=feval(@(a) max(a(cat(1,temp_learn{curr_group}{:})==1,1)),   cat(1,temp_task_peak2{curr_group}{:}))
 
-    xlim([0 x1max])
-    xticks([0 x1max ])
-    xticklabels({'0','max'})
-    ylim([0 y1max])
-   yticks([0 y1max ])
-    yticklabels({'0','max'})
-    % % title(roi_name{curr_roi} ,'FontWeight','normal')
 
-    xlabel([sensory_name{curr_group} ' Norm \Delta F/F_{0}'])
-    ylabel('mPFC Norm \Delta F/F_{0}')
-    axis square
+x1max=0.001
+y1max=0.0004
+xlim([0 x1max])
+xticks([0 x1max ])
+% xticklabels({'0','max'})
+ylim([0 y1max])
+yticks([0 y1max ])
+% yticklabels({'0','max'})
+% % title(roi_name{curr_roi} ,'FontWeight','normal')
 
-    a1.FontSize = 12;
-        legend([h2  h4], ...
-            {'task','passive'},'NumColumns',2, ...
-            'Location','northoutside','Box','off');
-    
-    set(gca, 'Color', 'none');        % 坐标轴背景透明
+axis square
 
+
+
+a1.FontSize = 12;
+legend([h2  h4], ...
+    {'task','passive'},'NumColumns',2, ...
+    'Location','northoutside','Box','off');
+
+set(gca, 'Color', 'none');        % 坐标轴背景透明
+
+  
 end
 
 
-
-
+ylabel('mPFC Norm \Delta F/F_{0}')
 

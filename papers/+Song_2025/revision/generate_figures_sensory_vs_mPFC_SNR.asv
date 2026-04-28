@@ -65,95 +65,102 @@ a1=cell(2,2)
 sensory_id=[3 4]
 sensory_name={'visual','auditory'}
 figure
-    for curr_group=1:2
-        % a1{curr_roi,curr_group}=nexttile(t1,curr_roi*8-8+curr_group*3+1)
-        nexttile
-        hold on
-        h1 = scatter(NaN,NaN,20,'filled','MarkerFaceColor',[0.2 0.2 0.2],'LineWidth',1);
+for curr_group=1:2
+    % a1{curr_roi,curr_group}=nexttile(t1,curr_roi*8-8+curr_group*3+1)
+    % a1=nexttile
+    a1=axes
+    hold on
+    % h1 = scatter(NaN,NaN,20,'filled','MarkerFaceColor',[0.2 0.2 0.2],'LineWidth',1);
+    % cellfun(@(t2,l2)   scatter(t2(l2==0,sensory_id(curr_group)),t2(l2==0,1),20,'filled',...
+    %     'MarkerFaceColor',[0.2 0.2 0.2],'LineWidth',1),...
+    %     temp_task_peak2{curr_group},temp_learn{curr_group},'UniformOutput',false )
+    % 
 
-      
-        cellfun(@(t2,l2)   scatter(t2(l2==0,sensory_id(curr_group)),t2(l2==0,1),20,'filled',...
-            'MarkerFaceColor',[0.2 0.2 0.2],'LineWidth',1),...
-            temp_task_peak2{curr_group},temp_learn{curr_group},'UniformOutput',false )
+    h2 = scatter(NaN,NaN,20,'filled','MarkerFaceColor',colors_1{curr_group}(1,:),'LineWidth',1);
 
-cellfun(@(x)  x(:,sensory_id(curr_group))  , ...
-    ...
-    cat(1,temp_task_peak2{curr_group})
 
-        h2 = scatter(NaN,NaN,20,'filled','MarkerFaceColor',colors_1{curr_group}(1,:),'LineWidth',1);
-     
-
-        cellfun(@(t2,l2)   scatter(t2(l2==1,sensory_id(curr_group)),t2(l2==1,1),20,'filled',...
-            'MarkerFaceColor',colors_1{curr_group}(1,:),'LineWidth',1),...
-            temp_task_peak2{curr_group},temp_learn{curr_group},'UniformOutput',false )
+    cellfun(@(t2,l2)   scatter(t2(l2==1,sensory_id(curr_group)),t2(l2==1,1),20,'filled',...
+        'MarkerFaceColor',colors_1{curr_group}(1,:),'LineWidth',1),...
+        temp_task_peak2{curr_group},temp_learn{curr_group},'UniformOutput',false )
 
 
 
-        % 
-        % h3 = scatter(NaN,NaN,20,'filled','MarkerFaceColor',[0.5 0.5 0.5],'LineWidth',1);
-        % cellfun(@(t2,l2)   scatter(t2(l2==0,sensory_id(curr_group)),t2(l2==0,1),20,'filled',...
-        %     'MarkerFaceColor',[0.5 0.5 0.5],'LineWidth',1),...
-        %    temp_passive_peak2{curr_group},temp_learn{curr_group},'UniformOutput',false )
-        % 
-        % 
-        % h4 = scatter(NaN,NaN,20,'filled','MarkerFaceColor',colors_1{curr_group}(2,:),'LineWidth',1);
-        % cellfun(@(t2,l2)   scatter(t2(l2==1,sensory_id(curr_group)),t2(l2==1,1),20,'filled',...
-        %     'MarkerFaceColor',colors_1{curr_group}(2,:),'LineWidth',1),...
-        %    temp_passive_peak2{curr_group},temp_learn{curr_group},'UniformOutput',false )
-        % 
 
-        % 
-        % learn_3=logical(cat(1,temp_learn{curr_group}{:}));
-        % 
-        % task_peak3=cat(1,temp_task_peak2{curr_group}{:});
-        % perform3=cat(1,temp_perform{curr_group}{:});
-        % 
-        % p_task = polyfit(perform3(learn_3), task_peak3(learn_3,curr_roi), 1);
-        % x_fit_task = linspace(0, 1, 2);
-        % y_fit_task = polyval(p_task, x_fit_task);
-        % plot(x_fit_task, y_fit_task, '-', 'LineWidth', 2,'Color',colors_1{curr_group}(1,:));
-        % 
-        % 
-        % passive_peak3=cat(1,temp_passive_peak2{curr_group}{:});
-        % 
-        % 
-        % p_passive = polyfit(perform3(learn_3), passive_peak3(learn_3,curr_roi), 1);
-        % x_fit_passive = linspace(0, 1, 2);
-        % y_fit_passive = polyval(p_passive, x_fit_passive);
-        % plot(x_fit_passive, y_fit_passive, '-', 'LineWidth', 2,'Color',colors_1{curr_group}(2,:));
-        % 
-        % 
-        % [R_task,P_task] = corr(perform3(learn_3), task_peak3(learn_3,curr_roi));
-        % 
-        % [R_passive,P_passive] = corr(perform3(learn_3),  passive_peak3(learn_3,curr_roi));
-        % 
-        % 
-        % slope_task{curr_group}{curr_roi}= cellfun(@(perform,peak,learned) diff(polyval( polyfit( perform, peak(:,curr_roi),1), linspace(0, 1, 2))),...
-        %     temp_perform{curr_group},temp_task_peak2{curr_group},temp_learn{curr_group},'UniformOutput',true);
-        % 
-        % slope_pass{curr_group}{curr_roi}= cellfun(@(perform,peak,learned) diff(polyval( polyfit( perform, peak(:,curr_roi),1), linspace(0, 1, 2))),...
-        %     temp_perform{curr_group},temp_passive_peak2{curr_group},temp_learn{curr_group},'UniformOutput',true);
-        % 
-        % 
-         xlim([0 0.0008])
-         ylim([0 0.0005])
-
-        % % title(roi_name{curr_roi} ,'FontWeight','normal')
-         
-        xlabel([sensory_name{curr_group} ' max \Delta F/F_{0}'])
-        ylabel('mPFC max \Delta F/F_{0}')
-         axis square
-        % a1{curr_roi,curr_group}.FontSize = font_size;
-        % if curr_roi==1
-        %     legend([h1 h2 h3 h4], ...
-        %         {'task pre','task post','passive pre','passive post'},'NumColumns',2, ...
-        %         'Location','northoutside','Box','off');
-        % end
-        % set(gca, 'Color', 'none');        % 坐标轴背景透明
-
-    end
+    % h3 = scatter(NaN,NaN,20,'filled','MarkerFaceColor',[0.5 0.5 0.5],'LineWidth',1);
+    % cellfun(@(t2,l2)   scatter(t2(l2==0,sensory_id(curr_group)),t2(l2==0,1),20,'filled',...
+    %     'MarkerFaceColor',[0.5 0.5 0.5],'LineWidth',1),...
+    %    temp_passive_peak2{curr_group},temp_learn{curr_group},'UniformOutput',false )
 
 
+    h4 = scatter(NaN,NaN,20,'filled','MarkerFaceColor',colors_1{curr_group}(2,:),'LineWidth',1);
+    cellfun(@(t2,l2)   scatter(t2(l2==1,sensory_id(curr_group)),t2(l2==1,1),20,'filled',...
+        'MarkerFaceColor',colors_1{curr_group}(2,:),'LineWidth',1),...
+       temp_passive_peak2{curr_group},temp_learn{curr_group},'UniformOutput',false )
+
+
+    %
+    % learn_3=logical(cat(1,temp_learn{curr_group}{:}));
+    %
+    % task_peak3=cat(1,temp_task_peak2{curr_group}{:});
+    % perform3=cat(1,temp_perform{curr_group}{:});
+    %
+    % p_task = polyfit(perform3(learn_3), task_peak3(learn_3,curr_roi), 1);
+    % x_fit_task = linspace(0, 1, 2);
+    % y_fit_task = polyval(p_task, x_fit_task);
+    % plot(x_fit_task, y_fit_task, '-', 'LineWidth', 2,'Color',colors_1{curr_group}(1,:));
+    %
+    %
+    % passive_peak3=cat(1,temp_passive_peak2{curr_group}{:});
+    %
+    %
+    % p_passive = polyfit(perform3(learn_3), passive_peak3(learn_3,curr_roi), 1);
+    % x_fit_passive = linspace(0, 1, 2);
+    % y_fit_passive = polyval(p_passive, x_fit_passive);
+    % plot(x_fit_passive, y_fit_passive, '-', 'LineWidth', 2,'Color',colors_1{curr_group}(2,:));
+    %
+    %
+    % [R_task,P_task] = corr(perform3(learn_3), task_peak3(learn_3,curr_roi));
+    %
+    % [R_passive,P_passive] = corr(perform3(learn_3),  passive_peak3(learn_3,curr_roi));
+    %
+    %
+    % slope_task{curr_group}{curr_roi}= cellfun(@(perform,peak,learned) diff(polyval( polyfit( perform, peak(:,curr_roi),1), linspace(0, 1, 2))),...
+    %     temp_perform{curr_group},temp_task_peak2{curr_group},temp_learn{curr_group},'UniformOutput',true);
+    %
+    % slope_pass{curr_group}{curr_roi}= cellfun(@(perform,peak,learned) diff(polyval( polyfit( perform, peak(:,curr_roi),1), linspace(0, 1, 2))),...
+    %     temp_perform{curr_group},temp_passive_peak2{curr_group},temp_learn{curr_group},'UniformOutput',true);
+    %
+    %
+
+    % x1max=feval(@(a) max(a(cat(1,temp_learn{curr_group}{:})==1,sensory_id(curr_group))),   cat(1,temp_task_peak2{curr_group}{:}))
+    % y1max=feval(@(a) max(a(cat(1,temp_learn{curr_group}{:})==1,1)),   cat(1,temp_task_peak2{curr_group}{:}))
+
+  
+end
+
+
+x1max=0.001
+y1max=0.0004
+xlim([0 x1max])
+xticks([0 x1max ])
+% xticklabels({'0','max'})
+ylim([0 y1max])
+yticks([0 y1max ])
+% yticklabels({'0','max'})
+% % title(roi_name{curr_roi} ,'FontWeight','normal')
+
+xlabel([sensory_name{curr_group} ' Norm \Delta F/F_{0}'])
+axis square
+
+ylabel('mPFC Norm \Delta F/F_{0}')
+
+
+a1.FontSize = 12;
+legend([h2  h4], ...
+    {'task','passive'},'NumColumns',2, ...
+    'Location','northoutside','Box','off');
+
+set(gca, 'Color', 'none');        % 坐标轴背景透明
 
 
 

@@ -9,8 +9,7 @@ time_period = surround_window(1):1/mousecam_framerate:surround_window(2);
 animals = { ...
     'DS007','DS010','AP019','AP021','DS011','AP022', ...
     'DS000','DS004','DS014','DS015','DS016'};
-% animals={'DS029','DS030','DS031','AP032'}
-
+% animals={'DS029','DS030','DS031','AP032'};
 
 
 % if ~exist('workflows','var') || isempty(workflows)
@@ -62,7 +61,6 @@ animals = { ...
 %     'lcr_passive'; ...
 %     'hml_passive_audio_earphone_balance_only'};
 
-
 % workflows = { ...
 %     'stim_wheel_right_stage2_mixed_VA_earphone'; ...
 %     'lcr_passive'; ...
@@ -83,16 +81,18 @@ workflows = { ...
      'stim_wheel_right_stage1_audio_frequency$|' ...
      'stim_wheel_right_stage2_audio_frequency$|' ...
      'stim_wheel_right_frequency_stage2_mixed_VA$|' ...
-     'stim_wheel_right_stage2_mixed_VA$']; ...
+     'stim_wheel_right_stage2_mixed_VA$|' ...
+     'stim_wheel_right_stage2_mixed_VA_earphone']; ...
     'lcr_passive'; ...
     'hml_passive_audio'};
 
-
-
+workflows_short=['task';arrayfun(@(id) workflows{id},2:numel(workflows),'UniformOutput',false )']
 % 想跑哪些 workflow   task, lcr_passive, hml_passive_audio
-workflow_idx = [1 2  3 ];
+workflow_idx = [ 2 3 ];
 % 例如只跑 1 和 3：
 % workflow_idx = [1, 3];
+
+overwrite=1;
 
 % ====== 每个 workflow 的运行配置 ======
 % run_behavior / run_wf_task / run_wf_passive / run_face
@@ -102,14 +102,14 @@ default_cfg = struct( 'run_behavior', false,  'run_wf_task', false, ...
     'field_behavior', '', 'field_wf', '',  'field_face', '' );
 
 cfg1 = default_cfg;
-cfg1.run_behavior = 1;
-cfg1.run_wf_task = 1;
-cfg1.run_ephys = 1;
-cfg1.run_face = 1;
+cfg1.run_behavior = 0;
+cfg1.run_wf_task = 0;
+cfg1.run_ephys = 0;
+cfg1.run_face = 0;
 cfg1.field_task_name = 'task_name';
 cfg1.field_behavior = 'behavior_task';
 cfg1.field_wf = 'wf_task';
-cfg1.field_ephys = 'ehpys_task';
+cfg1.field_ephys = 'ephys_task';
 cfg1.field_face = 'face_task';
 workflow_cfg{1} = cfg1;
 
@@ -117,24 +117,27 @@ for k = 2:numel(workflows)
     cfg = default_cfg;
     cfg.field_wf = ['wf_' workflows{k}];
     cfg.field_face = ['face_' workflows{k}];
-    cfg.field_ephys = ['ehpys_' workflows{k}];
-    cfg.run_ephys = 1;
-    cfg.run_wf_passive = 1;
+    cfg.field_ephys = ['ephys_' workflows{k}];
+    cfg.run_ephys = 0;
+    cfg.run_wf_passive = 0;
     cfg.run_face = 1;
 
     workflow_cfg{k} = cfg;
 end
- struct_names={'day',cfg1.field_task_name,cfg1.field_behavior,cfg1.field_wf,cfg1.field_ephys,cfg1.field_face,...
-     workflow_cfg{2}.field_wf,workflow_cfg{2}.field_ephys,workflow_cfg{2}.field_face,...
-     workflow_cfg{3}.field_wf,workflow_cfg{3}.field_ephys,workflow_cfg{3}.field_face}';
+ struct_names=[{'day';cfg1.field_task_name;cfg1.field_behavior;...
+     cfg1.field_wf;...
+     cfg1.field_ephys;...
+     cfg1.field_face}; feval(@(a) cat(1,a{:}),arrayfun(@(id) ...
+     {workflow_cfg{id}.field_wf; workflow_cfg{id}.field_ephys;workflow_cfg{id}.field_face} ,...
+    2:numel(workflows),'UniformOutput',false))];
 
 % task / passive 处理部分
 % which kernels to process in task
 wf_task_process_parts = struct( ...
     'stim', 1, ...
     'move', 0, ...
-    'iti_move', 1, ...
-    'reward', 1, ...
+    'iti_move', 0, ...
+    'reward', 0, ...
     'all_iti_move', 0);
 
 % which kernels to process in passive
@@ -142,7 +145,7 @@ wf_passive_process_parts = struct( ...
     'averaged_data', 0, ...
     'kernels', 1);
  
-for curr_animal = 5:length(animals)
+for curr_animal = 1:length(animals)
     main_preload_vars = who;
     animal = animals{curr_animal};
 
@@ -157,6 +160,13 @@ for curr_animal = 5:length(animals)
         data_all=load(data_file);
         disp('文件已加载');
         % data_all_index=data_all.data_all_index;
+
+        oldNames = fieldnames(data_all.data_all_index);
+        missingNames = setdiff(struct_names(:), oldNames, 'stable');
+        for k = 1:numel(missingNames)
+            [data_all.data_all_index.(missingNames{k})] = deal([]);
+        end
+
     else
         disp('文件不存在');
         data_all = cell2struct(repmat({cell(length(workflow_days),1)},1,length(struct_names)), struct_names, 2);
@@ -168,8 +178,8 @@ for curr_animal = 5:length(animals)
     end
 
 
-    % for curr_day =1:length(workflow_days)
-    for curr_day =find(cellfun(@isempty,{data_all.data_all_index.wf_lcr_passive}))
+    for curr_day =1:length(workflow_days)
+    % for curr_day =find(cellfun(@isempty,{data_all.data_all_index.wf_lcr_passive}))
 
 
         preload_vars = who;
@@ -190,26 +200,35 @@ for curr_animal = 5:length(animals)
                 numel(load(plab.locations.filename('server', animal, rec_day, rt, 'timelite.mat'), ...
                 'timestamps').timestamps), temp_recording.recording));
             rec_time = temp_recording.recording{index_real};
-
-            if ~((temp_recording.ephys==1&&cfg.run_ephys==1)||...
-                    (temp_recording.widefield(index_real)==1 && (cfg.run_wf_passive==1||cfg.run_wf_task==1)))
-                continue;
+            
+            % 是否覆盖
+            if overwrite==0
+                temp_strcut_idx=data_all.data_all_index(curr_day);
+            else
+                temp_strcut_idx = cell2struct(repmat({[]},1,numel(struct_names)), struct_names, 2);
             end
+           % if ~((temp_recording.ephys==1&&cfg.run_ephys==1)||...
+            %         (temp_recording.widefield(index_real)==1 && (cfg.run_wf_passive==1||cfg.run_wf_task==1)))
+            %     continue;
+            % end
 
             verbose = true;
             load_parts = struct;
 
-            if cfg.run_behavior
+            if cfg.run_behavior & isempty(temp_strcut_idx.behavior_task)
                 load_parts.behavior = true;
             end
-            if cfg.run_face
+            if cfg.run_face & isempty(temp_strcut_idx.(['face_' workflows_short{curr_workflow}]))
                 load_parts.mousecam = true;
             end
-            if (cfg.run_wf_passive ||cfg.run_wf_task)&& any(recordings(curr_day).widefield)
+
+            if (cfg.run_wf_passive ||cfg.run_wf_task)&& any(recordings(curr_day).widefield)&&...
+                isempty(temp_strcut_idx.(['wf_' workflows_short{curr_workflow}]))
                 load_parts.widefield_master = true;
                 load_parts.widefield = true;
             end
-            if cfg.run_ephys&& recordings(curr_day).ephys
+            if cfg.run_ephys&& recordings(curr_day).ephys&&...
+                isempty(temp_strcut_idx.(['ephys_' workflows_short{curr_workflow}]))       
                 load_parts.ephys = true;
             end
 
@@ -229,31 +248,34 @@ for curr_animal = 5:length(animals)
             end
 
             % task widefield
-            if cfg.run_wf_task&& any(recordings(curr_day).widefield)
+            if cfg.run_wf_task&& any(recordings(curr_day).widefield)&&...
+                isempty(temp_strcut_idx.(['wf_' workflows_short{curr_workflow}]))
                 ds.process_wf_task;
                 fn = fieldnames(wf_task_data);
                 for i = 1:numel(fn)
-                    data_all.(cfg.field_wf).(fn{i}){curr_day,1} = wf_task_data.(fn{i});
+                    data_all.(cfg.field_wf){curr_day,1}.(fn{i}) = wf_task_data.(fn{i});
                     data_all.data_all_index(curr_day).(cfg.field_wf).(fn{i})=1;
                 end
             end
 
             % passive widefield
-            if cfg.run_wf_passive&& any(recordings(curr_day).widefield)
+            if cfg.run_wf_passive&& any(recordings(curr_day).widefield)&&...
+                isempty(temp_strcut_idx.(['wf_' workflows_short{curr_workflow}]))
                 ds.process_wf_passive;
                 data_all.(cfg.field_wf){curr_day,1} =wf_passive_data;
                 data_all.data_all_index(curr_day).(cfg.field_wf) =1;
             end
 
             % face tracking
-            if cfg.run_face
+            if cfg.run_face& isempty(temp_strcut_idx.(['face_' workflows_short{curr_workflow}]))
                 ds.process_face_tracking;
                 data_all.(cfg.field_face){curr_day,1} = sleap_data;
                 data_all.data_all_index(curr_day).(cfg.field_face) = 1;
             end
 
             % ephys data
-            if cfg.run_ephys&& recordings(curr_day).ephys
+            if cfg.run_ephys&& recordings(curr_day).ephys...
+                    & isempty(temp_strcut_idx.(['ephys_' workflows_short{curr_workflow}]))
                 ds.process_ephys;
                 data_all.(cfg.field_ephys){curr_day,1} = ephys_data;
                 data_all.data_all_index(curr_day).(cfg.field_ephys) = 1;
@@ -264,7 +286,7 @@ for curr_animal = 5:length(animals)
     end
 
     % data_all.data_all_index=data_all_index;
-    data_all.data_all_index= orderfields(data_all.data_all_index, struct_names);
+    % data_all.data_all_index= orderfields(data_all.data_all_index, struct_names);
 
     save(data_file, '-struct', 'data_all', '-v7.3');
 

@@ -103,23 +103,19 @@ ylabel('Performance');
 
 figure('Position',[50 50 200 300])
 sensory_roi=[7 9]
-cmap{1}=colormap([linspace(0.7,0,6)', linspace(0.7,0,6)', linspace(1,1,6)']) % 浅蓝→深蓝
-cmap{2}=colormap([linspace(1,1,6)', linspace(0.7,0,6)', linspace(0.7,0,6)'])   % 浅红→深红
+cmap{1}=colormap([linspace(0,0,6)', linspace(0,0,6)', linspace(1,0,6)']) % 浅蓝→深蓝
+cmap{2}=colormap([linspace(1,0.5,6)', linspace(0.8,0,6)', linspace(0.8,0,6)'])   % 浅红→深红
 R_task=[];
 P_task=[];
 for curr_group=1:2
-    
 kernels_data=tempdata{curr_group}.kernels_data;
 temp_image=cellfun(@(x) plab.wf.svd2px(U_master(:,:,1:size(x,1)),x),kernels_data.kernels,'UniformOutput',false);
 temp_plot_tace=feval(@(a) cat(4,a{:}), cellfun(@(x)  ds.make_each_roi( nanmean(x,5), length(t_kernels),roi1)  , temp_image,'UniformOutput',false  ));
  temp_plot_tace_max=permute(max(temp_plot_tace(:,period,:,:),[],2),[3,1,4,2]);
 
- temp_x=nanmean(temp_plot_tace_max(:,sensory_roi(curr_group),:),3);
+ temp_x=nanmean(temp_plot_tace_max(:,sensory_roi(curr_group)),3);
  temp_y= nanmean(temp_plot_tace_max(:,1,:),3);
- hold on
-scatter(temp_x, temp_y, 50, cmap{curr_group},'filled')
-
-
+ 
  p_passive = polyfit(temp_x, temp_y, 1);
  x_fit_passive =[0 0.0002] ;
  y_fit_passive = polyval(p_passive, x_fit_passive);
@@ -128,7 +124,8 @@ scatter(temp_x, temp_y, 50, cmap{curr_group},'filled')
  box off
 
 
-
+hold on
+scatter(temp_x, temp_y, 50, cmap{curr_group},'filled')
 
 end
 ylabel('mPFC \DeltaF/F_0')

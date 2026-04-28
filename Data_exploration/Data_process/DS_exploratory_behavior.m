@@ -1,12 +1,26 @@
 %% Exploratory behavior analysis
 clear all
-animal='AM011'
+animal='AP022'
 
 load_parts = struct;
 load_parts.behavior = true;
 load_parts.mousecam = true;
 
 ap.load_recording;
+%%
+ds.process_face_tracking
+
+
+temp_center=sleap_data.pupil_data.center_filt_sav
+
+temp_trace=cellfun(@(x)   vecnorm(diff(nanmean(x,1),1,2),2,3),temp_center,'UniformOutput',false )
+
+figure;
+hold on
+cellfun(@(x) plot(x)   ,temp_trace,'UniformOutput',false)
+legend
+
+
 
 %% Align mousecam to event
 

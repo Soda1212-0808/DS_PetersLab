@@ -18,9 +18,10 @@ if any(~cellfun(@isfile, temp_mousecam_path))
     return;   % 直接停止当前函数/脚本
 end
 
-
 temp_face_tracks=cell(2,1);
 temp_node_names=cell(2,1);
+validation=struct;
+validate_name={'face','pupil'};
 for curr_model=1:2
     mousecam_path=fullfile(Sleap_Paths{curr_model},animal,face_name);
 
@@ -30,33 +31,35 @@ for curr_model=1:2
         size(temp_data,2),size(temp_data,3)));
     % temp_face_tracks{curr_model} = h5read(mousecam_path, '/tracks');
     occupancy = h5read(mousecam_path, '/track_occupancy');
-    
+
+    validation.(validate_name{curr_model})= sum(occupancy)/length(occupancy)>0.8
+
     pointScores = h5read(mousecam_path,'/point_scores')'; % frames x nodes
-  instanceScores = h5read(mousecam_path, '/instance_scores')'; % transpose to 1 x frames
+    instanceScores = h5read(mousecam_path, '/instance_scores')'; % transpose to 1 x frames
 
     temp_node_names{curr_model} = h5read(mousecam_path, '/node_names');
 end
 
+face_tracks.nose=temp_face_tracks{1};
+% face_tracks.nose_filt=sgolayfilt(temp_face_tracks{2}, 3, 15,[],1);
+temp_trace=fillmissing(reshape(face_tracks.nose, size(face_tracks.nose,1), []), "linear");
+temp_trace(~isfinite(temp_trace)) = 0;          % 去 NaN / Inf
 
-% temp_face_tracks{2}
-% figure;
-% for curr_node=1:8
-%     hold on
-% plot(temp_face_tracks{2}(:,curr_node,1),temp_face_tracks{2}(:,curr_node,2))
-% 
-% end
+face_tracks.nose_filt=reshape(lowpass(temp_trace, 4, 30),...
+    size(face_tracks.nose));
+face_tracks.nose_filt_sav = ...
+    reshape(sgolayfilt(reshape(face_tracks.nose_filt, size(face_tracks.nose_filt,1), []), 3, 15),...
+    size(face_tracks.nose_filt));
+face_tracks.pupil_trace=temp_face_tracks{2};
 
-% X=temp_face_tracks{2}(:,:,1)';
-% Y=temp_face_tracks{2}(:,:,2)';
-% figure;
-% plot(Y')
-
-face_tracks=cat(2,temp_face_tracks{:});
 node_names=cat(1,temp_node_names{:});
 [pupil.radius, pupil.center, pupil.diameterPx, pupil.fitRmse, pupil.diameterZ] =...
     ds.pupil_size(temp_face_tracks{2}(:,:,1)',temp_face_tracks{2}(:,:,2)');
 pupil.diameterZ_filt=lowpass(fillmissing(pupil.diameterZ, "linear"), 4, 30);
 pupil.diameterZ_filt_sav=sgolayfilt(pupil.diameterZ_filt, 3, 15);
+
+pupil.center_filt=lowpass(fillmissing(pupil.center, "linear"), 4, 30);
+pupil.center_filt_sav=sgolayfilt(pupil.center_filt, 3, 15);
 
 if contains(bonsai_workflow, 'stim_wheel_right')
     if contains(bonsai_workflow, 'mixed')
@@ -73,26 +76,14 @@ end
 
 
 pull_times = stimOn_times + time_period;
-
-
-% event_aligned_track_position = interp1(mousecam_exposeOn_times(mousecam_frame_timelite_idx), ...
-%     face_tracks,pull_times);
-
-event_aligned_track_position = interp1(mousecam_times, ...
-    face_tracks,pull_times);
-% event_aligned_track_diameter = interp1(mousecam_times, ...
-%     pupil.diameterZ,pull_times);
-
-event_aligned_track_pupil=structfun(@(x) interp1(mousecam_times, x,pull_times)    , pupil,'UniformOutput',false);
+event_aligned_track_position = structfun(@(x) interp1(mousecam_times, ...
+    x,pull_times),face_tracks ,'UniformOutput',false );
+event_aligned_track_pupil=structfun(@(x) interp1(mousecam_times, x,pull_times) , pupil,'UniformOutput',false);
 
 stim_type =stim_type(1:length(stimOn_times));
-
-
-sleap_data.face_data=arrayfun(@(type) event_aligned_track_position(stim_type==type,:,:,:), ...
-    unique(stim_type),'UniformOutput',false);
+sleap_data.face_data=structfun(@(x) arrayfun(@(type) x(stim_type==type,:,:,:), ...
+    unique(stim_type),'UniformOutput',false),event_aligned_track_position,'UniformOutput',false);
 sleap_data.pupil_data=structfun(@(x) arrayfun(@(type) x(stim_type==type,:,:), ...
     unique(stim_type),'UniformOutput',false),event_aligned_track_pupil,'UniformOutput',false);
-
-
-
+sleap_data.validation=validation;
 disp('running face tacking successfully');
