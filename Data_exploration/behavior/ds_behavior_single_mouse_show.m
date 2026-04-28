@@ -1,6 +1,6 @@
 clear all
 clc
-Path = 'D:\Data process\wf_data\';
+Path = 'D:\Data process\project_cross_model\wf_data\';
 
    animals =     { 'DS007','DS010','AP019','AP021','DS011','AP022',...
         'DS000','DS004','DS014','DS015','DS016',...

@@ -11,14 +11,14 @@ Path = 'D:\Data process\project_cross_model\wf_data\';
 % animals = {'HA000','HA001','HA002'};n1_name='visual angle';n2_name='visual position';
 % animals = {'DS019','DS020','DS021'};n1_name='visual size up';n2_name='visual position';
 % animals =     {
-%              
-% 
+%
+%
 % .
 % 'AP027','AP028','DS019','DS020','DS021',...
 %                     'AP027','AP028','AP029',...
 %                     'HA003','HA004','DS019','DS020','DS021',...
 %                     'HA000','HA001','HA002'};
-% 
+%
 % animals =     { 'DS007','DS010','AP019','AP021','DS011','AP022',...
 %     'DS000','DS004','DS014','DS015','DS016',...
 %     'AP018','AP020','DS006','DS013',...
@@ -26,7 +26,7 @@ Path = 'D:\Data process\project_cross_model\wf_data\';
 %     'AP027','AP028','AP029',...
 %     'HA003','HA004','DS019','DS020','DS021',...
 %     'HA000','HA001','HA002','DS005'};
- animals={'AP019'}
+animals={'AP019'}
 % reaction_time=2;
 % Grab learning day for each mouse
 surround_time = [-5,5];
@@ -70,13 +70,13 @@ for curr_animal_idx = 1:length(animals)
 
     recordings = plab.find_recordings(animal,[],use_workflow);
     %只保留widefiled的数据
-     recordings(find([recordings.ephys])) = [];
+    recordings(find([recordings.ephys])) = [];
 
 
     workflow_day={recordings.day}';
 
 
-     % n_trials_water = nan(length(recordings),2);
+    % n_trials_water = nan(length(recordings),2);
     % frac_move_day = nan(length(recordings),1);
     % success = nan(length(recordings),1);
     % rxn_med = nan(length(recordings),1);
@@ -119,8 +119,8 @@ for curr_animal_idx = 1:length(animals)
     trials_success= nan(length(recordings),1);
     iti_move= cell(length(recordings),1);
     all_iti_move= cell(length(recordings),1);
-iti_counts=cell(length(recordings),1);
-iti_counts_all=cell(length(recordings),1);
+    iti_counts=cell(length(recordings),1);
+    iti_counts_all=cell(length(recordings),1);
     workflow_type=zeros(length(recordings),1);
 
     % figure
@@ -145,7 +145,7 @@ iti_counts_all=cell(length(recordings),1);
             [~,index_real]=max(time);
         else index_real=1;
         end
-         
+
         % [~,index_real]=max( cellfun(@(rt) ...
         %     numel(load( ...
         %     plab.locations.filename('server', animal, rec_day, rt, 'timelite.mat'), ...
@@ -206,7 +206,7 @@ iti_counts_all=cell(length(recordings),1);
 
 
         % 计算 iti move的时间点
-       ds.load_iti_move
+        ds.load_iti_move
 
         iti_move{curr_recording}=iti_move_time;
 
@@ -215,7 +215,7 @@ iti_counts_all=cell(length(recordings),1);
         iti_counts{curr_recording} = histcounts(iti_move_time, [0; stimOn_times]);
         iti_counts_all{curr_recording}= histcounts(wheel_starts(iti_move_idx), [0; stimOn_times]);
 
-      
+
 
         % Get median stim-outcome time
         n_trials = length([trial_events.values.Outcome]);
@@ -290,7 +290,7 @@ iti_counts_all=cell(length(recordings),1);
                 AP_stimwheel_association_pvalue2( ...
                 stimOn_times,trial_events,stim_to_lastmove,tasktype,'mad');
 
-        
+
 
         else
 
