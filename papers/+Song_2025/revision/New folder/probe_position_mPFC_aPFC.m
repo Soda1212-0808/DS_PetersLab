@@ -5,24 +5,53 @@ raster_window = [-0.5,1];
 psth_bin_size = 0.001;
 t_bins = raster_window(1):psth_bin_size:raster_window(2);
 t_centers = conv2(t_bins,[1,1]/2,'valid');
+U_master = plab.wf.load_master_U;
+
+surround_samplerate = 35;
+surround_window_task = [-0.2,1];
+task_boundary1=0;
+task_boundary2=0.2;
+
+t_kernels=1/surround_samplerate*[-10:30];
+kernels_period=find(t_kernels>task_boundary1&t_kernels<task_boundary2);
+
 
 animals={'DS029','DS030','DS031'};
 
 mPFC_idx={[1 ],[3],[2]};
 % mPFC_idx={[2,4],[2,4,5],[3,4,5]}
 
-visual_task=cell(length(animals),1);
-audio_task=cell(length(animals),1);
-visual_passive=cell(length(animals),1);
-audio_passive=cell(length(animals),1);
-responsive_idx=cell(length(animals),1);
-responsive_visual=cell(length(animals),1);
-responsive_audio=cell(length(animals),1);
 
 for curr_animal=1:length(animals)
 animal=animals{curr_animal};
 temp_path=matfile(fullfile(Path,[animal '_all_data.mat']));
-% temp_path.data_all_index
+data_idx= temp_path.data_all_index
+
+  day_idx=find(cellfun(@(x) strcmp('stim_wheel_right_stage2_mixed_VA_earphone' ,x), {data_idx.task_name})&...
+    ~cellfun(@isempty  ,{data_idx.wf_task}))
+% day_idx=22
+wf_task=temp_path.wf_task(day_idx,1);
+
+
+tem_image=cellfun(@(x) plab.wf.svd2px(U_master(:,:,1:size(x,1)),x),  wf_task{1}.stim_kernels,'UniformOutput',false);
+
+ap.imscroll(tem_image{1})
+
+tem_image_max=cellfun(@(x)  max(x(:,:,kernels_period),[],3),tem_image,'UniformOutput',false )
+
+
+figure;
+imagesc(tem_image_max{1})
+axis image off;
+ap.wf_draw('ccf', [0.5 0.5 0.5]);
+
+
+
+images=ds.colormap_overlay(tem_image{1}(:,:,16),tem_image{2}(:,:,16),'B','R');
+figure;
+image(images)
+axis image off;
+ap.wf_draw('ccf', [0.5 0.5 0.5]);
 
 
 temp_audio_passive=temp_path.ehpys_hml_passive_audio_earphone;

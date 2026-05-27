@@ -52,7 +52,7 @@ for curr_stage=1:2
     imagesc(task_mean{curr_stage})
     axis image off;
     clim(0.0003 .* [0, 1]);
-    colormap( ap.colormap('WP'));
+    colormap( ap.colormap('WR'));
     ap.wf_draw('ccf', [0.5 0.5 0.5]);
 end
 colorbar

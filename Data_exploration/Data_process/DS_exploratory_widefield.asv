@@ -1,6 +1,6 @@
 %% Exploratory widefield analysis
 clear all
-animal='DS031';
+animal=DS031;
 load_parts = struct;
 load_parts.behavior = true;
 load_parts.widefield_master = true;
@@ -375,8 +375,6 @@ plot(permute(max(temp_each_roi(1,t_kernels<0.2&t_kernels>0,:),[],2),[3,2,1]))
 plot(permute(max(temp_each_roi(7,t_kernels<0.2&t_kernels>0,:),[],2),[3,2,1]))
 
 %% Task kernel
-
-% stimOn_times=stimOn_times(stim_to_lastmove>0)
 
 time_bins = [wf_t;wf_t(end)+1/wf_framerate];
  stim_regressors = histcounts(stimOn_times,time_bins);

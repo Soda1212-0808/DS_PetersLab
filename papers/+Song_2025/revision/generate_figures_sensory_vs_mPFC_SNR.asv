@@ -55,6 +55,15 @@ temp_learn =cellfun(@(w,name) cellfun(@(p1,w1) p1(ismember(w1,name),1),...
 
 
 %%
+temp_passive_peak2{1}
+
+temp_passive_wt=cellfun(@(a) cellfun(@(x) x(end-1:end,:),a,'UniformOutput',false), temp_passive_peak2,'UniformOutput',false )
+
+temp_passive_wt_2=cellfun(@(a1)   cat(1,a1{:}) ,temp_passive_wt,'UniformOutput',false);
+
+
+
+%%
 
 
 colors_1{1}=[[0 0 1];[0.5 0.5 1]];
@@ -77,13 +86,14 @@ for curr_group=1:2
     % 
 
     h2 = scatter(NaN,NaN,20,'filled','MarkerFaceColor',colors_1{curr_group}(1,:),'LineWidth',1);
-
-
     cellfun(@(t2,l2)   scatter(t2(l2==1,sensory_id(curr_group)),t2(l2==1,1),20,'filled',...
         'MarkerFaceColor',colors_1{curr_group}(1,:),'LineWidth',1),...
         temp_task_peak2{curr_group},temp_learn{curr_group},'UniformOutput',false )
 
 
+ learn_3=logical(cat(1,temp_learn{curr_group}{:}));
+    task_peak3=cat(1,temp_task_peak2{curr_group}{:});
+    [R_task,P_task] = corr(task_peak3(learn_3,sensory_id(curr_group)), task_peak3(learn_3,1));
 
 
     % h3 = scatter(NaN,NaN,20,'filled','MarkerFaceColor',[0.5 0.5 0.5],'LineWidth',1);
@@ -98,11 +108,8 @@ for curr_group=1:2
        temp_passive_peak2{curr_group},temp_learn{curr_group},'UniformOutput',false )
 
 
-    %
-    % learn_3=logical(cat(1,temp_learn{curr_group}{:}));
-    %
-    % task_peak3=cat(1,temp_task_peak2{curr_group}{:});
-    % perform3=cat(1,temp_perform{curr_group}{:});
+    
+   
     %
     % p_task = polyfit(perform3(learn_3), task_peak3(learn_3,curr_roi), 1);
     % x_fit_task = linspace(0, 1, 2);
@@ -119,7 +126,7 @@ for curr_group=1:2
     % plot(x_fit_passive, y_fit_passive, '-', 'LineWidth', 2,'Color',colors_1{curr_group}(2,:));
     %
     %
-    % [R_task,P_task] = corr(perform3(learn_3), task_peak3(learn_3,curr_roi));
+     % [R_task,P_task] = corr(perform3(learn_3), task_peak3(learn_3,curr_roi));
     %
     % [R_passive,P_passive] = corr(perform3(learn_3),  passive_peak3(learn_3,curr_roi));
     %
@@ -135,9 +142,6 @@ for curr_group=1:2
     % x1max=feval(@(a) max(a(cat(1,temp_learn{curr_group}{:})==1,sensory_id(curr_group))),   cat(1,temp_task_peak2{curr_group}{:}))
     % y1max=feval(@(a) max(a(cat(1,temp_learn{curr_group}{:})==1,1)),   cat(1,temp_task_peak2{curr_group}{:}))
 
-  
-end
-
 
 x1max=0.001
 y1max=0.0004
@@ -149,10 +153,8 @@ yticks([0 y1max ])
 % yticklabels({'0','max'})
 % % title(roi_name{curr_roi} ,'FontWeight','normal')
 
-xlabel([sensory_name{curr_group} ' Norm \Delta F/F_{0}'])
 axis square
 
-ylabel('mPFC Norm \Delta F/F_{0}')
 
 
 a1.FontSize = 12;
@@ -162,5 +164,9 @@ legend([h2  h4], ...
 
 set(gca, 'Color', 'none');        % 坐标轴背景透明
 
+  
+end
 
+
+ylabel('mPFC Norm \Delta F/F_{0}')
 

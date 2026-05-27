@@ -1,7 +1,7 @@
 %% Exploratory ephys analysis
 % close all
 clear all
-animal='AP019';
+animal='DS025';
  load_probe=1;
 % rec_day='2026-01-05';
  % rec_day='2026-03-23'
@@ -370,6 +370,30 @@ figure;
 scatter3(score(:,1),score(:,2),score(:,3))
 
 
+%%  regression PSTH
+
+timestamps_100 = timelite.timestamps(1:10:end);
+
+
+tem_spike=arrayfun(@(id) spike_times_timelite(spike_templates==id), unique(spike_templates),'UniformOutput',false);
+
+SP_V=cellfun(@(x) histcounts(x,timestamps_100 ),tem_spike,'uni',false);
+
+stim_regressors = histcounts(stimOn_times,timestamps_100);
+
+
+frame_shifts = -20:100;
+lambda = 15;
+cv_fold = 5;
+cell=885
+[kernels,predicted_signals,explained_var] = ...
+   ap.regresskernel(cat(1,SP_V{cell}), ...
+    stim_regressors,-frame_shifts,lambda,[],cv_fold)
+
+
+figure;
+plot(kernels)
+plot(SP_V{cell})
 %% |--> Get responsive units
 
 % Set event to get response

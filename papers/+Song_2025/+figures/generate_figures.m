@@ -40,6 +40,7 @@ for curr_group=1:2
         axis(ax,'image','off')
         clim(ax, 0.0003*[0,1]);
         ap.wf_draw('ccf',[0.5 0.5 0.5]);
+        % ap.wf_draw('grid')
         colormap(ax, ap.colormap(['W' colors{curr_group}]));
         if curr_group==1
             title(ax, titles{curr_stage},'FontSize',10,'FontWeight','normal')
@@ -974,6 +975,7 @@ end
 
 
 a1=nexttile(t,3)
+figure
 for curr_group=1:2
     hold on
     ap.errorfill(1:8, reaction_time_mean{curr_group}(1:8),...
@@ -1740,6 +1742,7 @@ style={'-','--'}
 
 for curr_fig=1:3
     nexttile
+    figure
     for curr_group=1:2
         hold on
         ap.errorfill(1:8, reaction_time_mean{curr_group}.(behav_para{curr_fig})(1:8),...

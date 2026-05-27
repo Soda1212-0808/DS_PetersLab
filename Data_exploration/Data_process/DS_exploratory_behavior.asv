@@ -1,6 +1,6 @@
 %% Exploratory behavior analysis
 clear all
-animal='PG007'
+animal='DS025'
 
 load_parts = struct;
 load_parts.behavior = true;
@@ -19,33 +19,6 @@ figure;
 hold on
 cellfun(@(x) plot(x)   ,temp_trace,'UniformOutput',false)
 legend
-
-
-figure;
-tiledlayout(5,1)
-nexttile
-plot(timelite.timestamps  ,photodiode_trace)
-xlim([1000 1400])
-axis off
-nexttile
-plot(timelite.timestamps  ,photodiode_trace)
-xlim([1050 1450])
-axis off
-
-nexttile
-plot(mousecam_times,pupil.center_filt_sav(:,1))
-xlim([1000 1400])
-axis off
-
-nexttile
-plot(mousecam_times,pupil.diameterZ_filt_sav(:,1))
-xlim([1000 1400])
-axis off
-
-nexttile
-plot(timelite.timestamps  ,wheel_velocity)
-xlim([1050 1450])
-axis off
 
 
 
@@ -273,7 +246,7 @@ for curr_state=1:4
     ap.errorfill(surround_time_points,nanmean(wheel_vel_by_type{curr_state},1),...
         nanstd(wheel_vel_by_type{curr_state},0,1)./sqrt(size(wheel_vel_by_type{curr_state},1)),...
         colors{curr_state});
-xlim([-0.1 1])
+xlim([-0.2 1])
 axis off
 
 end
@@ -303,15 +276,6 @@ plot(surround_time_points,nanmean(event_aligned_wheel_move,1));
 xline(0,'color','r');
 ylabel('Move prob.');
 xlabel('Time from event');
-
-
-%% 
-
-   [rxn_stat_p_mean([1 unique(tasktype)+2]),...
-            stim2move_mad([1 unique(tasktype)+2]),...
-            stim2move_mad_null([1 unique(tasktype)+2])] = ...
-            AP_stimwheel_association_pvalue3( ...
-            stimOn_times,trial_events,stim_to_lastmove,tasktype,'mad');
 
 
 

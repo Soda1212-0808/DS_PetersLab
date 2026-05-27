@@ -9,7 +9,6 @@ period=t_bins>0&t_bins<0.2;
 
 animals={'DS029','DS030','DS031'};
 
-PFC_idx={[1 ],[3],[2]};
 % mPFC_idx={[2,4],[2,4,5],[3,4,5]}
 
 responsive_visual_all=cell(2,1);
@@ -19,11 +18,11 @@ visual_passive_all=cell(2,1);
 audio_passive_all=cell(2,1);
 visual_task_all=cell(2,1);
 audio_task_all=cell(2,1);
-
+ephys_data_all=cell(2,1);
 for curr_group=1:2
     switch curr_group
         case 1
-            PFC_idx={[1 ],[3],[2]};
+            PFC_idx={[1 ],[3],[1 2]};
         case 2
             PFC_idx={[2,4],[2,4,5],[3,4,5]};
     end
@@ -36,7 +35,7 @@ for curr_group=1:2
     responsive_idx=cell(length(animals),1);
     responsive_visual=cell(length(animals),1);
     responsive_audio=cell(length(animals),1);
-
+    temp_ephys=cell(length(animals),1);
     for curr_animal=1:length(animals)
         animal=animals{curr_animal};
         temp_path=matfile(fullfile(Path,[animal '_all_data.mat']));
@@ -62,21 +61,25 @@ for curr_group=1:2
 
 
             response_idx=ephys_visual{temp_day}.response_p{3}>0.95|ephys_audio{temp_day}.response_p{2}>0.95;
-            depth_idx=ephys_task{temp_day}.depth<2000;
+            depth_idx=ephys_task{temp_day}.depth>1840;
             responsive_idx{curr_animal}{curr_day}=response_idx(find(depth_idx));
             responsive_visual{curr_animal}{curr_day}=feval(@(a) a((find(depth_idx))), ephys_visual{temp_day}.response_p{3}>0.95);
             responsive_audio{curr_animal}{curr_day}=feval(@(a) a((find(depth_idx))), ephys_audio{temp_day}.response_p{2}>0.95);
 
-            visual_task{curr_animal}{curr_day}= ephys_task{temp_day}.psth{1}(depth_idx,:);
-            audio_task{curr_animal}{curr_day}= ephys_task{temp_day}.psth{2}(depth_idx,:);
-            visual_passive{curr_animal}{curr_day}=ephys_visual{temp_day}.psth{3}(depth_idx,:);
-            audio_passive{curr_animal}{curr_day}=ephys_audio{temp_day}.psth{2}(depth_idx,:);
+            visual_task{curr_animal}{curr_day}= ephys_task{temp_day}.psth(depth_idx,:,1);
+            audio_task{curr_animal}{curr_day}= ephys_task{temp_day}.psth(depth_idx,:,2);
+            visual_passive{curr_animal}{curr_day}=ephys_visual{temp_day}.psth(depth_idx,:,3);
+            audio_passive{curr_animal}{curr_day}=ephys_audio{temp_day}.psth(depth_idx,:,2);
 
+            temp_ephys{curr_animal}{curr_day}= cat(3,ephys_task{temp_day}.psth(depth_idx,:,:),...
+                ephys_visual{temp_day}.psth(depth_idx,:,:),...
+                 ephys_audio{temp_day}.psth(depth_idx,:,:));
 
         end
 
 
     end
+
 
     responsive_visual_all{curr_group}=cat(2,responsive_visual{:});
     responsive_audio_all{curr_group}=cat(2,responsive_audio{:});
@@ -84,8 +87,8 @@ for curr_group=1:2
     visual_passive_all{curr_group}=cat(2,visual_passive{:});
     audio_passive_all{curr_group}=cat(2,audio_passive{:});
     visual_task_all{curr_group}=cat(2,visual_task{:});
-    audio_task_all{curr_group}=cat(2,visual_task{:});
-
+    audio_task_all{curr_group}=cat(2,audio_task{:});
+    ephys_data_all{curr_group}=cat(2,temp_ephys{:});
 
 end
 
@@ -109,6 +112,7 @@ temp_a_p=cellfun(@(x)     cat(1,x{:}), audio_passive_all,'UniformOutput',false);
 temp_v_t=cellfun(@(x)     cat(1,x{:}), visual_task_all,'UniformOutput',false);
 temp_a_t=cellfun(@(x)     cat(1,x{:}), audio_task_all,'UniformOutput',false);
 
+temp_all=cellfun(@(x)     cat(1,x{:}), ephys_data_all,'UniformOutput',false);
 
 
 
@@ -123,30 +127,52 @@ temp_a_t_mean=cellfun(@(x,y) feval(@(m) cat(1,m{:}),  cellfun(@(a,b)  nanmean(a(
     audio_task_all,responsive_or_all,'UniformOutput',false);
 
 
+
+for curr_group=1:2
+    figure
+    tiledlayout(2,11,"TileIndexing","columnmajor")
+    for curr_stat=1:11
+        nexttile
+        imagesc(t_bins,[],temp_all{curr_group}(idx_order{curr_group},:,curr_stat) )
+        clim([0 3])
+        xlim([-0.2 0.5])
+        colormap(ap.colormap(['WB']))
+        yline(size(idx_A_only{curr_group},1),'LineWidth',1,'Color',[0 0 0])
+        yline(size([idx_A_only{curr_group}; idx_AB{curr_group}],1),'LineWidth',1,'Color',[0 0 0])
+        nexttile
+        hold on
+        for curr_type=1:3
+            ap.errorfill(t_bins,nanmean(temp_all{curr_group}(idx_orders{curr_group}{curr_type},:,curr_stat),1),...
+                std(temp_all{curr_group}(idx_orders{curr_group}{curr_type},:,curr_stat),0,1)./100)
+            ylim([0 5])
+        end
+    end
+end
+
 for curr_group=1:2
 
 
     figure;
-    mainfig=tiledlayout(1,5,'TileSpacing','tight')
+    mainfig=tiledlayout(1,3,'TileSpacing','tight')
 
- A1=nexttile
-    imagesc(t_bins,[],temp_v_t{curr_group}(idx_order{curr_group},:) )
-    clim([0 3])
-    xlim([-0.2 0.5])
-    colormap(A1,ap.colormap(['WB']))
-    yline(size(idx_A_only{curr_group},1),'LineWidth',1,'Color',[0 0 0])
-    yline(size([idx_A_only{curr_group}; idx_AB{curr_group}],1),'LineWidth',1,'Color',[0 0 0])
-    xline(0)
- axis off
-    A2=nexttile
-    imagesc(t_bins,[],temp_a_t{curr_group}(idx_order{curr_group},:) )
-    clim([0 3])
-    xlim([-0.2 0.5])
-    colormap(A2,ap.colormap(['WR']))
-    yline(size(idx_A_only{curr_group},1),'LineWidth',1,'Color',[0 0 0])
-    yline(size([idx_A_only{curr_group}; idx_AB{curr_group}],1),'LineWidth',1,'Color',[0 0 0])
-    xline(0)
-    axis off
+    % A1=nexttile
+    % imagesc(t_bins,[],temp_v_t{curr_group}(idx_order{curr_group},:) )
+    % clim([0 3])
+    % xlim([-0.2 0.5])
+    % colormap(A1,ap.colormap(['WB']))
+    % yline(size(idx_A_only{curr_group},1),'LineWidth',1,'Color',[0 0 0])
+    % yline(size([idx_A_only{curr_group}; idx_AB{curr_group}],1),'LineWidth',1,'Color',[0 0 0])
+    % xline(0)
+    % axis off
+    % A2=nexttile
+    % imagesc(t_bins,[],temp_a_t{curr_group}(idx_order{curr_group},:) )
+    % clim([0 3])
+    % xlim([-0.2 0.5])
+    % colormap(A2,ap.colormap(['WR']))
+    % yline(size(idx_A_only{curr_group},1),'LineWidth',1,'Color',[0 0 0])
+    % yline(size([idx_A_only{curr_group}; idx_AB{curr_group}],1),'LineWidth',1,'Color',[0 0 0])
+    % xline(0)
+    % axis off
 
     A1=nexttile
     imagesc(t_bins,[],temp_v_p{curr_group}(idx_order{curr_group},:) )
@@ -171,7 +197,7 @@ for curr_group=1:2
 
     plot_fig=tiledlayout(mainfig,2 ,1, ...
         'TileSpacing', 'tight');
-    plot_fig.Layout.Tile = 5;  % 明确放在主 layout 的第 1 个 tile
+    plot_fig.Layout.Tile = 3;  % 明确放在主 layout 的第 1 个 tile
     a4=nexttile(plot_fig,1)
 
     hold on
@@ -183,7 +209,7 @@ for curr_group=1:2
     axis off
 
     a4=nexttile(plot_fig,2)
-    ds.make_bar_plot(temp_frac{curr_group},{[0 0 1],[1 0 0]})
+    ds.make_bar_plot(temp_frac{curr_group},'ColorCell',{[0 0 1],[1 0 0]})
     ylabel('Fraction')
     ylim([0 0.3])
     yticks([0 0.3])
@@ -191,9 +217,12 @@ for curr_group=1:2
     set(gca,'Color','none')
 
 
+ds.shuffle_test(temp_frac{curr_group}{1},temp_frac{curr_group}{2},1)
 
 
-
+exportgraphics(gcf, fullfile(plab.locations.server_path,...
+    ['Lab\Papers\Song_2025\submission_3_NatureCommunications\revisions\revision_figures\eps\Fig_EDF_Ja' num2str(curr_group)   '.eps']), ...
+    'ContentType','vector'); 
 
 end
 
@@ -203,10 +232,8 @@ response_sort_both=...
     responsive_or_all,'UniformOutput',false);
 
 response_sort_all_both=cellfun(@(x)   cat(1,x{:}),response_sort_both,'UniformOutput',false);
-
 response_both_fration_both = cellfun(@(a)  cellfun(@(x) sum(sum(x,2)==2)./size(x,1),a,'UniformOutput',true) ,...
     response_sort_both,'UniformOutput',false);
-
 
 n_shuff=1000;
 response_both_shuff_both= cellfun(@(x)  arrayfun(@(shuff) ap.shake(x,1),1:n_shuff,...
@@ -227,24 +254,6 @@ line_error_both=cellfun(@(a) (prctile(a,95)-...
 
 
 colors = {[0 0 1],[ 1.0, 0.647, 0.0],[1 0 0]};
-
-figure;
-title_names={'mPFC','aPFC'};
-for curr_group=1:2
-    nexttile
-    hold on
-    arrayfun(@(id) scatter(max(temp_v_p{curr_group}(idx_orders{curr_group}{id},period),[],2),...
-        max(temp_a_p{curr_group}(idx_orders{curr_group}{id},period),[],2),...
-        20,'filled','MarkerFaceColor',colors{id},'MarkerFaceAlpha',0.5),[ 3 2 1],'uni',false)
-
-    axis equal
-    xlim([0 30])
-    ylim([0 30])
-    title(title_names{curr_group})
-
-end
-
-
 
 
 scales_all=[0 20 80];
@@ -309,49 +318,125 @@ for curr_group=1:2
     annotation('line',[0.19 0.21],[0.74 0.76],'Color','k','LineWidth',1) % 左斜杠
     annotation('line',[0.19 0.21],[0.69 0.71],'Color','k','LineWidth',1) % 右斜杠
 
+exportgraphics(gcf, fullfile(plab.locations.server_path,...
+    ['Lab\Papers\Song_2025\submission_3_NatureCommunications\revisions\revision_figures\eps\Fig_EDF_Jf' num2str(curr_group)   '.eps']), ...
+    'ContentType','vector'); 
 
 end
 
 
 
-figure
+figure('Position',[50 50 100 200])
 colors={[0 0.5 0],[0.5 0 0.2]};
 maker_size=20;
 
 hold on
-ds.make_bar_plot(response_both_fration_both,colors',0.2,maker_size)
+ds.make_bar_plot(response_both_fration_both,'ColorCell',colors,'BarAlpha',0.2,'DotSize',maker_size)
 arrayfun(@(curr_group)  ap.errorfill(curr_group-0.4:0.8:curr_group+0.4,[line_mean_both{curr_group} line_mean_both{curr_group}],...
     [line_error_both{curr_group} line_error_both{curr_group}],[0.5 0.5 0.5],1),1:2);
 ylim([0 0.5])
 yticks([0 0.5])
-xticks([])
+xticks([1 2])
+xticklabels({'mPFC','aPFC'})
 ylabel(['(V∩A)/(V∪A)' ])
 set(gca,'color','none')
 
-
+exportgraphics(gcf, fullfile(plab.locations.server_path,...
+    ['Lab\Papers\Song_2025\submission_3_NatureCommunications\revisions\revision_figures\eps\Fig_EDF_Jg' num2str(curr_group)   '.eps']), ...
+    'ContentType','vector'); 
 
 %% probe position
 
-
-clear
 Path='D:\Data process\project_cross_model\wf_data\data_package';
-raster_window = [-0.5,1];
-psth_bin_size = 0.001;
-t_bins = raster_window(1):psth_bin_size:raster_window(2);
-t_centers = conv2(t_bins,[1,1]/2,'valid');
-period=t_bins>0&t_bins<0.2;
+U_master = plab.wf.load_master_U;
+
+surround_samplerate = 35;
+surround_window_passive = [-0.5,1];
+surround_window_task = [-0.2,1];
+t_kernels=1/surround_samplerate*[-10:30];
+period_kernels=find(t_kernels>0&t_kernels<0.2);
+
+
 
 animals={'DS029','DS030','DS031'};
-
-
+temp_kernels=cell(length(animals),1);
 
 for curr_animal=1:length(animals)
     animal=animals{curr_animal};
     temp_path=matfile(fullfile(Path,[animal '_all_data.mat']));
+    temp_name_idx=cellfun(@(x) strcmp(x,'stim_wheel_right_stage2_mixed_VA_earphone'),temp_path.task_name,'uni',true );
+    temp_task=temp_path.wf_task;
+     temp_kernels{curr_animal}= temp_task{~cellfun(@isempty ,temp_task,'UniformOutput',true)&temp_name_idx}.stim_kernels;
+end
 
-temp_path.data_all_index
+wf_task=...
+feval(@(aa,bb)    cat(4,aa,bb),...
+feval(@(c)  cat(3,c{:}) ,arrayfun(@(id)  temp_kernels{id}{1}   , 1:length(animals),'UniformOutput',false)),...
+feval(@(c)  cat(3,c{:}) ,arrayfun(@(id)  temp_kernels{id}{2}   , 1:length(animals),'UniformOutput',false)));
 
-   cellfun(@isempty, temp_path.task_name)
-temp_path.wf_task
-    cellfun(@(X,Y)  strcmp({'stim_wheel_right_stage2_mixed_VA_earphone'},X) & ~isempty(Y),temp_path.task_name,temp_path.wf_task)
-)
+temp_image=plab.wf.svd2px(U_master(:,:,1:size(wf_task,1)),wf_task);
+
+
+image_max=permute(nanmean(max(temp_image(:,:,period_kernels,:,:),[],3),4),[1,2,5,4,3]);
+
+figure('Position',[50 50 300 600])
+Color={'B','R'}
+probe_colors={[0.5 1 0.5],[0.2 0.5 0.2],[0 0.8 0]}
+h=struct
+for curr_mod=1:2
+    ax=nexttile
+    imagesc(ax,image_max(:,:,curr_mod))
+    axis image off;
+    clim(0.0003 .* [0, 1]);
+    colormap(ax, ap.colormap(['W' Color{curr_mod}] ));
+    hold on
+    for curr_animal=1:length(animals)
+
+        ap.wf_draw('probe_insertion',animals{curr_animal});
+        h.(['l' num2str(curr_animal)]) = findobj(gca,'Type','line');
+        for i = 1:length( h.(['l' num2str(curr_animal)]))
+            if strcmp(h.(['l' num2str(curr_animal)])(i).Marker,'.')&h.(['l' num2str(curr_animal)])(i).MarkerSize==20
+                h.(['l' num2str(curr_animal)])(i).Color = probe_colors{curr_animal};
+                h.(['l' num2str(curr_animal)])(i).MarkerSize = 10;
+            end
+        end
+    end
+    ap.wf_draw('ccf', [0.5 0.5 0.5]);
+end
+
+
+exportgraphics(gcf, fullfile(plab.locations.server_path,...
+    ['Lab\Papers\Song_2025\submission_3_NatureCommunications\revisions\revision_figures\eps\Fig_EDF_Ja0' num2str(curr_group)   '.eps']), ...
+    'ContentType','vector'); 
+
+
+
+image_max_single=permute(max(temp_image(:,:,period_kernels,:,:),[],3),[1,2,5,4,3]);
+
+figure('Position',[50 50 600 300])
+Color={'B','R'}
+probe_colors={[0.5 1 0.8],[0 0.5 0.8],[0 0.2 0.5]}
+
+for curr_animal=1:length(animals)
+for curr_mod=1:2
+    ax=nexttile
+    imagesc(ax,image_max_single(:,:,curr_mod,curr_animal))
+    axis image off;
+    clim(0.0003 .* [0, 1]);
+    colormap(ax, ap.colormap(['W' Color{curr_mod}] ));
+    hold on
+
+    ap.wf_draw('probe_insertion',animals{curr_animal});
+    h.(['l' num2str(curr_animal)]) = findobj(gca,'Type','line');
+    for i = 1:length( h.(['l' num2str(curr_animal)]))
+        if strcmp(h.(['l' num2str(curr_animal)])(i).Marker,'.')&h.(['l' num2str(curr_animal)])(i).MarkerSize==20
+            h.(['l' num2str(curr_animal)])(i).Color = [0 0 0];
+            h.(['l' num2str(curr_animal)])(i).MarkerSize = 10;
+        end
+    end
+
+    ap.wf_draw('ccf', [0.5 0.5 0.5]);
+end
+end
+
+

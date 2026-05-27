@@ -77,15 +77,15 @@ elseif  isfield(trial_events.values,'TaskType')
     stim_to_move_idx= curr_tasktype_0(1:n_trials);
     temp_idx=1:length(unique(stim_to_move_idx));
 
-    stim_regressors = repmat({zeros(1,length(wf_t))}, 2, 1);
+    stim_regressors = repmat({zeros(1,length(wf_t))}, length(unique(stim_to_move_idx)), 1);
     stim_regressors(temp_idx)= arrayfun(@(a)  histcounts(real_stimOn_times(stim_to_move_idx==a),wf_regressor_bins),...
         unique(stim_to_move_idx),'UniformOutput',false  );
 
-    move_regressors = repmat({zeros(1,length(wf_t))}, 2, 1);
+    move_regressors = repmat({zeros(1,length(wf_t))}, length(unique(stim_to_move_idx)), 1);
     move_regressors(temp_idx)= arrayfun(@(a)  histcounts(real_stim_move_time(stim_to_move_idx==a),wf_regressor_bins),...
         unique(stim_to_move_idx),'UniformOutput',false  );
       
-    reward_regressors = repmat({zeros(1,length(wf_t))}, 2, 1);
+    reward_regressors = repmat({zeros(1,length(wf_t))}, length(unique(stim_to_move_idx)), 1);
     reward_regressors(temp_idx)= arrayfun(@(a)  histcounts(real_reward_times(stim_to_move_idx(rewarded_trials(1:n_trials))==a),wf_regressor_bins),...
         unique(stim_to_move_idx),'UniformOutput',false  );
 
@@ -93,7 +93,7 @@ elseif  isfield(trial_events.values,'TaskType')
     gap_1=seconds([trial_events.timestamps(1:n_trials).ITIStart ] -trial_events.timestamps(1).StimOn (1))'+photodiode_on_times(1);
     gap_2=stimOn_times(1:n_trials)+stim_to_outcome(1:n_trials);
 
-    wf_t_only_task= repmat({false(1,length(wf_t))}, 2, 1);
+    wf_t_only_task= repmat({false(1,length(wf_t))}, length(unique(stim_to_move_idx)), 1);
     wf_t_only_task(temp_idx)=arrayfun(@(a) (interp1([gap_1(stim_to_move_idx==a);gap_2(stim_to_move_idx==a)],...
         [ones(sum(stim_to_move_idx==a),1);....
         zeros(sum(stim_to_move_idx==a),1)],...

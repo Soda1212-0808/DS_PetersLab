@@ -1,3 +1,4 @@
+
 clear all
 
 surround_window = [-0.5,1];
@@ -5,19 +6,63 @@ surround_samplerate = 35;
 t = surround_window(1):1/surround_samplerate:surround_window(2);
 t_kernels=[-10:30]/surround_samplerate;
 period=find(t_kernels>0&t_kernels<0.2);
-
 surround_window = [-0.5,1];
 mousecam_framerate = 30;
 face_time = surround_window(1):1/mousecam_framerate:surround_window(2);
 
-
 U_master = plab.wf.load_master_U;
 load('C:\Users\dsong\Documents\MATLAB\Da_Song\DS_scripts_ptereslab\General_information\roi.mat');
-
 Path='D:\Data process\project_cross_model\wf_data\data_package';
-  
+%  wf
+groups_name={'VA','AV'};
+modes_name={'Visual','Auditory'};
+all_data=struct;
 
-%%  nose movement
+
+
+for curr_group=1:2
+    switch curr_group
+        case 1
+            animals = {'DS007','DS010','AP019','AP021','DS011','AP022'};
+        case 2
+            animals = {'DS000','DS004','DS015','DS016'};
+    end
+
+    temp_data_all=table;
+    temp_data_all.animals=animals'
+    for curr_animal=1:length(animals)
+        preload_vars=who;
+        animal=animals{curr_animal};
+        data_all=matfile(fullfile(Path,[animal '_all_data.mat']));
+
+        temp_data=struct;
+        task_idx=cell(2,1);
+        task_idx{curr_group}=find((strcmp([data_all.task_name],'stim_wheel_right_stage1')|...
+            strcmp([data_all.task_name],'stim_wheel_right_stage2'))&...
+            ~cellfun(@isempty ,data_all.wf_task));
+        task_idx{3-curr_group}=find((strcmp([data_all.task_name],'stim_wheel_right_stage1_audio_volume')|...
+            strcmp([data_all.task_name],'stim_wheel_right_stage2_audio_volume'))&...
+            ~cellfun(@isempty ,data_all.wf_task));
+        temp_data.day=cellfun(@(a)data_all.day(a,1),task_idx,'uni',false);
+        temp_data.behav=cellfun(@(a) cellfun(@(x) x.rxn_l_p(1)<0.05 , data_all.behavior_task(a,1),'uni',true),task_idx,'uni',false);
+        temp_data.performance=cellfun(@(a) cellfun(@(x) x.performance , data_all.behavior_task(a,1),'uni',true),task_idx,'uni',false);
+
+        temp_data.wf_task=cellfun(@(a)data_all.wf_task(a,1),task_idx,'uni',false);
+        temp_data.wf_passive_audio=cellfun(@(a)data_all.wf_hml_passive_audio(a,1),task_idx,'uni',false);
+        temp_data.wf_passive_visual=cellfun(@(a)data_all.wf_lcr_passive(a,1),task_idx,'uni',false);
+        temp_data_all.data(curr_animal)=temp_data;
+    end
+
+
+end
+
+
+
+
+
+
+%%  nose movement in passive
+clear all
 groups_name={'VA','AV'};
 modes_name={'Visual','Auditory'};
 all_data=struct;
@@ -56,10 +101,10 @@ for curr_group=1:2
             switch curr_mode
                 case 1
                     temp_face_passive=data_all.face_lcr_passive;
-                    temp_wf_passive=data_all.wf_lcr_passive;
+                    temp_wf_passive_0=data_all.wf_lcr_passive;
                 case 2
                     temp_face_passive=data_all.face_hml_passive_audio;
-                    temp_wf_passive=data_all.wf_hml_passive_audio;
+                    temp_wf_passive_0=data_all.wf_hml_passive_audio;
             end
 
             % pupil
@@ -82,8 +127,6 @@ for curr_group=1:2
                 cellfun( @(x) temp_face_passive(x ),select_id_3,'UniformOutput',false),'UniformOutput',false);
 
 
-% aaa= cellfun( @(x) temp_face_passive(x),select_id_3,'UniformOutput',false)
-% aaa{1}{1}.validation.pupil
 
             pupil_data=cat(4,nan(size(temp_pupil_size{1},1), size(temp_pupil_size{1},2),size(temp_pupil_size{1},3),...
                 5-length(find(temp_p_val{1}==1,5))),...
@@ -119,23 +162,26 @@ for curr_group=1:2
           
             % nose
             temp_nose_passive=cellfun(@(aa)  feval(@(a) cat(4,a{:}), cellfun(@(xx) ...
-                permute( nanmean(vecnorm(diff( ...
-                feval(@(d) cat(5,d{:}), cellfun(@(c) nanmean(c,1), xx.face_data.nose_filt_sav,'uni',false)) ,1,2), 2, 4),1),[2,3,5,4,1]) ,...
+                permute( nanmean(...
+                feval(@(d) cat(5,d{:}), cellfun(@(c) nanmean(c(:,:,3,:),1), xx.face_data.nose_filt_sav,'uni',false)) ,1),[2,5,4,1,3]) ,...
                 aa,'UniformOutput',false)) ,...
                 cellfun( @(x) temp_face_passive(x),select_id_3,'UniformOutput',false),'UniformOutput',false);
-
-
 
             nose_data=cat(4,nan(size(temp_nose_passive{1},1), size(temp_nose_passive{1},2),size(temp_nose_passive{1},3),...
                 5-length(find(temp_p_val{1}==1,5))),...
                 temp_nose_passive{1}(:,:,:,find(temp_p_val{1}==1,5,'last')),...
                 temp_nose_passive{2}(:,:,:,1:5));
 
+            nose_3stage={temp_nose_passive{1}(:,:,:,temp_p_val{1}==0),...
+                temp_nose_passive{1}(:,:,:, find(temp_p_val{1}==1,2,'last')),...
+                temp_nose_passive{2}(:,:,:,find(temp_p_val{2}==1,2,'last'))};
+
+
 
             % wf_passive
             temp_wf_passive=cellfun(@(aa)  feval(@(a) cat(4,a{:}), cellfun(@(xx) cat(3,xx.kernels_decoding{:}),...
                 aa,'UniformOutput',false)) ,...
-                cellfun( @(x) temp_wf_passive(x),select_id_3,'UniformOutput',false),'UniformOutput',false);
+                cellfun( @(x) temp_wf_passive_0(x),select_id_3,'UniformOutput',false),'UniformOutput',false);
 
             wf_passive_3stage={temp_wf_passive{1}(:,:,:, temp_p_val{1}==0),...
                 temp_wf_passive{1}(:,:,:, find(temp_p_val{1}==1,2,'last')),...
@@ -152,14 +198,20 @@ for curr_group=1:2
  
             temp_data_all.nose_passive{curr_animal}=nose_data;
             temp_data_all.pupil_size{curr_animal}=pupil_data;
-            temp_data_all.pupil_center{curr_animal}=pupil_center_data;
+            temp_data_all.pupil_size_single{curr_animal}=pupil_3stage;
+            temp_data_all.pupil_all_trace{curr_animal}=temp_pupil_size;
 
             temp_data_all.wf_passive{curr_animal}=wf_passive_data;
-
-            temp_data_all.pupil_size_single{curr_animal}=pupil_3stage;
-             temp_data_all.pupil_center_single{curr_animal}=pupil_center_3stage;
-
             temp_data_all.wf_passive_single{curr_animal}=wf_passive_3stage;
+            temp_data_all.wf_passive_all_trace{curr_animal}=temp_wf_passive;
+
+            temp_data_all.pupil_center{curr_animal}=pupil_center_data;
+            temp_data_all.pupil_center_single{curr_animal}=pupil_center_3stage;
+            temp_data_all.pupil_center_all_trace{curr_animal}=temp_pupil_center;
+
+            temp_data_all.nose{curr_animal}=nose_data;
+            temp_data_all.nose_single{curr_animal}=nose_3stage;
+            temp_data_all.nose_all_trace{curr_animal}=temp_nose_passive;
 
 
             clearvars('-except',preload_vars{:});
@@ -174,12 +226,57 @@ for curr_group=1:2
 end
 
 
-%%
+
+
+passive_id={[3 1 2],[2 1 3]};
+figure('Position',[50 50 1000 800])
+mainfig=tiledlayout( 3,3, ...
+    'TileSpacing', 'tight', 'Padding', 'none');
+
+
+plot_fig=tiledlayout(mainfig,2, 2);
+plot_fig.Layout.Tile = 1;  % 明确放在主 layout 的第 1 个 tile
+
+% pupil size  trace
+colors={[0 0 1;0 0 0],[1 0 0;0 0 0]}
+for curr_group=1:2
+    for curr_mode=curr_group
+
+        pupil_data_single=feval(@(a) arrayfun(@(id) cat(4,a{:,id}),1:3,'UniformOutput',false),...
+            cat(1, all_data.([groups_name{curr_group} '_' modes_name{curr_mode}]).pupil_size_single{:}));
+        temp_pupil_trace=cellfun(@(x) permute(diff(x,1,2),[2,3,4,1]),pupil_data_single,'UniformOutput',false);
+        temp_pupil_trace_2=cellfun(@(x) cat(2,x(:,passive_id{curr_mode}(1),:),nanmean(x(:,passive_id{curr_mode}(2:3),:),2)),...
+            temp_pupil_trace,'UniformOutput',false);
+        % figure('Position',[50 50 400 150]);
+        % tiledlayout(1,2)
+        for curr_state=1:2
+            nexttile(plot_fig)
+            hold on
+            ap.errorfill(face_time(2:end)',nanmean(temp_pupil_trace_2{curr_state},3),...
+                nanstd(temp_pupil_trace_2{curr_state},0,3)./sqrt(size(temp_pupil_trace_2{curr_state},3)),colors{curr_group})
+            xlim([-0.2 1])
+            ylim([-0.01 0.03])
+
+            xline(0)
+            axis off
+        end
+
+
+    end
+end
+
+hold on
+line([-0.2 -0.2],[-0.01 0],'Color','k');
+line([-0.2 0],[-0.01 -0.01],'Color','k');
+text(-0.32, -0.01, '0.01 arb','Rotation',90)
+text(-0.2, -0.015, '0.2 s')
+
+
+
 
 % pupil size across days
-passive_id={[3 1 2],[2 1 3]};
-fig1=figure;
-tiledlayout(fig1,2,2,"TileIndexing","columnmajor")
+plot_fig=tiledlayout(mainfig,2, 2,"TileIndexing","columnmajor"  );
+plot_fig.Layout.Tile = 2;  % 明确放在主 layout 的第 1 个 tile
 
 colors_temp={[84 130 53]/255,[112  48 160]/255}
 for curr_group=1:2
@@ -196,7 +293,7 @@ for curr_group=1:2
             [4,3,2,1]),diff(temp_avg_pupil_data,1,2));
 
 
-        nexttile
+        nexttile(plot_fig)
         hold on
         ap.errorfill(1:5,temp_pupil_AUC_mean(1:5,:),temp_pupil_AUC_error(1:5,:),[colors_temp{curr_group};0 0 0])
         ap.errorfill(6:10,temp_pupil_AUC_mean(6:10,:),temp_pupil_AUC_error(6:10,:),[colors_temp{curr_group};0 0 0])
@@ -205,67 +302,43 @@ for curr_group=1:2
         xticks([1 5 6 10])
         xticklabels({'-5','-1','0','4'})
         ylim([-0.1 0.4])
+                   ylabel('Pupil diameter (arb)')
+
         xlabel('Day (s)')
-        title([groups_name{curr_group} '\_' modes_name{curr_mode}])
+        % title([groups_name{curr_group} '\_' modes_name{curr_mode}])
         set(gca,'Color','none')
         drawnow
 
     end
 end
 
-% pupil size  trace
-colors={[0 0 1;0 0 0],[1 0 0;0 0 0]}
-for curr_group=1:2
-    for curr_mode=curr_group
-
-        pupil_data_single=feval(@(a) arrayfun(@(id) cat(4,a{:,id}),1:3,'UniformOutput',false),...
-            cat(1, all_data.([groups_name{curr_group} '_' modes_name{curr_mode}]).pupil_size_single{:}));
-        temp_pupil_trace=cellfun(@(x) permute(diff(x,1,2),[2,3,4,1]),pupil_data_single,'UniformOutput',false);
-        temp_pupil_trace_2=cellfun(@(x) cat(2,x(:,passive_id{curr_mode}(1),:),nanmean(x(:,passive_id{curr_mode}(2:3),:),2)),...
-            temp_pupil_trace,'UniformOutput',false);
-        figure('Position',[50 50 400 150]);
-        tiledlayout(1,3)
-        for curr_state=1:3
-            nexttile
-            hold on
-            ap.errorfill(face_time(2:end)',nanmean(temp_pupil_trace_2{curr_state},3),...
-                nanstd(temp_pupil_trace_2{curr_state},0,3)./sqrt(size(temp_pupil_trace_2{curr_state},3)),colors{curr_group})
-            xlim([-0.2 1])
-            ylim([-0.01 0.03])
-            xline(0)
-            axis off
-        end
-
-
-    end
-end
-
-
 
 % wf vs pupil size
+plot_fig=tiledlayout(mainfig,1,1);
+plot_fig.Layout.Tile = 3;  % 明确放在主 layout 的第 1 个 tile
+nexttile(plot_fig)
 for curr_group=1:2
     for curr_mode=curr_group
 
-        pupil_data_single=feval(@(a) arrayfun(@(id) cat(4,a{:,id}),1:3,'UniformOutput',false),...
-            cat(1, all_data.([groups_name{curr_group} '_' modes_name{curr_mode}]).pupil_size_single{:}));
+        pupil_data_single=feval(@(a) arrayfun(@(id) cat(4,a{:,id}),1:2,'UniformOutput',false),...
+            cat(1, all_data.([groups_name{curr_group} '_' modes_name{curr_mode}]).pupil_all_trace{:}));
 
         temp_pupil_AUC_single=cellfun(@(x) feval(@(a)...
             permute(trapz(1:sum(face_time>0&face_time<1),a(:,face_time>0&face_time<1,:,:),2),...
             [4,3,1,2]),diff(x,1,2)),pupil_data_single,'UniformOutput',false)
 
 
-  
-        wf_data_single=feval(@(a) arrayfun(@(id) cat(4,a{:,id}),1:3,'UniformOutput',false),...
-            cat(1, all_data.([groups_name{curr_group} '_' modes_name{curr_mode}]).wf_passive_single{:}))
+
+        wf_data_single=feval(@(a) arrayfun(@(id) cat(4,a{:,id}),1:2,'UniformOutput',false),...
+            cat(1, all_data.([groups_name{curr_group} '_' modes_name{curr_mode}]).wf_passive_all_trace{:}))
         all_passive_image_pre=cellfun(@(x) plab.wf.svd2px(U_master(:,:,1:size(x,1)),...
             x),wf_data_single,'UniformOutput',false);
         temp_wf_passive_plot_tace= cellfun(@(x) ds.make_each_roi(x, length(t_kernels),roi1),all_passive_image_pre,'UniformOutput',false)
         temp_wf_passive_max=cellfun(@(x) permute(max(x(1,period,:,:) ,[],2),[4,3,2,1])  ,temp_wf_passive_plot_tace,'UniformOutput',false)
 
-        colors{1}={[0.8 0.8 1],[0 0 1],[1 0 0.5]}
-        colors{2}={[1 0.8 0.8],[1 0 0],[0.5 0 0]}
+        colors{1}={[0 0 1],[0 0 1]}
+        colors{2}={[1 0 0],[1 0 0]}
 
-        figure('Position',[50 50 400 150]);
         hold on
         temp_x=cellfun(@(a)  a(:,passive_id{curr_mode}(1)),...
             temp_pupil_AUC_single,'UniformOutput',false);
@@ -276,101 +349,34 @@ for curr_group=1:2
             'LineStyle','none','Marker','.','MarkerSize',10,'Color',z),temp_x,temp_y,colors{curr_group},'uni',false)
         % xlim([-0.1 0.6])
         % ylim([0 0.00035])
-        ylabel('\Delta F/F_0')
-        xlabel('Pupil AUC')
+        ylabel('mPFC \Delta F/F_0')
+        xlabel('Pupil diameter')
         % title([groups_name{curr_group} '\_' modes_name{curr_mode}])
-        [R(curr_group,1), p(curr_group,1)] = corr(temp_x, temp_y);
+        [R(curr_group,1), p(curr_group,1)] = corr(cat(1,temp_x{:}), cat(1,temp_y{:}));
 
-        temp_line = polyfit(temp_x, temp_y, 1);
+        temp_line = polyfit(cat(1,temp_x{:}), cat(1,temp_y{:}), 1);
         x_fit_task = linspace(-0.1, 0.7, 2);
         y_fit_task = polyval(temp_line, x_fit_task);
-        plot(x_fit_task, y_fit_task, '-', 'LineWidth', 2,'Color',colors{curr_group});
-        axis square
-        drawnow
-    
+        plot(x_fit_task, y_fit_task, '-', 'LineWidth', 2,'Color',colors{curr_group}{1});
+
+
 
     end
 end
 
-% wf
-passive_id={[3 1 2],[2 1 3]};
-fig1=figure;
-tiledlayout(fig1,2,2,"TileIndexing","columnmajor")
-
-for curr_group=1:2
-    for curr_mode=1:2
-    
-        wf_pass_data=cat(6, all_data.([groups_name{curr_group} '_' modes_name{curr_mode}]).wf_passive{:});
-
-        passive_image= plab.wf.svd2px(U_master(:,:,1:size(wf_pass_data,1)), wf_pass_data);
-        temp_wf_passiv=ds.make_each_roi(passive_image, length(t_kernels),roi1);
-
-        temp_wf_passiv_1= cat(3,temp_wf_passiv(:,:,passive_id{curr_mode}(1),:,:,:),...
-            nanmean(temp_wf_passiv(:,:,passive_id{curr_mode}(2:3),:,:,:),3))
-        temp_wf_passive_max= permute(nanmean(max(temp_wf_passiv_1(1,period,:,:,:,:) ,[],2),6), [4,3,2,1]) ;
-        temp_wf_passive_max_error= permute(nanstd(max(temp_wf_passiv_1(1,period,:,:,:,:) ,[],2),0,6)./sqrt(size(temp_wf_passiv_1,6)), [4,3,2,1]) ;
+set(gca,'Color','none')
+axis square
+drawnow
 
 
-        nexttile
-        hold on
-        ap.errorfill(1:5,temp_wf_passive_max(1:5,:),temp_wf_passive_max_error(1:5,:),[1 0 0;0 0 0])
-        ap.errorfill(6:10,temp_wf_passive_max(6:10,:),temp_wf_passive_max_error(6:10,:),[1 0 0;0 0 0])
-
-        xlim([1 10])
-        xticks([1 5 6 10])
-        xticklabels({'-5','-1','0','4'})
-        ylim([0 0.0002])
-        xlabel('Day (s)')
-        title([groups_name{curr_group} '\_' modes_name{curr_mode}])
-        set(gca,'Color','none')
-        drawnow
-
-    end
-end
-
-% pupil saccade
-passive_id={[3 1 2],[2 1 3]};
-fig1=figure;
-tiledlayout(fig1,2,2,"TileIndexing","columnmajor")
-
-colors_temp={[84 130 53]/255,[112  48 160]/255}
-for curr_group=1:2
-    for curr_mode=1:2
-
-  % pupil center
-        pupil_center_data=cat(1, all_data.([groups_name{curr_group} '_' modes_name{curr_mode}]).pupil_center{:});
-
-        temp_pupil_center=permute(cat(4,vecnorm(diff(pupil_center_data(:,:,:,passive_id{curr_mode}(1),:),1,2),2,3),...
-            nanmean(vecnorm(diff(pupil_center_data(:,:,:,passive_id{curr_mode}(2:3),:),1,2),2,3),4)), [2,4,5,1,3]);
-
-
-        temp_pupil_center_mean=permute(nanmean(trapz(temp_pupil_center(face_time>0&face_time<1,:,:,:),1),4),[3,2,1]);
-        temp_pupil_center_error=permute(nanstd(trapz(temp_pupil_center(face_time>0&face_time<1,:,:,:),1),0,4)./...
-            sqrt(size(temp_pupil_center,4)),[3,2,1]);
-   
-        nexttile
- ap.errorfill(1:5,temp_pupil_center_mean(1:5,:),temp_pupil_center_error(1:5,:),[1 0 0;0 0 0])
-        ap.errorfill(6:10,temp_pupil_center_mean(6:10,:),temp_pupil_center_error(6:10,:),[1 0 0;0 0 0])
-         ylim([0 1])
-        xlim([1 10])
-        xticks([1 5 6 10])
-        xticklabels({'-5','-1','0','4'})
-
-        xlabel('Day (s)')
-        title([groups_name{curr_group} '\_' modes_name{curr_mode}])
-        set(gca,'Color','none')
-        drawnow
-
-    end
-end
-
-
-passive_id={[3 1 2],[2 1 3]};
+plot_fig=tiledlayout(mainfig,2, 2);
+plot_fig.Layout.Tile = 4;  % 明确放在主 layout 的第 1 个 tile
 
 % pupil saccade  trace
-colors={[0 0 1;0 0 0;1 0 0],[0 0 1;0 0 0;1 0 0]}
+passive_id={[3 1 2],[2 1 3]};
+colors={[0 0 1;0 0 0;1 0 0],[1 0 0;0 0 0;1 0 0]}
 for curr_group=1:2
-    for curr_mode=1:2
+    for curr_mode=curr_group
 
 
 
@@ -381,23 +387,153 @@ for curr_group=1:2
         % temp_pupil_center_trace=cellfun(@(x) permute( vecnorm((x-x(:,1,:,:,:)),2,3),[2,3,4,5,1]),pupil_center_single,'UniformOutput',false);
         temp_pupil_center_trace=cellfun(@(x) permute( vecnorm(diff(x,1,2),2,3),[2,4,5,3,1]),pupil_center_single,'UniformOutput',false);
 
-        temp_pupi_center_trace_2=cellfun(@(x) cat(2,x(:,passive_id{curr_mode}(1),:),nanmean(x(:,passive_id{curr_mode}(2:3),:),2)),...
+        temp_pupil_center_trace_2=cellfun(@(x) cat(2,x(:,passive_id{curr_mode}(1),:),nanmean(x(:,passive_id{curr_mode}(2:3),:),2)),...
             temp_pupil_center_trace,'UniformOutput',false);
 
 
-
-
-
-
-        figure('Position',[50 50 400 150]);
-        tiledlayout(1,3)
-        for curr_state=1:3
-            nexttile
+        % figure('Position',[50 50 400 150]);
+        % tiledlayout(1,2)
+        for curr_state=1:2
+            nexttile(plot_fig)
             hold on
-            ap.errorfill(face_time(2:end)',nanmean(temp_pupil_center_trace{curr_state},3),...
-                nanstd(temp_pupil_center_trace{curr_state},0,3)./sqrt(size(temp_pupil_trace_2{curr_state},3)),colors{curr_group})
+            ap.errorfill(face_time(2:end)',nanmean(temp_pupil_center_trace_2{curr_state},3),...
+                nanstd(temp_pupil_center_trace_2{curr_state},0,3)./sqrt(size(temp_pupil_center_trace_2{curr_state},3)),colors{curr_group})
             xlim([-0.2 1])
-            % ylim([0 0.03])
+            ylim([0 0.03])
+            xline(0)
+            axis off
+        end
+
+
+    end
+end
+hold on
+line([-0.2 -0.2],[0 0.01],'Color','k');
+line([-0.2 0],[0 0],'Color','k');
+text(-0.42, 0.00, '0.01 arb','Rotation',90)
+text(-0.2, -0.005, '0.2 s')
+
+
+
+plot_fig=tiledlayout(mainfig,2, 2,"TileIndexing","columnmajor" );
+plot_fig.Layout.Tile = 5;  % 明确放在主 layout 的第 1 个 tile
+
+% pupil saccade
+passive_id={[3 1 2],[2 1 3]};
+% fig1=figure;
+% tiledlayout(fig1,2,2,"TileIndexing","columnmajor")
+colors_temp={[84 130 53]/255,[112  48 160]/255}
+for curr_group=1:2
+    for curr_mode=1:2
+
+        % pupil center
+        pupil_center_data=cat(1, all_data.([groups_name{curr_group} '_' modes_name{curr_mode}]).pupil_center{:});
+
+        temp_pupil_center=permute(cat(4,vecnorm(diff(pupil_center_data(:,:,:,passive_id{curr_mode}(1),:),1,2),2,3),...
+            nanmean(vecnorm(diff(pupil_center_data(:,:,:,passive_id{curr_mode}(2:3),:),1,2),2,3),4)), [2,4,5,1,3]);
+
+
+        temp_pupil_center_mean=permute(nanmean(trapz(temp_pupil_center(face_time>0&face_time<1,:,:,:),1),4),[3,2,1]);
+        temp_pupil_center_error=permute(nanstd(trapz(temp_pupil_center(face_time>0&face_time<1,:,:,:),1),0,4)./...
+            sqrt(size(temp_pupil_center,4)),[3,2,1]);
+
+        nexttile(plot_fig)
+        ap.errorfill(1:5,temp_pupil_center_mean(1:5,:),temp_pupil_center_error(1:5,:),[colors_temp{curr_group};0 0 0])
+        ap.errorfill(6:10,temp_pupil_center_mean(6:10,:),temp_pupil_center_error(6:10,:),[colors_temp{curr_group};0 0 0])
+        ylim([0 1])
+        xlim([1 10])
+        ylabel('Pupil saccade (arb)')
+
+        xticks([1 5 6 10])
+        xticklabels({'-5','-1','0','4'})
+
+        xlabel('Day (s)')
+        % title([groups_name{curr_group} '\_' modes_name{curr_mode}])
+        set(gca,'Color','none')
+        drawnow
+
+    end
+end
+
+% wf vs pupil saccade
+plot_fig=tiledlayout(mainfig,1,1);
+plot_fig.Layout.Tile = 6;  % 明确放在主 layout 的第 1 个 tile
+nexttile(plot_fig)
+
+for curr_group=1:2
+    for curr_mode=curr_group
+
+        pupil_center_single=feval(@(a) arrayfun(@(id) cat(5,a{:,id}),1:2,'UniformOutput',false),...
+            cat(1, all_data.([groups_name{curr_group} '_' modes_name{curr_mode}]).pupil_center_all_trace{:}));
+
+        temp_pupil_center=cellfun(@(x) permute(vecnorm(diff(x,1,2),2,3),[5,4,2,1,3]),...
+            pupil_center_single,'UniformOutput',false);
+
+        temp_pupil_center_mean=cellfun(@(x) trapz(x(:,:,face_time>0&face_time<1),3),temp_pupil_center,'UniformOutput',false);
+
+        wf_data_single=feval(@(a) arrayfun(@(id) cat(4,a{:,id}),1:2,'UniformOutput',false),...
+            cat(1, all_data.([groups_name{curr_group} '_' modes_name{curr_mode}]).wf_passive_all_trace{:}));
+        all_passive_image_pre=cellfun(@(x) plab.wf.svd2px(U_master(:,:,1:size(x,1)),...
+            x),wf_data_single,'UniformOutput',false);
+        temp_wf_passive_plot_tace= cellfun(@(x) ds.make_each_roi(x, length(t_kernels),roi1),all_passive_image_pre,'UniformOutput',false)
+        temp_wf_passive_max=cellfun(@(x) permute(max(x(1,period,:,:) ,[],2),[4,3,2,1])  ,temp_wf_passive_plot_tace,'UniformOutput',false)
+
+        colors{1}={[0 0 1],[0 0 1]}
+        colors{2}={[1 0 0],[1 0 0]}
+
+        hold on
+        temp_x=cellfun(@(a)  a(:,passive_id{curr_mode}(1)),...
+            temp_pupil_center_mean,'UniformOutput',false);
+        temp_y=cellfun(@(a)  a(:,passive_id{curr_mode}(1)),...
+            temp_wf_passive_max,'UniformOutput',false);
+
+        cellfun(@(x,y,z) plot(x,y,...
+            'LineStyle','none','Marker','.','MarkerSize',10,'Color',z),temp_x,temp_y,colors{curr_group},'uni',false)
+        % xlim([-0.1 0.6])
+        % ylim([0 0.00035])
+        ylabel('mPFC \Delta F/F_0')
+        xlabel('Pupil saccade')
+        % title([groups_name{curr_group} '\_' modes_name{curr_mode}])
+        [R(curr_group,1), p(curr_group,1)] = corr(cat(1,temp_x{:}), cat(1,temp_y{:}));
+
+        temp_line = polyfit(cat(1,temp_x{:}), cat(1,temp_y{:}), 1);
+        x_fit_task = linspace(-0.1, 0.7, 2);
+        y_fit_task = polyval(temp_line, x_fit_task);
+        plot(x_fit_task, y_fit_task, '-', 'LineWidth', 2,'Color',colors{curr_group}{1});
+
+
+
+    end
+end
+
+set(gca,'Color','none')
+axis square
+drawnow
+
+
+
+% nose move  trace
+
+plot_fig=tiledlayout(mainfig,2, 2);
+plot_fig.Layout.Tile = 7;  % 明确放在主 layout 的第 1 个 tile
+colors={[0 0 1;0 0 0],[1 0 0;0 0 0]}
+for curr_group=1:2
+    for curr_mode=curr_group
+
+        pupil_data_single=feval(@(a) arrayfun(@(id) cat(4,a{:,id}),1:3,'UniformOutput',false),...
+            cat(1, all_data.([groups_name{curr_group} '_' modes_name{curr_mode}]).nose_single{:}));
+        temp_pupil_trace=cellfun(@(x) permute(vecnorm(diff(x,1,1),2,3),[2,1,4,3]),pupil_data_single,'UniformOutput',false);
+        temp_pupil_trace_2=cellfun(@(x) cat(1,x(passive_id{curr_mode}(1),:,:),nanmean(x(passive_id{curr_mode}(2:3),:,:),1)),...
+            temp_pupil_trace,'UniformOutput',false);
+        figure('Position',[50 50 400 150]);
+        % tiledlayout(1,2)
+        for curr_state=1:2
+            nexttile(plot_fig)
+            hold on
+            ap.errorfill(face_time(2:end)',nanmean(temp_pupil_trace_2{curr_state},3)',...
+                nanstd(temp_pupil_trace_2{curr_state},0,3)'./sqrt(size(temp_pupil_trace_2{curr_state},3)),colors{curr_group})
+            xlim([-0.2 1])
+            ylim([-0.5 1])
             xline(0)
             axis off
         end
@@ -406,266 +542,430 @@ for curr_group=1:2
     end
 end
 
+hold on
+line([-0.2 -0.2],[-0.5 0],'Color','k');
+line([-0.2 0],[-0.5 -0.5],'Color','k');
+text(-0.42,  -0.4, '0.5 arb' ,'Rotation',90)
+text(-0.1, -0.6, '0.2 s')
 
-%%
-temp_pupil_trace=cell(2,1);
-temp_pupil_center_trace=cell(2,1);
+% nose move across days
+passive_id={[3 1 2],[2 1 3]};
 
-fig2=figure;
-% tg2=tiledlayout(fig2,2,2,"TileIndexing","columnmajor")
+plot_fig=tiledlayout(mainfig,2, 2,"TileIndexing","columnmajor" );
+plot_fig.Layout.Tile = 8;  % 明确放在主 layout 的第 1 个 tile
 
-fig3=figure;
-tg3=tiledlayout(fig3,2,2,"TileIndexing","columnmajor")
-
-
-fig4=figure;
-tg4=tiledlayout(fig4,2,2,"TileIndexing","columnmajor")
-fig5=figure;
-tg5=tiledlayout(fig5,2,2,"TileIndexing","columnmajor")
-fig6=figure;
-
-
+colors_temp={[84 130 53]/255,[112  48 160]/255}
 for curr_group=1:2
-   
     for curr_mode=1:2
+        % pupil
+        nose_data=cat(5, all_data.([groups_name{curr_group} '_' modes_name{curr_mode}]).nose{:});
+        temp_avg_nose_data= cat(2,vecnorm(diff(nose_data(:,passive_id{curr_mode}(1),:,:,:),1,1),2,3),...
+            nanmean(vecnorm(diff(nose_data(:,passive_id{curr_mode}(2:3),:,:,:),1,1),2,3),2));
+        temp_nose_AUC_mean= permute(nanmean(trapz(1:sum(face_time>0&face_time<1),temp_avg_nose_data(face_time>0&face_time<1,:,:,:,:),1),5),...
+            [4,2,3,1]);
+
+        temp_nose_AUC_error=...
+            permute(nanstd(trapz(1:sum(face_time>0&face_time<1),temp_avg_nose_data(face_time>0&face_time<1,:,:,:,:),1),0,5)./sqrt(size(nose_data,5)),...
+            [4,2,3,1]);
 
 
-        % nose
-        nose_data=cat(5, all_data.([groups_name{curr_group} '_' modes_name{curr_mode}]).nose_passive{:});
-
-        nose_data2=permute(cat(3,nose_data(:,3,passive_id{curr_mode}(1),:,:),...
-            nanmean(nose_data(:,3,passive_id{curr_mode}(2:3),:,:),3)),[1,3,4,5,2]);
-
-        nose_data_mean= permute(nanmean(max(nose_data2(face_time>0&face_time<1,:,:,:),[],1),4),[3,2,1,4])
-        nose_data_error= permute(nanstd(max(nose_data2(face_time>0&face_time<1,:,:,:),[],1),0,4)./sqrt(size(nose_data2,4)),[3,2,1,4])
-
-
-        
-        % pupil center
-        pupil_center_data=cat(1, all_data.([groups_name{curr_group} '_' modes_name{curr_mode}]).pupil_center{:});
-
-        temp_pupil_center=permute(cat(4,vecnorm(diff(pupil_center_data(:,:,:,passive_id{curr_mode}(1),:),1,2),2,3),...
-            nanmean(vecnorm(diff(pupil_center_data(:,:,:,passive_id{curr_mode}(2:3),:),1,2),2,3),4)), [2,4,5,1,3]);
-
-        temp_pupil_center_mean=permute(nanmean(trapz(temp_pupil_center(face_time>0&face_time<1,:,:,:),1),4),[3,2,1]);
-        temp_pupil_center_error=permute(nanstd(trapz(temp_pupil_center(face_time>0&face_time<1,:,:,:),1),0,4)./...
-            sqrt(size(temp_pupil_center,4)),[3,2,1]);
-
-
-        % temp_pupil_center=permute(cat(4,vecnorm((pupil_center_data(:,:,:,passive_id{curr_mode}(1),:)-...
-        %     pupil_center_data(:,:,1,passive_id{curr_mode}(1),:)),2,3),...
-        %     nanmean(vecnorm((pupil_center_data(:,:,:,passive_id{curr_mode}(2:3),:)-...
-        %     pupil_center_data(:,:,1,passive_id{curr_mode}(2:3),:)),2,3),4)), [2,4,5,1,3]);
-        % 
-        % temp_pupil_center_mean=permute(nanmean(max(temp_pupil_center(face_time>0&face_time<1,:,:,:),[],1),4),[3,2,1]);
-        % temp_pupil_center_error=permute(nanstd(max(temp_pupil_center(face_time>0&face_time<1,:,:,:),[],1),0,4)./...
-        %     sqrt(size(temp_pupil_center,4)),[3,2,1]);
-
-        wf_pass_data=cat(6, all_data.([groups_name{curr_group} '_' modes_name{curr_mode}]).wf_passive{:});
-
-        passive_image= plab.wf.svd2px(U_master(:,:,1:size(wf_pass_data,1)), wf_pass_data);
-        temp_wf_passiv=ds.make_each_roi(passive_image, length(t_kernels),roi1);
-
-        temp_wf_passiv_1= cat(3,temp_wf_passiv(:,:,passive_id{curr_mode}(1),:,:,:),nanmean(temp_wf_passiv(:,:,passive_id{curr_mode}(2:3),:,:,:),3))
-        temp_wf_passive_max= permute(nanmean(max(temp_wf_passiv_1(1,period,:,:,:,:) ,[],2),6), [4,3,2,1]) ;
-        temp_wf_passive_max_error= permute(nanstd(max(temp_wf_passiv_1(1,period,:,:,:,:) ,[],2),0,6)./sqrt(size(temp_wf_passiv_1,6)), [4,3,2,1]) ;
-
-        nexttile(tg3)
+        nexttile(plot_fig)
         hold on
-        ap.errorfill(1:5,temp_wf_passive_max(1:5,:),temp_wf_passive_max_error(1:5,:),[1 0 0;0 0 0])
-        ap.errorfill(6:10,temp_wf_passive_max(6:10,:),temp_wf_passive_max_error(6:10,:),[1 0 0;0 0 0])
-        ylim([0 0.0002])
+        ap.errorfill(1:5,temp_nose_AUC_mean(1:5,:),temp_nose_AUC_error(1:5,:),[colors_temp{curr_group};0 0 0])
+        ap.errorfill(6:10,temp_nose_AUC_mean(6:10,:),temp_nose_AUC_error(6:10,:),[colors_temp{curr_group};0 0 0])
 
-        nexttile(tg4)
-        hold on
-        ap.errorfill(1:5,nose_data_mean(1:5,:),nose_data_error(1:5,:),[1 0 0;0 0 0])
-        ap.errorfill(6:10,nose_data_mean(6:10,:),nose_data_error(6:10,:),[1 0 0;0 0 0])
-        ylim([0 1])
-
-        nexttile(tg5)
-        
-        ap.errorfill(1:5,temp_pupil_center_mean(1:5,:),temp_pupil_center_error(1:5,:),[1 0 0;0 0 0])
-        ap.errorfill(6:10,temp_pupil_center_mean(6:10,:),temp_pupil_center_error(6:10,:),[1 0 0;0 0 0])
-        ylim([0 1])
         xlim([1 10])
         xticks([1 5 6 10])
         xticklabels({'-5','-1','0','4'})
+        ylim([0 15])
+                ylabel('Nose move (arb)')
 
-
-
-
-         pupil_center_single=feval(@(a) arrayfun(@(id) cat(5,a{:,id}),1:4,'UniformOutput',false),...
-            cat(1, all_data.([groups_name{curr_group} '_' modes_name{curr_mode}]).pupil_center_single{:}));
-        if curr_group==curr_mode
-            temp_pupil_trace{curr_group}{curr_mode}=cellfun(@(x) permute(diff(x,1,2),[2,3,4,1]),pupil_data_single(1:4),'UniformOutput',false);
-            % temp_pupil_center_trace{curr_group}{curr_mode}=cellfun(@(x) permute( vecnorm((x-x(:,1,:,:,:)),2,3),[2,3,4,5,1]),pupil_center_single,'UniformOutput',false);
-            temp_pupil_center_trace{curr_group}{curr_mode}=cellfun(@(x) permute( vecnorm(diff(x,1,2),2,3),[2,3,4,5,1]),pupil_center_single,'UniformOutput',false);
-
-        else         
-            temp_pupil_trace{curr_group}{curr_mode}=cellfun(@(x) permute(diff(x,1,2),[2,3,4,1]),pupil_data_single(3:4),'UniformOutput',false);
-            % temp_pupil_center_trace{curr_group}{curr_mode}=cellfun(@(x) permute( vecnorm((x-x(:,1,:,:,:)),2,3),[2,3,4,5,1]),pupil_center_single,'UniformOutput',false);
-            temp_pupil_center_trace{curr_group}{curr_mode}=cellfun(@(x) permute( vecnorm(diff(x,1,2),2,3),[2,3,4,5,1]),pupil_center_single,'UniformOutput',false);
-
-        end
-
-
-        temp_pupil_AUC_single=cellfun(@(x) feval(@(a)...
-            permute(trapz(1:sum(face_time>0&face_time<1),a(:,face_time>0&face_time<1,:,:),2),...
-            [4,3,1,2]),diff(x,1,2)),pupil_data_single,'UniformOutput',false)
-        
-        temp_pupil_center_AUC_single=cellfun(@(x) feval(@(a)...
-            permute(trapz(1:sum(face_time>0&face_time<1),a(:,face_time>0&face_time<1,:,:,:),2),...
-            [5,4,3,1,2]),vecnorm(diff(x,1,2),2,3) ),pupil_center_single,'UniformOutput',false)
-
-
-
-
-        wf_data_single=feval(@(a) arrayfun(@(id) cat(4,a{:,id}),1:4,'UniformOutput',false),...
-            cat(1, all_data.([groups_name{curr_group} '_' modes_name{curr_mode}]).wf_passive_single{:}))
-
-
-        all_passive_image_pre=cellfun(@(x) plab.wf.svd2px(U_master(:,:,1:size(x,1)),...
-            x),wf_data_single,'UniformOutput',false);
-        temp_wf_passive_plot_tace= cellfun(@(x) ds.make_each_roi(x, length(t_kernels),roi1),all_passive_image_pre,'UniformOutput',false)
-
-        temp_wf_passive_max=cellfun(@(x) permute(max(x(1,period,:,:) ,[],2),[4,3,2,1])  ,temp_wf_passive_plot_tace,'UniformOutput',false)
-
-        if curr_group==curr_mode
-            colors={[0 0 1],[1 0 0],[ 0 0 0],[0 0 1]};
-            figure(fig2);   % 指定当前窗口
-            hold on
-            temp_x=feval(@(a)  a(:,passive_id{curr_mode}(1)), cat(1,temp_pupil_AUC_single{:}));
-            temp_y=feval(@(a)  a(:,passive_id{curr_mode}(1)), cat(1,temp_wf_passive_max{:}));
-
-            plot(temp_x,temp_y,...
-                'LineStyle','none','Marker','.','MarkerSize',10,'Color',colors{curr_group})
-            xlim([-0.1 0.6])
-            ylim([0 0.00035])
-            ylabel('\Delta F/F_0')
-            xlabel('Pupil AUC')
-            % title([groups_name{curr_group} '\_' modes_name{curr_mode}])
-            [R(curr_group,1), p(curr_group,1)] = corr(temp_x, temp_y);
-
-            temp_line = polyfit(temp_x, temp_y, 1);
-            x_fit_task = linspace(-0.1, 0.7, 2);
-            y_fit_task = polyval(temp_line, x_fit_task);
-            plot(x_fit_task, y_fit_task, '-', 'LineWidth', 2,'Color',colors{curr_group});
-            axis square
-            drawnow
-
-            figure(fig6);   % 指定当前窗口
-            hold on
-            temp_x2=feval(@(a)  a(:,passive_id{curr_mode}(1)), cat(1,temp_pupil_center_AUC_single{:}));
-            temp_y2=feval(@(a)  a(:,passive_id{curr_mode}(1)), cat(1,temp_wf_passive_max{:}));
-
-            plot(temp_x2,temp_y2,...
-                'LineStyle','none','Marker','.','MarkerSize',10,'Color',colors{curr_group})
-            xlim([-0.1 0.6])
-            ylim([0 0.00035])
-            ylabel('\Delta F/F_0')
-            xlabel('Pupi saccade AUC')
-            % title([groups_name{curr_group} '\_' modes_name{curr_mode}])
-            [R2(curr_group,1), p2(curr_group,1)] = corr(temp_x2, temp_y2);
-
-            temp_line = polyfit(temp_x2, temp_y2, 1);
-            x_fit_task = linspace(-0.1, 0.7, 2);
-            y_fit_task = polyval(temp_line, x_fit_task);
-            plot(x_fit_task, y_fit_task, '-', 'LineWidth', 2,'Color',colors{curr_group});
-            axis square
-            drawnow
-
-        end
-        % figure('Position',[50 50 800 200]);
-        % colors=[[0 0 1];[0 0 0];[1 0 0]];
-        % tiledlayout(1,11)
-        % for curr_day=1:10
-        %     nexttile
-        %     hold on
-        %     ap.errorfill(face_time(2:end)',pupil_data_plot_mean(:,:,curr_day),pupil_data_plot_error(:,:,curr_day),colors)
-        %     ylim([-0.02 0.03])
-        %     xlabel(['Day ' num2str(curr_day) ])
-        %     ylabel('')
-        % end
-        % nexttile
-        % figure
-        % ap.errorfill(1:10,temp_pupil_mean,temp_pupil_error,[0 0 1;0 0 0; 1 0 0])
-        % xlim([1 10])
-        % xticks(1 :10)
-        % ylim([0 0.03])
-        % xlabel('Day (s)')
-        % sgtitle([groups_name{curr_group} '\_' modes_name{curr_mode}])
-        % drawnow
+        xlabel('Day (s)')
+        % title([groups_name{curr_group} '\_' modes_name{curr_mode}])
+        set(gca,'Color','none')
+        drawnow
 
     end
 end
 
-visual_pupil_center_trace=arrayfun(@(id) cat(4,temp_pupil_center_trace{1}{1}{id},temp_pupil_center_trace{2}{1}{id}),1:4,'UniformOutput',false);
-visual_pupil_center_trace_1=cellfun(@(x) cat(3,x(:,:,3,:),nanmean(x(:,:,[1 2],:),3)),visual_pupil_center_trace,'UniformOutput',false)
-visual_pupil_center_trace_mean=cellfun(@(x) permute(nanmean(x,4),[1,3,2,4]),visual_pupil_center_trace_1,'UniformOutput',false);
-visual_pupil_center_trace_error=cellfun(@(x) permute(nanstd(x,0,4)./sqrt(size(x,4)),[1,3,2,4]),visual_pupil_center_trace_1,'UniformOutput',false);
-% figure;
-% nexttile
-% plot(face_time(1:end),permute(audio_pupil_center_trace_1{2}(:,:,1,:),[1,4,3,2]));
-% nexttile
-% plot(face_time(1:end),audio_pupil_center_trace_mean{2})
-%   nexttile
-%  ap.errorfill(face_time(1:end),visual_pupil_center_trace_mean{2},visual_pupil_center_trace_error{2},colors{1},0.1,0.1)
+% nose move vs wf
+plot_fig=tiledlayout(mainfig,1,1);
+plot_fig.Layout.Tile = 9;  % 明确放在主 layout 的第 1 个 tile
+nexttile(plot_fig)
+
+for curr_group=1:2
+    for curr_mode=curr_group
+
+        nose_move=feval(@(a) arrayfun(@(id) cat(4,a{:,id}),1:2,'UniformOutput',false),...
+            cat(1, all_data.([groups_name{curr_group} '_' modes_name{curr_mode}]).nose_all_trace{:}));
+
+        nose_move_trace=cellfun(@(x) permute(vecnorm(diff(x,1,1),2,3),[4,2,1,3]),...
+            nose_move,'UniformOutput',false);
+
+        nose_move_trace_mean=cellfun(@(x) trapz(x(:,:,face_time>0&face_time<1),3),nose_move_trace,'UniformOutput',false);
+
+        wf_data_single=feval(@(a) arrayfun(@(id) cat(4,a{:,id}),1:2,'UniformOutput',false),...
+            cat(1, all_data.([groups_name{curr_group} '_' modes_name{curr_mode}]).wf_passive_all_trace{:}));
+        all_passive_image_pre=cellfun(@(x) plab.wf.svd2px(U_master(:,:,1:size(x,1)),...
+            x),wf_data_single,'UniformOutput',false);
+        temp_wf_passive_plot_tace= cellfun(@(x) ds.make_each_roi(x, length(t_kernels),roi1),all_passive_image_pre,'UniformOutput',false)
+        temp_wf_passive_max=cellfun(@(x) permute(max(x(1,period,:,:) ,[],2),[4,3,2,1])  ,temp_wf_passive_plot_tace,'UniformOutput',false)
+
+        colors{1}={[0 0 1],[0 0 1]}
+        colors{2}={[1 0 0],[1 0 0]}
+
+        hold on
+        temp_x=cellfun(@(a)  a(:,passive_id{curr_mode}(1)),...
+            nose_move_trace_mean,'UniformOutput',false);
+        temp_y=cellfun(@(a)  a(:,passive_id{curr_mode}(1)),...
+            temp_wf_passive_max,'UniformOutput',false);
+
+        cellfun(@(x,y,z) plot(x,y,...
+            'LineStyle','none','Marker','.','MarkerSize',10,'Color',z),temp_x,temp_y,colors{curr_group},'uni',false)
+        % xlim([-0.1 0.6])
+        % ylim([0 0.00035])
+        ylabel('mPFC \Delta F/F_0')
+        xlabel('Nose move')
+        % title([groups_name{curr_group} '\_' modes_name{curr_mode}])
+        [R(curr_group,1), p(curr_group,1)] = corr(cat(1,temp_x{:}), cat(1,temp_y{:}));
+
+        temp_line = polyfit(cat(1,temp_x{:}), cat(1,temp_y{:}), 1);
+        x_fit_task = linspace(0, 20, 2);
+        y_fit_task = polyval(temp_line, x_fit_task);
+        plot(x_fit_task, y_fit_task, '-', 'LineWidth', 2,'Color',colors{curr_group}{1});
+
+
+
+    end
+end
+set(gca,'Color','none')
+
+axis square
+drawnow
+
+
+exportgraphics(gcf, fullfile(plab.locations.server_path,...
+    'Lab\Papers\Song_2025\submission_3_NatureCommunications\revisions\revision_figures\eps\Fig_EDF_I.eps'), ...
+    'ContentType','vector'); 
+
+
+% % wf
+% passive_id={[3 1 2],[2 1 3]};
+% fig1=figure;
+% tiledlayout(fig1,2,2,"TileIndexing","columnmajor")
+% for curr_group=1:2
+%     for curr_mode=1:2
 % 
-audio_pupil_center_trace=arrayfun(@(id) cat(4,temp_pupil_center_trace{1}{2}{id},temp_pupil_center_trace{2}{2}{id}),1:4,'UniformOutput',false);
-audio_pupil_center_trace_1=cellfun(@(x) cat(3,x(:,:,3,:),nanmean(x(:,:,[1 2],:),3)),audio_pupil_center_trace,'UniformOutput',false)
-audio_pupil_center_trace_mean=cellfun(@(x) permute(nanmean(x,4),[1,3,2,4]),audio_pupil_center_trace_1,'UniformOutput',false);
-audio_pupil_center_trace_error=cellfun(@(x) permute(nanstd(x,0,4)./sqrt(size(x,4)),[1,3,2,4]),audio_pupil_center_trace_1,'UniformOutput',false);
+%         wf_pass_data=cat(6, all_data.([groups_name{curr_group} '_' modes_name{curr_mode}]).wf_passive{:});
+% 
+%         passive_image= plab.wf.svd2px(U_master(:,:,1:size(wf_pass_data,1)), wf_pass_data);
+%         temp_wf_passiv=ds.make_each_roi(passive_image, length(t_kernels),roi1);
+% 
+%         temp_wf_passiv_1= cat(3,temp_wf_passiv(:,:,passive_id{curr_mode}(1),:,:,:),...
+%             nanmean(temp_wf_passiv(:,:,passive_id{curr_mode}(2:3),:,:,:),3))
+%         temp_wf_passive_max= permute(nanmean(max(temp_wf_passiv_1(1,period,:,:,:,:) ,[],2),6), [4,3,2,1]) ;
+%         temp_wf_passive_max_error= permute(nanstd(max(temp_wf_passiv_1(1,period,:,:,:,:) ,[],2),0,6)./sqrt(size(temp_wf_passiv_1,6)), [4,3,2,1]) ;
+% 
+% 
+%         nexttile
+%         hold on
+%         ap.errorfill(1:5,temp_wf_passive_max(1:5,:),temp_wf_passive_max_error(1:5,:),[1 0 0;0 0 0])
+%         ap.errorfill(6:10,temp_wf_passive_max(6:10,:),temp_wf_passive_max_error(6:10,:),[1 0 0;0 0 0])
+% 
+%         xlim([1 10])
+%         xticks([1 5 6 10])
+%         xticklabels({'-5','-1','0','4'})
+%         ylim([0 0.0002])
+%         xlabel('Day (s)')
+%         title([groups_name{curr_group} '\_' modes_name{curr_mode}])
+%         set(gca,'Color','none')
+%         drawnow
+% 
+%     end
+% end
+
+%%  nose movement in task
+groups_name={'VA','AV'};
+modes_name={'Visual','Auditory'};
+all_data=struct;
+
+for curr_group=1:2
+    switch curr_group
+        case 1
+            animals = {'DS007','DS010','AP019','AP021','DS011','AP022'};
+        case 2
+            animals = {'DS000','DS004','DS015','DS016'};
+    end
+    temp_data_all=table;
+    for curr_animal=1:length(animals)
+        preload_vars=who;
+        animal=animals{curr_animal};
+        data_all=matfile(fullfile(Path,[animal '_all_data.mat']));
 
 
-visual_pupil_trace=arrayfun(@(id) cat(3,temp_pupil_trace{1}{1}{id},temp_pupil_trace{2}{1}{id}),1:2,'UniformOutput',false);
-visual_pupil_trace_1=cellfun(@(x) cat(2,x(:,3,:),nanmean(x(:,[1 2],:),2)),visual_pupil_trace,'UniformOutput',false)
-visual_pupil_trace_mean=cellfun(@(x) nanmean(x,3),visual_pupil_trace_1,'UniformOutput',false);
-visual_pupil_trace_error=cellfun(@(x) nanstd(x,0,3)./sqrt(size(x,3)),visual_pupil_trace_1,'UniformOutput',false);
+        select_id_3{curr_group}=(strcmp([data_all.task_name],'stim_wheel_right_stage1')|...
+            strcmp([data_all.task_name],'stim_wheel_right_stage2'))&...
+            ~cellfun(@isempty ,data_all.wf_lcr_passive)&...
+            ~cellfun(@isempty ,data_all.wf_hml_passive_audio)&...
+            ~cellfun(@isempty ,data_all.face_hml_passive_audio)&...
+            ~cellfun(@isempty ,data_all.face_lcr_passive)&...
+            ~cellfun(@isempty ,data_all.face_task);
 
 
-audio_pupil_trace=arrayfun(@(id) cat(3,temp_pupil_trace{1}{2}{id},temp_pupil_trace{2}{2}{id}),1:2,'UniformOutput',false);
-audio_pupil_trace_1=cellfun(@(x) cat(2,x(:,2,:),nanmean(x(:,[1 3],:),2)),audio_pupil_trace,'UniformOutput',false)
-audio_pupil_trace_mean=cellfun(@(x) nanmean(x,3),audio_pupil_trace_1,'UniformOutput',false);
-audio_pupil_trace_error=cellfun(@(x) nanstd(x,0,3)./sqrt(size(x,3)),audio_pupil_trace_1,'UniformOutput',false);
+        select_id_3{3-curr_group}=(strcmp([data_all.task_name],'stim_wheel_right_stage1_audio_volume')|...
+            strcmp([data_all.task_name],'stim_wheel_right_stage2_audio_volume'))&...
+            ~cellfun(@isempty ,data_all.wf_hml_passive_audio)&...
+            ~cellfun(@isempty ,data_all.wf_lcr_passive) &...
+            ~cellfun(@isempty ,data_all.face_hml_passive_audio)&...
+            ~cellfun(@isempty ,data_all.face_lcr_passive)&...
+            ~cellfun(@isempty ,data_all.face_task);
 
-figure('Position',[50 50 200 300])
-colors={[0 0 1;0 0 0],[1 0 0;0 0 0]}
-tiledlayout(2,2,'TileSpacing','tight','TileIndexing','columnmajor')
-for curr_stage=1:2
-    nexttile
-    ap.errorfill(face_time(2:end),visual_pupil_trace_mean{curr_stage},visual_pupil_trace_error{curr_stage},colors{1},0.1,0.1)
-    xlim([-0.2 1])
-    ylim([-0.01 0.03])
-    xline(0)
-axis off
-   nexttile
-    ap.errorfill(face_time(2:end),audio_pupil_trace_mean{curr_stage},audio_pupil_trace_error{curr_stage},colors{2},0.1,0.1)
-    xlim([-0.2 1])
-    ylim([-0.01 0.03])
-    xline(0)
-axis off
+
+        temp_face_passive=data_all.face_task;
+        temp_wf_passive_0=data_all.wf_lcr_passive;
+
+
+        % pupil
+
+        % temp_idd=find(~cellfun(@isempty,temp_face_passive,'UniformOutput',true));
+        % pupil_idx=ismember(1:numel(temp_face_passive),temp_idd(cellfun(@(x)  x.validation.pupil, ...
+        %     temp_face_passive(temp_idd),'UniformOutput',true)))';
+
+
+        temp_behavior=data_all.behavior_task;
+        temp_p_val=cellfun(@(x) ...
+            arrayfun(@(id)  temp_behavior{id}.rxn_l_p(1)<0.05, find(x),'UniformOutput',true),...
+            select_id_3,'UniformOutput',false);
+
+
+
+        temp_pupil_size=cellfun(@(aa)  feval(@(a) cat(4,a{:}), cellfun(@(xx)  feval(@(d) cat(3,d{:}), ...
+            cellfun(@(c) nanmean(c,1), xx.pupil_data.diameterZ_filt_sav,'uni',false)),...
+            aa,'UniformOutput',false)) ,...
+            cellfun( @(x) temp_face_passive(x ),select_id_3,'UniformOutput',false),'UniformOutput',false);
+
+
+
+
+        pupil_data=cat(4,nan(size(temp_pupil_size{1},1), size(temp_pupil_size{1},2),size(temp_pupil_size{1},3),...
+            5-length(find(temp_p_val{1}==1,5))),...
+            temp_pupil_size{1}(:,:,:,find(temp_p_val{1}==1,5,'last')),...
+            temp_pupil_size{2}(:,:,:,1:min(5,end)));
+
+        pupil_3stage={temp_pupil_size{1}(:,:,:, temp_p_val{1}==0),...
+            temp_pupil_size{1}(:,:,:, find(temp_p_val{1}==1,2,'last')),...
+            temp_pupil_size{2}(:,:,:, find(temp_p_val{2}==1,2,'last'))};
+
+
+        %pupil center
+
+        temp_pupil_center=cellfun(@(aa)  feval(@(a) cat(5,a{:}), cellfun(@(xx)  feval(@(d) cat(4,d{:}), ...
+            cellfun(@(c) nanmean(c,1), xx.pupil_data.center_filt_sav,'uni',false)),...
+            aa,'UniformOutput',false)) ,...
+            cellfun( @(x) temp_face_passive(x),select_id_3,'UniformOutput',false),'UniformOutput',false);
+
+
+
+        pupil_center_data=cat(5,nan(size(temp_pupil_center{1},1), size(temp_pupil_center{1},2),...
+            size(temp_pupil_center{1},3),size(temp_pupil_center{1},4),...
+            5-length(find(temp_p_val{1}==1,5))),...
+            temp_pupil_center{1}(:,:,:,:,find(temp_p_val{1}==1,5,'last')),...
+            temp_pupil_center{2}(:,:,:,:,1:min(5,end)));
+
+
+        pupil_center_3stage={temp_pupil_center{1}(:,:,:,:,temp_p_val{1}==0),...
+            temp_pupil_center{1}(:,:,:,:, find(temp_p_val{1}==1,2,'last')),...
+            temp_pupil_center{2}(:,:,:,:,find(temp_p_val{2}==1,2,'last'))};
+
+
+
+        % nose
+        temp_nose_passive=cellfun(@(aa)  feval(@(a) cat(4,a{:}), cellfun(@(xx) ...
+            permute( nanmean(vecnorm(diff( ...
+            feval(@(d) cat(5,d{:}), cellfun(@(c) nanmean(c,1), xx.face_data.nose_filt_sav,'uni',false)) ,1,2), 2, 4),1),[2,3,5,4,1]) ,...
+            aa,'UniformOutput',false)) ,...
+            cellfun( @(x) temp_face_passive(x),select_id_3,'UniformOutput',false),'UniformOutput',false);
+
+
+
+        nose_data=cat(4,nan(size(temp_nose_passive{1},1), size(temp_nose_passive{1},2),size(temp_nose_passive{1},3),...
+            5-length(find(temp_p_val{1}==1,5))),...
+            temp_nose_passive{1}(:,:,:,find(temp_p_val{1}==1,5,'last')),...
+            temp_nose_passive{2}(:,:,:,1:5));
+
+
+        % wf_passive
+        temp_wf_passive=cellfun(@(aa)  feval(@(a) cat(4,a{:}), cellfun(@(xx) cat(3,xx.kernels_decoding{:}),...
+            aa,'UniformOutput',false)) ,...
+            cellfun( @(x) temp_wf_passive_0(x),select_id_3,'UniformOutput',false),'UniformOutput',false);
+
+        wf_passive_3stage={temp_wf_passive{1}(:,:,:, temp_p_val{1}==0),...
+            temp_wf_passive{1}(:,:,:, find(temp_p_val{1}==1,2,'last')),...
+            temp_wf_passive{2}(:,:,:, find(temp_p_val{2}==1,2,'last'))};
+
+
+        wf_passive_data=cat(4,nan(size(temp_wf_passive{1},1), size(temp_wf_passive{1},2),size(temp_wf_passive{1},3),...
+            5-length(find(temp_p_val{1}==1,5))),...
+            temp_wf_passive{1}(:,:,:,find(temp_p_val{1}==1,5,'last')),...
+            temp_wf_passive{2}(:,:,:,1:5));
+
+
+
+
+        temp_data_all.nose_passive{curr_animal}=nose_data;
+        temp_data_all.pupil_size{curr_animal}=pupil_data;
+        temp_data_all.pupil_size_single{curr_animal}=pupil_3stage;
+        temp_data_all.pupil_all_trace{curr_animal}=temp_pupil_size;
+
+        temp_data_all.wf_passive{curr_animal}=wf_passive_data;
+        temp_data_all.wf_passive_single{curr_animal}=wf_passive_3stage;
+        temp_data_all.wf_passive_all_trace{curr_animal}=temp_wf_passive;
+
+        temp_data_all.pupil_center{curr_animal}=pupil_center_data;
+        temp_data_all.pupil_center_single{curr_animal}=pupil_center_3stage;
+        temp_data_all.pupil_center_all_trace{curr_animal}=temp_pupil_center;
+        clearvars('-except',preload_vars{:});
+    end
+
+    all_data.(groups_name{curr_group} )=temp_data_all;
+
 end
 
-figure('Position',[50 50 200 300])
-colors={[0 0 1;0 0 0],[1 0 0;0 0 0]}
-tiledlayout(2,4,'TileSpacing','tight','TileIndexing','columnmajor')
 
-for curr_stage=1:4
-   nexttile
-    ap.errorfill(face_time(2:end),visual_pupil_center_trace_mean{curr_stage},visual_pupil_center_trace_error{curr_stage},colors{1},0.1,0.1)
-    xlim([-0.2 1])
-     ylim([0 0.03])
-    xline(0)
-  % axis off
-    nexttile
-   
-    ap.errorfill(face_time(2:end),audio_pupil_center_trace_mean{curr_stage},audio_pupil_center_trace_error{curr_stage},colors{2},0.1,0.1)
-    xlim([-0.2 1])
-     ylim([0 0.03])
-    xline(0)
-   % axis off
+
+% pupil size  trace
+colors={[0 0 1],[1 0 0]}
+for curr_group=1:2
+
+        pupil_data_single=feval(@(a) arrayfun(@(id) cat(4,a{:,id}),1:3,'UniformOutput',false),...
+            cat(1, all_data.(groups_name{curr_group} ).pupil_size_single{:}));
+        temp_pupil_trace=cellfun(@(x) permute(diff(x,1,2),[2,3,4,1]),pupil_data_single,'UniformOutput',false);
+
+        figure('Position',[50 50 400 150]);
+        tiledlayout(1,3)
+        for curr_state=1:3
+            nexttile
+            hold on
+            ap.errorfill(face_time(2:end)',nanmean(temp_pupil_trace{curr_state},3),...
+                nanstd(temp_pupil_trace{curr_state},0,3)./sqrt(size(temp_pupil_trace{curr_state},3)),colors{curr_group})
+            xlim([-0.2 1])
+            ylim([-0.03 0.1])
+            xline(0)
+            axis off
+        end
+
 
 end
+
+
+% pupil size across days
+passive_id={[3 1 2],[2 1 3]};
+fig1=figure;
+tiledlayout(fig1,1,2,"TileIndexing","columnmajor")
+
+colors_temp={[84 130 53]/255,[112  48 160]/255}
+for curr_group=1:2
+        % pupil
+        pupil_data=cat(1, all_data.([groups_name{curr_group}]).pupil_size{:});
+        temp_pupil_AUC_mean=feval(@(a)...
+            permute(nanmean(trapz(1:sum(face_time>0&face_time<1),a(:,face_time>0&face_time<1,:,:),2),1),...
+            [4,3,2,1]),diff(pupil_data,1,2));
+
+        temp_pupil_AUC_error=feval(@(a)...
+            permute(nanstd(trapz(1:sum(face_time>0&face_time<1),a(:,face_time>0&face_time<1,:,:),2),0,1)./sqrt(size(pupil_data,1)),...
+            [4,3,2,1]),diff(pupil_data,1,2));
+
+
+        nexttile
+        hold on
+        ap.errorfill(1:5,temp_pupil_AUC_mean(1:5,:),temp_pupil_AUC_error(1:5,:),colors_temp{curr_group})
+        ap.errorfill(6:10,temp_pupil_AUC_mean(6:10,:),temp_pupil_AUC_error(6:10,:),colors_temp{curr_group})
+
+        xlim([1 10])
+        xticks([1 5 6 10])
+        xticklabels({'-5','-1','0','4'})
+        ylim([0 1.5])
+        xlabel('Day (s)')
+        title(groups_name{curr_group})
+        set(gca,'Color','none')
+        drawnow
+
+    
+end
+
+
+
+
+% pupil saccade
+fig1=figure;
+tiledlayout(fig1,1,2,"TileIndexing","columnmajor")
+
+colors_temp={[84 130 53]/255,[112  48 160]/255}
+for curr_group=1:2
+
+    % pupil center
+    pupil_center_data=cat(1, all_data.(groups_name{curr_group} ).pupil_center{:});
+
+    temp_pupil_center=permute(vecnorm(diff(pupil_center_data,1,2),2,3),...
+        [2,4,5,1,3]);
+
+
+    temp_pupil_center_mean=permute(nanmean(trapz(temp_pupil_center(face_time>0&face_time<1,:,:,:),1),4),[3,2,1]);
+    temp_pupil_center_error=permute(nanstd(trapz(temp_pupil_center(face_time>0&face_time<1,:,:,:),1),0,4)./...
+        sqrt(size(temp_pupil_center,4)),[3,2,1]);
+
+    nexttile
+    ap.errorfill(1:5,temp_pupil_center_mean(1:5,:),temp_pupil_center_error(1:5,:),[colors_temp{curr_group};0 0 0])
+    ap.errorfill(6:10,temp_pupil_center_mean(6:10,:),temp_pupil_center_error(6:10,:),[colors_temp{curr_group};0 0 0])
+    ylim([0 3])
+    xlim([1 10])
+    xticks([1 5 6 10])
+    xticklabels({'-5','-1','0','4'})
+
+    xlabel('Day (s)')
+    title(groups_name{curr_group})
+    set(gca,'Color','none')
+    drawnow
+
+end
+
+
+
+
+% pupil saccade  trace
+
+colors={[0 0 1;0 0 0;1 0 0],[1 0 0;0 0 0;1 0 0]}
+for curr_group=1:2
+    for curr_mode=curr_group
+
+
+
+
+        pupil_center_single=feval(@(a) arrayfun(@(id) cat(5,a{:,id}),1:3,'UniformOutput',false),...
+            cat(1, all_data.(groups_name{curr_group} ).pupil_center_single{:}));
+
+        % temp_pupil_center_trace=cellfun(@(x) permute( vecnorm((x-x(:,1,:,:,:)),2,3),[2,3,4,5,1]),pupil_center_single,'UniformOutput',false);
+        temp_pupil_center_trace=cellfun(@(x) permute( vecnorm(diff(x,1,2),2,3),[2,4,5,3,1]),pupil_center_single,'UniformOutput',false);
+
+      
+
+        figure('Position',[50 50 400 150]);
+        tiledlayout(1,3)
+        for curr_state=1:3
+            nexttile
+            hold on
+            ap.errorfill(face_time(2:end)',nanmean(temp_pupil_center_trace{curr_state},3),...
+                nanstd(temp_pupil_center_trace{curr_state},0,3)./sqrt(size(temp_pupil_center_trace{curr_state},3)),colors{curr_group})
+            xlim([-0.2 1])
+             ylim([0 0.2])
+            xline(0)
+            axis off
+        end
+
+
+    end
+end
+
 
 
 %% wf vs nose movement
@@ -1013,7 +1313,7 @@ temp_data_all{curr_group}=table;
 for curr_animal=1:length(animals)
     preload_vars=who;
     animal=animals{curr_animal};
-    load(fullfile(Path,[animal '_all_data.mat']));
+    data_all=load(fullfile(Path,[animal '_all_data.mat']));
 
     switch curr_group
         case 1
@@ -1056,19 +1356,31 @@ end
 
 pairs={[1 1 ],[2 2],[1 2],[2 1]}
 pairs_names={'Visual task vs Visual passive','Auditory task vs Auditory passive',...
-    'Visual task vs Auditory passive','Auditory task vs Visual passive'}
-figure
+    'Visual task vs Auditory passive','Auditory task vs Visual passive'};
+temp_val=cell(4,1);
+figure('Position',[50 50 600 900])
 for curr_pair=1:length(pairs)
 
 
+ % task_images_max=feval(@(a)  cat(3,a{:}), ...
+ %     cellfun(@(x)  permute(max(x(:,:,period,:),[],3),[1,2,4,3])   ,temp_data_all{pairs{curr_pair}(1)}.task_image,'UniformOutput',false));
+ % 
  task_images_max=feval(@(a)  cat(3,a{:}), ...
-     cellfun(@(x)  permute(max(x(:,:,period,:),[],3),[1,2,4,3])   ,temp_data_all{pairs{curr_pair}(1)}.task_image,'UniformOutput',false));
+     cellfun(@(x)  permute(max(nanmean(x(:,:,period,:),4),[],3),[1,2,4,3])   ,temp_data_all{pairs{curr_pair}(1)}.task_image,'UniformOutput',false));
+
+ 
  task_length=size(task_images_max,3);
 
+ % passive_images_max=feval(@(a)  cat(3,a{:}), ...
+ %     cellfun(@(x)  permute(max(x(:,:,period,:),[],3),[1,2,4,3])   ,temp_data_all{pairs{curr_pair}(2)}.passive_image,'UniformOutput',false));
+ % 
+ 
  passive_images_max=feval(@(a)  cat(3,a{:}), ...
-     cellfun(@(x)  permute(max(x(:,:,period,:),[],3),[1,2,4,3])   ,temp_data_all{pairs{curr_pair}(2)}.passive_image,'UniformOutput',false));
+     cellfun(@(x)  permute(max(nanmean(x(:,:,period,:),4),[],3),[1,2,4,3])   ,temp_data_all{pairs{curr_pair}(2)}.passive_image,'UniformOutput',false));
+
  passive_length=size(passive_images_max,3);
 
+ 
 X=cat(3,task_images_max,passive_images_max);
 
 
@@ -1101,6 +1413,9 @@ for i = 1:K
     end
 end
 
+temp_val{curr_pair}=C(1:task_length,task_length+1:task_length+passive_length);
+
+
 K = size(C,1);
 
 % 创建mask：保留对角线 + 上三角
@@ -1118,8 +1433,6 @@ set(gca, 'XAxisLocation', 'top');
 set(gca, 'YAxisLocation', 'right');
 axis image;
 box off
-colorbar;
-caxis([0 1]);   % correlation 范围
 
 labels={'task','passive'}
 set(gca, 'XTick', [task_length/2 task_length+passive_length/2], 'YTick', [task_length/2 task_length+passive_length/2]);
@@ -1130,46 +1443,239 @@ line([task_length+0.5 (task_length+passive_length)+0.5 ], [task_length+0.5 task_
  line([ task_length+0.5 task_length+0.5],[0.5 task_length+0.5 ],'Color',[1 0 0]);
  title(pairs_names{curr_pair})
 end
+colorbar;
+caxis([0 1]);   % correlation 范围
+
+temp_v=cellfun(@(x)  x(:),temp_val,'UniformOutput',false)
+% figure('Position',[50 50 300 400])
+nexttile
+ds.make_bar_plot(cellfun(@(x)  x(:),temp_val,'UniformOutput',false),'ShowDots',0)
+set(gca, 'XTick',[1:4],'XTickLabel', pairs_names);
+ylim([0 1])
+ylabel('Correlation')
+
+exportgraphics(gcf, fullfile(plab.locations.server_path,...
+    'Lab\Papers\Song_2025\submission_3_NatureCommunications\revisions\revision_figures\eps\Fig_EDF_C1.eps'), ...
+    'ContentType','vector'); 
+     
+ds.shuffle_test(temp_v{3},temp_v{4})
 
 % correlation trace
 
-for curr_group=1:2
 
+image_corr=cell(2,1);
+for curr_group=1:2
 task_images=cat(4,temp_data_all{curr_group}.task_image{:});
 passive_images=cat(4,temp_data_all{curr_group}.passive_image{:});
-
-image_corr=cell(size(task_images,4),1);
+% image_corr=cell(size(task_images,4),1);
 for curr_image=1:size(task_images,4)
-
 used_task=reshape(task_images(:,:,:,curr_image),[],size(task_images,3))';
 used_passive=reshape(passive_images(:,:,:,curr_image),[],size(passive_images,3))';
 Cmat=zeros(size(used_task,2),1);
 for curr_pixel=1:size(used_task,2)
 Cmat(curr_pixel) = corr(used_task(:,curr_pixel),used_passive(:,curr_pixel));   % 注意转置！
 end
-image_corr{curr_image} = reshape(Cmat, size(task_images,1), size(task_images,2));
+image_corr{curr_group}{curr_image} = reshape(Cmat, size(task_images,1), size(task_images,2));
+end
 end
 
-
-figure;
+figure('Position',[50 50 400 200]);
+for curr_group=1:2
 nexttile
-plot_image=nanmean(cat(3,image_corr{:}),3);
+plot_image=nanmean(cat(3,image_corr{curr_group}{:}),3);
 % plot_image(plot_image<0.3)=0;
 imagesc(plot_image)
 axis image off;
 ap.wf_draw('ccf', [0.5 0.5 0.5]);
  clim([ 0, 1]);
 colormap( ap.colormap('WB' ));
-nexttile
-plot_image(plot_image<0.3)=0;
-imagesc(plot_image)
-axis image off;
-ap.wf_draw('ccf', [0.5 0.5 0.5]);
- clim([ 0, 1]);
-colormap( ap.colormap('WB' ));
-
 end
 
+colorbar
+exportgraphics(gcf, fullfile(plab.locations.server_path,...
+    'Lab\Papers\Song_2025\submission_3_NatureCommunications\revisions\revision_figures\eps\Fig_EDF_C2.eps'), ...
+    'ContentType','vector'); 
+     
+
+% exportgraphics(gcf, fullfile(plab.locations.server_path,...
+%     'Lab\Papers\Song_2025\submission_3_NatureCommunications\revisions\revision_figures\eps\Fig_EDF_D.eps'), ...
+%     'ContentType','vector'); 
+
+%% correlation betweenMOD1 vs MOD2
+temp_data_all=cell(2,1);
+for curr_group=1:2
+    switch curr_group
+        case 1
+            animals = {'DS007','DS010','AP019','AP021','DS011','AP022'};
+        case 2
+            animals = {'DS000','DS004','DS014','DS015','DS016'};
+    end
+
+temp_data_all{curr_group}=table;
+for curr_animal=1:length(animals)
+    preload_vars=who;
+    animal=animals{curr_animal};
+    data_all=load(fullfile(Path,[animal '_all_data.mat']));
+
+
+    for curr_mod= 1:2
+        switch curr_mod
+            case 1
+                select_id_3=(strcmp([data_all.task_name],'stim_wheel_right_stage1')|strcmp([data_all.task_name],'stim_wheel_right_stage2'))&...
+                    ~cellfun(@isempty ,data_all.wf_lcr_passive);
+            case 2
+                select_id_3=(strcmp([data_all.task_name],'stim_wheel_right_stage1_audio_volume')|strcmp([data_all.task_name],'stim_wheel_right_stage2_audio_volume'))&...
+                    ~cellfun(@isempty ,data_all.wf_hml_passive_audio);
+        end
+        temp_p_val=arrayfun(@(id)  data_all.behavior_task{id}.rxn_l_p(1)<0.05, find(select_id_3),'UniformOutput',true);
+
+
+        %% wf_task
+
+        all_wf_task=[data_all.wf_task(select_id_3)];
+        % all_task_image=cellfun(@(x) plab.wf.svd2px(U_master(:,:,1:size(x.stim_kernels{1},1)),x.iti_move_kernels{1}),all_wf_task,'UniformOutput',false);
+        all_task_image=cellfun(@(x) plab.wf.svd2px(U_master(:,:,1:size(x.stim_kernels{1},1)),x.stim_kernels{1}),all_wf_task,'UniformOutput',false);
+        % all_task_image=cellfun(@(x) plab.wf.svd2px(U_master(:,:,1:size(x.stim_kernels{1},1)),x.all_iti_move_kernels{1}),all_wf_task,'UniformOutput',false);
+
+        temp_data_all{curr_group}.task_image{curr_mod,curr_animal}=cat(4,all_task_image{find(temp_p_val==1,2,'last')});
+
+
+
+        %% wf_passive
+
+
+        switch curr_mod
+            case 1
+                all_wf_passive_1=[data_all.wf_lcr_passive(select_id_3)];
+                used_passive=3;
+            case 2
+                all_wf_passive_1=[data_all.wf_hml_passive_audio(select_id_3)];
+                used_passive=2;
+        end
+        all_passive_image_pre=cellfun(@(x) plab.wf.svd2px(U_master(:,:,1:size(x.kernels_decoding{used_passive},1)),x.kernels_decoding{used_passive}),all_wf_passive_1,'UniformOutput',false);
+
+        temp_data_all{curr_group}.passive_image{curr_mod,curr_animal}=cat(4,all_passive_image_pre{find(temp_p_val==1,2,'last')})
+    end
+
+clearvars('-except',preload_vars{:});
+end
+end
+
+pairs_names={'stage V_1 vs V_2','stage A_1 vs A_2'};
+
+
+
+figure('Position',[50 50 900 300])
+tiledlayout(3,1)
+temp_val=cell(2,1);
+
+for curr_mod=1:2
+
+
+    % task_images_max=feval(@(a)  cat(3,a{:}), ...
+    %     cellfun(@(x)  permute(max(x(:,:,period,:),[],3),[1,2,4,3])   ,temp_data_all{pairs{curr_pair}(1)}.task_image,'UniformOutput',false));
+    %
+    task_images_max_1=feval(@(a)  cat(3,a{:}), ...
+        cellfun(@(x)  permute(max(nanmean(x(:,:,period,:),4),[],3),[1,2,4,3])   ,temp_data_all{1}.task_image(curr_mod,:),'UniformOutput',false));
+
+
+    task_length_1=size(task_images_max_1,3);
+
+    % passive_images_max=feval(@(a)  cat(3,a{:}), ...
+    %     cellfun(@(x)  permute(max(x(:,:,period,:),[],3),[1,2,4,3])   ,temp_data_all{pairs{curr_pair}(2)}.passive_image,'UniformOutput',false));
+    %
+
+    task_images_max_2=feval(@(a)  cat(3,a{:}), ...
+        cellfun(@(x)  permute(max(nanmean(x(:,:,period,:),4),[],3),[1,2,4,3])   ,temp_data_all{2}.task_image(curr_mod,:),'UniformOutput',false));
+
+    task_length_2=size(task_images_max_2,3);
+
+
+    X=cat(3,task_images_max_1,task_images_max_2);
+
+
+    % ap.imscroll(X)
+    % axis image off;
+    % ap.wf_draw('ccf', [0.5 0.5 0.5]);
+    % clim(0.0003 .* [ 0, 1]);
+    % colormap( ap.colormap('WB' ));
+
+
+    X = double(X);   % n*m*10
+
+    K = size(X, 3);  % 这里应该是 10
+    C = zeros(K, K);
+
+    for i = 1:K
+        vi = X(:,:,i);
+        vi = vi(:);
+
+        for j = 1:K
+            vj = X(:,:,j);
+            vj = vj(:);
+
+            % 去掉常数向量导致的 NaN
+            if std(vi) == 0 || std(vj) == 0
+                C(i,j) = NaN;
+            else
+                C(i,j) = corr(vi, vj);
+            end
+        end
+    end
+
+
+
+    K = size(C,1);
+
+    % 创建mask：保留对角线 + 上三角
+    mask = triu(true(K));
+
+    % 其余设为 NaN（不显示）
+    C_plot = nan(K);
+    C_plot(mask) = C(mask);
+
+    C_plot_temp= nan(K);
+    C_plot_temp(triu(true(K),1)) = C(triu(true(K),1));
+
+    temp_val{curr_mod}{3}=C_plot_temp(1:task_length_1,task_length_1+1:task_length_1+task_length_2);
+    temp_val{curr_mod}{1}=C_plot_temp(1:task_length_1,1:task_length_1);
+    temp_val{curr_mod}{2}=C_plot_temp(task_length_1+1:task_length_1+task_length_2,...
+        task_length_1+1:task_length_1+task_length_2);
+
+    temp_val{curr_mod}=cellfun(@(x)   x(~isnan(x(:))) ,temp_val{curr_mod},'uni',false)
+
+    nexttile
+    imagesc(C_plot);
+    colormap( ap.colormap('WK' ));
+    set(gca, 'XAxisLocation', 'top');
+    set(gca, 'YAxisLocation', 'right');
+    axis image;
+    box off
+    caxis([0 1]);   % correlation 范围
+    switch curr_mod
+        case 1
+            labels={'stage V_1','stage V_2'};
+        case 2
+            labels={'stage A_1','stage A_2'};
+    end
+    set(gca, 'XTick', [task_length_1/2 task_length_1+task_length_2/2], 'YTick', [task_length_1/2 task_length_1+task_length_2/2]);
+    set(gca, 'XTickLabel', labels, 'YTickLabel', labels);
+    % set(gca, 'TickLabelInterpreter', 'none');
+
+    line([task_length_1+0.5 (task_length_1+task_length_2)+0.5 ], [task_length_1+0.5 task_length_1+0.5 ],'Color',[1 0 0]);
+    line([ task_length_1+0.5 task_length_1+0.5],[0.5 task_length_1+0.5 ],'Color',[1 0 0]);
+    title(pairs_names{curr_mod})
+end
+colorbar;
+
+% figure('Position',[50 50 200 200])
+nexttile
+ds.make_bar_plot(cat(2,temp_val{:}),'ShowDots',0)
+set(gca, 'XTick',[1:6],'XTickLabel', {'V_1 vs V_1','V_2 vs V_2','V_1 vs V_2','A_1 vs A_1','A_2 vs A_2','A_1 vs A_2'});
+ylim([0 1])
+ylabel('Correlation')
+set(gca,'Color','none')
+ds.shuffle_test(temp_val{2}{1},temp_val{2}{3})
 
 
 %% audio balance to visual 
@@ -1263,11 +1769,12 @@ all_audio_task_image_post= plab.wf.svd2px(U_master(:,:,1:size(temp_audio_post,1)
 all_audio_task_image_max_post=max(nanmean(all_audio_task_image_post(:,:,period,:),4),[],3);
 
 
-figure('Position',[50 50 800 300]);
+figure('Position',[50 50 600 300]);
 tiledlayout(2,3,'TileIndexing','columnmajor')
 colors=[[0 0 1];[0 0 0];[ 1 0 0]];
 used_passive=[3,3,3];
-names={'pre-learning','post-learning',''}
+names={'A-pre-learning','A-well-trained','V-well-trained'}
+color_n={'R','R','B'}
 for curr_stage=1:3
     switch curr_stage
         case 1
@@ -1290,24 +1797,30 @@ for curr_stage=1:3
 
 
     end
-    nexttile
+    a1=nexttile
     imagesc(temp_task);
      axis image off;
     ap.wf_draw('ccf', [0.5 0.5 0.5]);
     clim(0.0004 .* [ 0, 1]);
-    colormap( ap.colormap('WP' ));
- title(names{curr_stage})
+    colormap(a1, ap.colormap(['W'  color_n{curr_stage}] ));
+ title(names{curr_stage},'FontWeight','normal')
+
  for curr_passive=used_passive(curr_stage)
-     nexttile
+     a2=nexttile
      imagesc(tem_image(:,:,curr_passive));
      axis image off;
     ap.wf_draw('ccf', [0.5 0.5 0.5]);
     clim(0.0004 .* [ 0, 1]);
-    colormap( ap.colormap('WP' ));
+    colormap(a2, ap.colormap(['W'  color_n{curr_stage}] ));
  end
+colorbar
 
 end
 colorbar
 
+
+exportgraphics(gcf, fullfile(plab.locations.server_path,...
+    'Lab\Papers\Song_2025\submission_3_NatureCommunications\revisions\revision_figures\eps\Fig_EDF_D.eps'), ...
+    'ContentType','vector'); 
 
 %%

@@ -79,17 +79,28 @@ save(fullfile('\\qnap-ap001.dpag.ox.ac.uk\APlab\Lab\Papers\Song_2025\data\revisi
   
  
 %%
+clear all
+clc
+ U_master = plab.wf.load_master_U;
+load(fullfile('\\qnap-ap001.dpag.ox.ac.uk\APlab\Lab\Papers\Song_2025\data\General_information\roi.mat'))
+% Path = '\\qnap-ap001.dpag.ox.ac.uk\APlab\Users\Da_Song\Data process\project_cross_model\wf_data\';
+
+
+load(fullfile('\\qnap-ap001.dpag.ox.ac.uk\APlab\Lab\Papers\Song_2025\data\revision',...
+    'different_task_behavior.mat'))
+
 surround_samplerate = 35;
 t_kernels=1/surround_samplerate*[-10:30];
+%
 
-
-    colors={[0.4 0.4 1],[0.8 0.8 1],[0.5 0.5 1],[0.44 0.4 1],[0.44 0.4 1]};
-    use_group=[1 2]
+colors={[0.4 0.4 1],[0.8 0.8 1],[0.5 0.5 1],[0.44 0.4 1],[0.44 0.4 1]};
+use_group={[1 2],3}
+for curr_groups=1:2
     figure('Position',[50 50 600 150]);
     tiledlayout(1,4)
     nexttile
     hold on
-    for curr_group=use_group
+    for curr_group=use_group{curr_groups}
         cellfun(@(x) plot(x,'Color',colors{curr_group},'LineWidth',2) ,behavior_data.reaction_time{curr_group},'UniformOutput',false )
 
         cellfun(@(x,y) plot(find(y),x(y),'Color','r','LineWidth',2) ,behavior_data.reaction_time{curr_group},...
@@ -99,7 +110,7 @@ t_kernels=1/surround_samplerate*[-10:30];
     xlim([1 max(cellfun(@length ,behavior_data.reaction_time{curr_group},'UniformOutput',true))])
     yticks([0.1 0.5 1 2 4 6])
     set(gca, 'YScale', 'log')
-        ylim([0.1 10])
+    ylim([0.1 10])
 
     ylabel('Reaction time (s)')
     xlabel('Days')
@@ -107,12 +118,12 @@ t_kernels=1/surround_samplerate*[-10:30];
 
     nexttile
     hold on
-    for curr_group=use_group
+    for curr_group=use_group{curr_groups}
 
-      cellfun(@(x) plot(x,'Color',colors{curr_group},'LineWidth',2) ,behavior_data.performance{curr_group},'UniformOutput',false )
-   
-      cellfun(@(x,y) plot(find(y),x(y),'Color','r','LineWidth',2) ,behavior_data.performance{curr_group},...
-        behavior_data.p_val{curr_group},'UniformOutput',false )
+        cellfun(@(x) plot(x,'Color',colors{curr_group},'LineWidth',2) ,behavior_data.performance{curr_group},'UniformOutput',false )
+
+        cellfun(@(x,y) plot(find(y),x(y),'Color','r','LineWidth',2) ,behavior_data.performance{curr_group},...
+            behavior_data.p_val{curr_group},'UniformOutput',false )
     end
 
     xlim([1 max(cellfun(@length ,behavior_data.performance{curr_group},'UniformOutput',true))])
@@ -126,7 +137,7 @@ t_kernels=1/surround_samplerate*[-10:30];
 
 
     temp_wf_task=   cellfun(@(x)   cellfun(@(a)      nanmean(cat(3,a{end-1:end}),3)...
-        ,x,'UniformOutput',false) ,behavior_data.task_kernels(use_group),'UniformOutput',false)
+        ,x,'UniformOutput',false) ,behavior_data.task_kernels(use_group{curr_groups}),'UniformOutput',false)
 
     tem_image_task=   cellfun(@(a)   cellfun(@(x) plab.wf.svd2px(U_master(:,:,1:size(x,1)),x),a,'UniformOutput',false)...
         ,temp_wf_task,'UniformOutput',false);
@@ -144,7 +155,7 @@ t_kernels=1/surround_samplerate*[-10:30];
 
 
     temp_wf_passive=   cellfun(@(x)   cellfun(@(a)      nanmean(cat(4,a{end-1:end}),4)...
-        ,x,'UniformOutput',false) ,behavior_data.passive_kernels(use_group),'UniformOutput',false)
+        ,x,'UniformOutput',false) ,behavior_data.passive_kernels(use_group{curr_groups}),'UniformOutput',false)
 
     tem_image_passive=   cellfun(@(a)   cellfun(@(x) plab.wf.svd2px(U_master(:,:,1:size(x,1),:),x),a,'UniformOutput',false)...
         ,temp_wf_passive,'UniformOutput',false);
@@ -159,7 +170,13 @@ t_kernels=1/surround_samplerate*[-10:30];
     ap.wf_draw('ccf',[0.5 0.5 0.5]);
     colormap( ap.colormap(['KWB']));
 
-    %%
+    exportgraphics(gcf, fullfile(plab.locations.server_path,...
+        ['Lab\Papers\Song_2025\submission_3_NatureCommunications\revisions\revision_figures\eps\Fig_EDF_E' num2str(curr_groups) '.eps']), ...
+        'ContentType','vector');
+end
+
+
+%%
 
     use_group=[ 4 5]
     figure('Position',[50 50 1000 150]);
@@ -270,3 +287,7 @@ image_plot_passive=cellfun(@(x) feval(@(v)  nanmean(v,4) , feval(@(c) cat(4,c{:}
         ap.wf_draw('ccf',[0.5 0.5 0.5]);
         colormap( ap.colormap(['KWB']));
     end
+
+exportgraphics(gcf, fullfile(plab.locations.server_path,...
+    'Lab\Papers\Song_2025\submission_3_NatureCommunications\revisions\revision_figures\eps\Fig_EDF_E3.eps'), ...
+    'ContentType','vector'); 

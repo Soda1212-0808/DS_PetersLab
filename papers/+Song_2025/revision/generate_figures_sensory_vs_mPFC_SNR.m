@@ -46,6 +46,7 @@ temp_passive_peak=cellfun(@(a1,stim) cellfun(@(a2)  cellfun(@(a3)  max(a3([1 3 7
 
 
 temp_passive_peak2=cellfun(@(a1) cellfun(@(a2)  cat(2,a2{:})'  ,a1, 'UniformOutput',false),temp_passive_peak,'UniformOutput',false);
+
 temp_passive_peak3=cellfun(@(a1)   cat(1,a1{:}) ,temp_passive_peak2,'UniformOutput',false);
 
 
@@ -54,6 +55,25 @@ temp_learn =cellfun(@(w,name) cellfun(@(p1,w1) p1(ismember(w1,name),1),...
 
 
 
+%%
+temp_passive_peak=cellfun(@(a1,stim) cellfun(@(a2)  cellfun(@(a3)  max(a3(:,kernels_period,stim),[],2),a2,...
+    'UniformOutput',false),a1, 'UniformOutput',false),temp_passive_roi,{3;2},'UniformOutput',false);
+
+
+temp_passive_peak2=cellfun(@(a1) cellfun(@(a2)  cat(2,a2{:})'  ,a1, 'UniformOutput',false),temp_passive_peak,'UniformOutput',false);
+
+temp_passive_wt=cellfun(@(a) cellfun(@(x) x(end-1:end,:),a,'UniformOutput',false), temp_passive_peak2,'UniformOutput',false )
+
+temp_passive_wt_2=cellfun(@(a1)   cat(1,a1{:}) ,temp_passive_wt,'UniformOutput',false);
+
+plot1=arrayfun(@(id) temp_passive_wt_2{1}(:,id),1:22,'UniformOutput',false )
+snr=cellfun(@(x)  nanmean(x)/std(x),plot1,'UniformOutput',true        )
+
+figure;
+bar(snr([1 3 5 7 9 14]))
+xticklabels({roi1([1 3 5 7 9 14]).name})
+figure;
+ds.make_bar_plot(plot1)
 %%
 
 
@@ -77,13 +97,14 @@ for curr_group=1:2
     % 
 
     h2 = scatter(NaN,NaN,20,'filled','MarkerFaceColor',colors_1{curr_group}(1,:),'LineWidth',1);
-
-
     cellfun(@(t2,l2)   scatter(t2(l2==1,sensory_id(curr_group)),t2(l2==1,1),20,'filled',...
         'MarkerFaceColor',colors_1{curr_group}(1,:),'LineWidth',1),...
         temp_task_peak2{curr_group},temp_learn{curr_group},'UniformOutput',false )
 
 
+ learn_3=logical(cat(1,temp_learn{curr_group}{:}));
+    task_peak3=cat(1,temp_task_peak2{curr_group}{:});
+    [R_task,P_task] = corr(task_peak3(learn_3,sensory_id(curr_group)), task_peak3(learn_3,1));
 
 
     % h3 = scatter(NaN,NaN,20,'filled','MarkerFaceColor',[0.5 0.5 0.5],'LineWidth',1);
@@ -98,11 +119,8 @@ for curr_group=1:2
        temp_passive_peak2{curr_group},temp_learn{curr_group},'UniformOutput',false )
 
 
-    %
-    % learn_3=logical(cat(1,temp_learn{curr_group}{:}));
-    %
-    % task_peak3=cat(1,temp_task_peak2{curr_group}{:});
-    % perform3=cat(1,temp_perform{curr_group}{:});
+    
+   
     %
     % p_task = polyfit(perform3(learn_3), task_peak3(learn_3,curr_roi), 1);
     % x_fit_task = linspace(0, 1, 2);
@@ -119,7 +137,7 @@ for curr_group=1:2
     % plot(x_fit_passive, y_fit_passive, '-', 'LineWidth', 2,'Color',colors_1{curr_group}(2,:));
     %
     %
-    % [R_task,P_task] = corr(perform3(learn_3), task_peak3(learn_3,curr_roi));
+     % [R_task,P_task] = corr(perform3(learn_3), task_peak3(learn_3,curr_roi));
     %
     % [R_passive,P_passive] = corr(perform3(learn_3),  passive_peak3(learn_3,curr_roi));
     %

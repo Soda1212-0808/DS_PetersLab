@@ -252,6 +252,7 @@ main_preload_vars = who;
 colors={[84 130 53]./255,[112  48 160]./255};
 image_color={'G','P'};
 p_val=0.95;
+num=cell(1)
 for state=1
     switch state
         case 1
@@ -319,6 +320,7 @@ for state=1
             used_cell_type=vertcat(temp_probe_position{:});
             response=vertcat(temp_response{:});
 
+% all_num=size(cat(1,response{:}),1)
 
             used_response_plot=vertcat(temp_response_plot{:});
             used_filter_plot_1=cellfun(@(x,y,z)  x(z(:,curr_sorting)>p_val ,:,curr_plot)  ,...
@@ -354,7 +356,7 @@ for state=1
             % ax=subplot(4,3,[curr_group+6*curr_stim-6 ,curr_group+6*curr_stim-3])
             % imagesc(t_bins,[],smoothdata(used_plot_all_selected(sort_idx,:),1,'gaussian',20))
             imagesc(t_bins,[],used_plot_all_selected_1(sort_idx,:))
-
+            num{curr_stim}{curr_group}=size(used_plot_all_selected_1,1);
             % colorbar('southoutside')
             colormap(ax,ap.colormap(['W' image_color{curr_group}]));
             clim(clim_value);
@@ -403,9 +405,9 @@ for state=1
 
         end
         ax=subplot(5,2,8+curr_stim)
-        ds.make_bar_plot(proportion_response,colors,0.2,10);
+        ds.make_bar_plot(proportion_response,'ColorCell',colors,'BarAlpha',0.2,'DotSize',10);
         hold on
-
+  
         p_fraction{curr_stim} =  ranksum(proportion_response{1}, proportion_response{2});
 
         if p_fraction{curr_stim} < 0.05
@@ -435,7 +437,7 @@ for state=1
     end
 
 end
- clearvars('-except',main_preload_vars{:});
+ % clearvars('-except',main_preload_vars{:});
 
 %% group average in passive by depth
 main_preload_vars = who;

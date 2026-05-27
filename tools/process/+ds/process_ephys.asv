@@ -62,19 +62,22 @@ elseif contains(bonsai_workflow,'stim_wheel')
 
 end
 
-
 [all_unit_psth,temp_raster,t]=...
     ap.psth(spike_times_timelite,use_align,spike_templates,...
-    'smoothing',100);
-t_baseline = t >= -0.5 &  t <=0;
-% (compute baseline as average across all alignments)
-psth_baseline = nanmean(all_unit_psth(:,t_baseline,1:2),[2,3]);
-all_unit_psth_smooth_norm = (all_unit_psth - psth_baseline)./(psth_baseline + 1);
+    'smoothing',100)
+
+  t_baseline = t >= opts.norm_window(1) & ...
+        t <= opts.norm_window(2);
+    % (compute baseline as average across all alignments)
+    psth_baseline = nanmean(psth(:,t_baseline,:),2);
+    psth = (psth - psth_baseline)./(psth_baseline + opts.softnorm);
 
 
-% [all_unit_psth_smooth_norm,temp_raster,t]=...
-%     cellfun(@(x) ap.psth(spike_times_timelite,x,spike_templates,...
-%     'smoothing',100,'norm_window',[-0.5,0],'softnorm',1),use_align,'UniformOutput',false);
+all_unit_psth
+
+[all_unit_psth_smooth_norm,temp_raster,t]=...
+    cellfun(@(x) ap.psth(spike_times_timelite,x,spike_templates,...
+    'smoothing',100,'norm_window',[-0.5,0],'softnorm',1),use_align,'UniformOutput',false);
 
 %%
 
