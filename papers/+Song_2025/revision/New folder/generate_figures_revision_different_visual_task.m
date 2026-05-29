@@ -1,6 +1,6 @@
 clear all
 clc
- U_master = plab.wf.load_master_U;
+U_master = plab.wf.load_master_U;
 load(fullfile('\\qnap-ap001.dpag.ox.ac.uk\APlab\Lab\Papers\Song_2025\data\General_information\roi.mat'))
 % Path = '\\qnap-ap001.dpag.ox.ac.uk\APlab\Users\Da_Song\Data process\project_cross_model\wf_data\';
 
@@ -14,7 +14,7 @@ for curr_group=1:5
         case 1
             animals={'AP027','AP028','AP029'};
             workflows={'stim_wheel_right_stage1_opacity','stim_wheel_right_stage2_opacity'};
-        
+
         case 2
             animals={'AP019_nochange'};
             workflows={'stim_wheel_right_stage1_no_change','stim_wheel_right_stage2_no_change'};
@@ -29,8 +29,8 @@ for curr_group=1:5
             animals={'HA000','HA001','HA002'};
             workflows={'stim_wheel_right_stage1_angle_size60','stim_wheel_right_stage2_angle_size60'};
     end
-            
-   
+
+
     title_name=title_names{curr_group};
 
     behavior_data.worflow(curr_group)={title_name};
@@ -47,9 +47,9 @@ for curr_group=1:5
         raw_data_task_kernels=load([Path   'task\' animal '_task'  '.mat']);
         switch curr_group
             case {1,2,3,4}
-        raw_data_passive_kernels=load([Path   'lcr_passive\' animal '_lcr_passive'  '.mat']);
+                raw_data_passive_kernels=load([Path   'lcr_passive\' animal '_lcr_passive'  '.mat']);
             case 5
-        raw_data_passive_kernels=load([Path   'lcr_passive_size60\' animal '_lcr_passive_size60'  '.mat']);
+                raw_data_passive_kernels=load([Path   'lcr_passive_size60\' animal '_lcr_passive_size60'  '.mat']);
         end
         workflow_idx=ismember(raw_data_behavior.workflow_name_full,workflows);
         temp_x=raw_data_behavior.rxn_l_mad_p(workflow_idx,1)<0.05;
@@ -60,7 +60,7 @@ for curr_group=1:5
         performance{curr_animal}= (s2m_mad_null-s2m_mad)./(s2m_mad_null+s2m_mad);
         RT{curr_animal}=raw_data_behavior.stim2move_mean(workflow_idx,1);
         task_kernels{curr_animal}=cellfun(@(x) x{1},raw_data_task_kernels.wf_px_task_kernels(workflow_idx),'UniformOutput',false)';
-        
+
         workflow_passive_idx=ismember(raw_data_passive_kernels.workflow_day,raw_data_task_kernels.workflow_day(workflow_idx));
         passive_kernels{curr_animal}=raw_data_passive_kernels.wf_px_kernels(workflow_passive_idx)';
 

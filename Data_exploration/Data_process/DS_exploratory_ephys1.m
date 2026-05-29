@@ -16,9 +16,23 @@ animal='DS025';
 
 ap.load_recording
 
+%%
+ds.process_behavior
+ds.process_ephys
+ap.imscroll(ephys_data.psth)
+clim([-5 5])
+colormap(ap.colormap('kwg'))
 
 
+temp=cellfun(@(x)   x(:,:,1),ephys_data.raster,'UniformOutput',false)
 
+[raster_y,raster_x] =cellfun(@(x) find(x),temp,'UniformOutput',false  );
+
+figure;
+for curr_state=[1 2 3 4 9]
+    nexttile
+    plot(ephys_data.raster_t(raster_x{curr_state}),raster_y{curr_state},'.k');
+end
 %% rastermap
 neuron_id=readtable('Y:\Data process\project_cross_model_cross_movement\ephys_data\neuronal_id_label\neuronal_labels.xlsx');
 % load('Y:\Data process\project_cross_model_cross_movement\ephys_data\neuronal_id_label\neuronal_labels.mat')

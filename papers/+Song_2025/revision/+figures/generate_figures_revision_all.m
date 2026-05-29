@@ -1,26 +1,19 @@
 %% EDF A    reaction time matched kernels
-
-
+clear all
 Path = '\\qnap-ap001.dpag.ox.ac.uk\APlab\Lab\Papers\Song_2025';
 load(fullfile(Path,'data','revision','wf_task_decoding_concatnate.mat'));
 load(fullfile(Path,'data\General_information\roi.mat'))
-
 U_master = plab.wf.load_master_U;
-
-
 local_data_path= 'D:\Data process\project_cross_model\wf_data\';
 animals =     { 'DS007','DS010','AP019','AP021','DS011','AP022'...
     'DS000','DS004','DS014','DS015','DS016'};
 surround_samplerate = 35;
 t_kernels=1/surround_samplerate*[-10:30];
-
 surround_window = [-0.2,1];
 t_task = surround_window(1):1/surround_samplerate:surround_window(2);
-
 surround_time = [-5,5];
 surround_sample_rate = 100;
 surround_time_points = surround_time(1):1/surround_sample_rate:surround_time(2);
-
 
 % different brain regions roi
 figure('Position',[50 50 200 200]);
@@ -142,8 +135,11 @@ for curr_group=1:2
             % if curr_roi
 
             if curr_roi==7 ||curr_roi==10
-                temp_max=feval(@(a) max(a(curr_roi,:,:),[],'all'),cat(5,tem_image_raw_mean{:}))*1.2;
-                temp_min=feval(@(a) min(a(curr_roi,:,:),[],'all'),cat(5,tem_image_raw_mean{:}))*1.5;
+                temp_max_x=feval(@(a) max(a(curr_roi,:,:),[],'all'),cat(5,tem_image_raw_mean{:}))*1.2;
+                temp_max = ceil(temp_max_x/10^floor(log10(abs(temp_max_x)))) * 10^floor(log10(abs(temp_max_x)));
+
+                temp_min_x=feval(@(a) min(a(curr_roi,:,:),[],'all'),cat(5,tem_image_raw_mean{:}))*1.5;
+                temp_min = ceil(temp_min_x/10^floor(log10(abs(temp_min_x)))) * 10^floor(log10(abs(temp_min_x)));
             else
                 temp_max=0.015;
                 temp_min=-0.005;
@@ -155,8 +151,10 @@ for curr_group=1:2
             xline(temp_stim2move_mean(curr_state),'Color',Colors{curr_state})
             axis off
         end
-
-
+         line ([-0.1 0],[temp_min temp_min],'Color','k')
+        line ([-0.1 -0.1],[temp_min 0],'Color','k')
+        text(-0.15, temp_min*1.2,num2str(abs(temp_min)),'Rotation',90)
+        text(-0.1, temp_min*1.2, '0.1 s')
     end
 
     nexttile(imageLayout)
@@ -165,13 +163,17 @@ for curr_group=1:2
         temp_vel_mean(2:4),temp_vel_error(2:4),Colors(2:4)','UniformOutput',false)
     temp_max2 = feval(@(a)  max(a,[],'all') ,  cat(1,temp_vel_mean{:}));
     temp_min2 = feval(@(a)  min(a,[],'all') ,  cat(1,temp_vel_mean{:}))*1.2;
+
     ylim([temp_min2 temp_max2])
     % ylim([-1500 2000])
     xlim([-0.1 1])
     xline(temp_stim2move_mean(curr_state),'.r')
     xline(0,'.k')
     axis off
-
+  line ([-0.1 0],[-1000 -1000],'Color','k')
+    line ([-0.1 -0.1],[-1000 -500],'Color','k')
+    text(-0.15, -1000*1.2,num2str(abs(-500)),'Rotation',90)
+    text(-0.1, -1000*1.2, '0.1 s')
 
     imageLayout=tiledlayout(mainLayout,5,1,'Padding','tight','TileSpacing','none','TileIndexing','rowmajor')
 
@@ -187,8 +189,13 @@ for curr_group=1:2
             % if curr_roi
 
             if curr_roi==7 ||curr_roi==10
-                temp_max=feval(@(a) max(a(curr_roi,:,:),[],'all'),cat(5,tem_trace_mean{:}))*1.2;
-                temp_min=feval(@(a) min(a(curr_roi,:,:),[],'all'),cat(5,tem_trace_mean{:}))*1.5;
+                temp_max_x=feval(@(a) max(a(curr_roi,:,:),[],'all'),cat(5,tem_trace_mean{:}))*1.2;
+                temp_min_x=feval(@(a) min(a(curr_roi,:,:),[],'all'),cat(5,tem_trace_mean{:}))*1.5;
+
+                temp_max = ceil(temp_max_x/10^floor(log10(abs(temp_max_x)))) * 10^floor(log10(abs(temp_max_x)));
+
+                temp_min = ceil(temp_min_x/10^floor(log10(abs(temp_min_x)))) * 10^floor(log10(abs(temp_min_x)));
+
             else
                 temp_max=0.0004;
                 temp_min=-0.0001;
@@ -200,6 +207,12 @@ for curr_group=1:2
             xline(temp_stim2move_mean(curr_state),'Color',Colors{curr_state})
             axis off
         end
+
+        line ([-0.1 0],[temp_min temp_min],'Color','k')
+        line ([-0.1 -0.1],[temp_min 0],'Color','k')
+        text(-0.15, temp_min*1.2,num2str(abs(temp_min)),'Rotation',90)
+        text(-0.1, temp_min*1.2, '0.1 s')
+
         if curr_group==2 &curr_roi==used_roi(curr_group)
             h = findobj(gca,'Type','line');
             legend(h([1 2 3]), {'>0.3s','0.2-0.3s','0-0.2s'},'Box','off')
@@ -212,13 +225,18 @@ for curr_group=1:2
         temp_vel_mean(2:4),temp_vel_error(2:4),Colors(2:4)','UniformOutput',false)
     temp_max2 = feval(@(a)  max(a,[],'all') ,  cat(1,temp_vel_mean{:}));
     temp_min2 = feval(@(a)  min(a,[],'all') ,  cat(1,temp_vel_mean{:}))*1.2;
+
+
     ylim([temp_min2 temp_max2])
     % ylim([-1500 2000])
     xlim([-0.1 1])
     xline(temp_stim2move_mean(curr_state),'.r')
     xline(0,'.k')
     axis off
-
+    line ([-0.1 0],[-1000 -1000],'Color','k')
+    line ([-0.1 -0.1],[-1000 -500],'Color','k')
+    text(-0.15, -1000*1.2,num2str(abs(-500)),'Rotation',90)
+    text(-0.1, -1000*1.2, '0.1 s')
 
 
 
@@ -289,7 +307,7 @@ for curr_frame=find(t_kernels>-0.05& t_kernels<0.25)
     ap.wf_draw('ccf', [0.5 0.5 0.5]);
 end
 
-exportgraphics(gcf, fullfile(Path,'submission_3_NatureCommunications\revisions\revision_figures\eps\Fig EDF3_a.eps'), ...
+exportgraphics(gcf, fullfile(Path,'submission_3_NatureCommunications\revisions\revision_figures\eps\Fig EDF_3a.eps'), ...
     'ContentType','vector');
 
 figure('Position', [50 50 200 200] );
@@ -298,7 +316,7 @@ image(ds.colormap_overlay(images_max{1},...
     'B','R',[],scale_image))
 axis image off;
 ap.wf_draw('ccf', [0.5 0.5 0.5]);
-exportgraphics(gcf, fullfile(Path,'submission_3_NatureCommunications\revisions\revision_figures\eps\Fig EDF3_b.eps'), ...
+exportgraphics(gcf, fullfile(Path,'submission_3_NatureCommunications\revisions\revision_figures\eps\Fig EDF_3b.eps'), ...
     'ContentType','vector');
 
 load(fullfile(Path,'data','wf_passive_kernels'));
@@ -346,7 +364,7 @@ for curr_frame=find(t_kernels>-0.05& t_kernels<0.25)
 
 end
 
-exportgraphics(gcf, fullfile(Path,'submission_3_NatureCommunications\revisions\revision_figures\eps\Fig EDF3_c.eps'), ...
+exportgraphics(gcf, fullfile(Path,'submission_3_NatureCommunications\revisions\revision_figures\eps\Fig EDF_3c.eps'), ...
     'ContentType','vector');
 figure('Position', [50 50 200 200] );
 image(ds.colormap_overlay(iamges_passive_max{1},...
@@ -355,17 +373,19 @@ image(ds.colormap_overlay(iamges_passive_max{1},...
 axis image off;
 ap.wf_draw('ccf', [0.5 0.5 0.5]);
 
-exportgraphics(gcf, fullfile(Path,'submission_3_NatureCommunications\revisions\revision_figures\eps\Fig EDF3_d.eps'), ...
+exportgraphics(gcf, fullfile(Path,'submission_3_NatureCommunications\revisions\revision_figures\eps\Fig EDF_3d.eps'), ...
     'ContentType','vector');
 
 figure('Position', [50 50 80 80] );
 ds.bi_colorbar('B','R',scale_image)
-exportgraphics(gcf, fullfile(Path,'submission_3_NatureCommunications\revisions\revision_figures\eps\Fig EDF3_e.eps'), ...
+exportgraphics(gcf, fullfile(Path,'submission_3_NatureCommunications\revisions\revision_figures\eps\Fig EDF_3e.eps'), ...
     'ContentType','vector');
 
 %% EDF C correlation between task vs passive kernels
 clear all
 Path='D:\Data process\project_cross_model\wf_data\data_package';
+
+% Path= [plab.locations.server_path,'Lab\Papers\Song_2025\data\revision\single_data'];
 
 U_master = plab.wf.load_master_U;
 load('C:\Users\dsong\Documents\MATLAB\Da_Song\DS_scripts_ptereslab\General_information\roi.mat');
@@ -406,7 +426,7 @@ for curr_group=1:2
         temp_p_val=arrayfun(@(id)  data_all.behavior_task{id}.rxn_l_p(1)<0.05, find(select_id_3),'UniformOutput',true);
 
 
-        %% wf_task
+        % wf_task
 
         all_wf_task=[data_all.wf_task(select_id_3)];
         % all_task_image=cellfun(@(x) plab.wf.svd2px(U_master(:,:,1:size(x.stim_kernels{1},1)),x.iti_move_kernels{1}),all_wf_task,'UniformOutput',false);
@@ -414,7 +434,7 @@ for curr_group=1:2
         % all_task_image=cellfun(@(x) plab.wf.svd2px(U_master(:,:,1:size(x.stim_kernels{1},1)),x.all_iti_move_kernels{1}),all_wf_task,'UniformOutput',false);
 
         temp_data_all{curr_group}.task_image{curr_animal}=cat(4,all_task_image{find(temp_p_val==1,2,'last')});
-        %% wf_passive
+        % wf_passive
         switch curr_group
             case 1
                 all_wf_passive_1=[data_all.wf_lcr_passive(select_id_3)];
@@ -437,6 +457,7 @@ pairs_names={'Visual task vs Visual passive','Auditory task vs Auditory passive'
     'Visual task vs Auditory passive','Auditory task vs Visual passive'};
 temp_val=cell(4,1);
 figure('Position',[50 50 600 900])
+pair_colors={'B','R','K','K'}
 for curr_pair=1:length(pairs)
 
 
@@ -504,13 +525,14 @@ for curr_pair=1:length(pairs)
     C_plot(mask) = C(mask);
 
 
-    nexttile
+   a1=nexttile
     imagesc(C_plot);
-    colormap( ap.colormap('WB' ));
+    colormap(a1, ap.colormap(['W' pair_colors{curr_pair}] ));
     set(gca, 'XAxisLocation', 'top');
     set(gca, 'YAxisLocation', 'right');
     axis image;
     box off
+    clim([0 1])
 
     labels={'task','passive'}
     set(gca, 'XTick', [task_length/2 task_length+passive_length/2], 'YTick', [task_length/2 task_length+passive_length/2]);
@@ -524,7 +546,7 @@ end
 colorbar;
 caxis([0 1]);   % correlation 范围
 
-temp_v=cellfun(@(x)  x(:),temp_val,'UniformOutput',false)
+temp_v=cellfun(@(x)  x(:),temp_val,'UniformOutput',false);
 % figure('Position',[50 50 300 400])
 nexttile
 ds.make_bar_plot(cellfun(@(x)  x(:),temp_val,'UniformOutput',false),'ShowDots',0)
@@ -558,26 +580,36 @@ for curr_group=1:2
 end
 
 figure('Position',[50 50 400 200]);
+group_colors={'B','R'}
 for curr_group=1:2
-    nexttile
+    a1=nexttile
     plot_image=nanmean(cat(3,image_corr{curr_group}{:}),3);
     % plot_image(plot_image<0.3)=0;
     imagesc(plot_image)
     axis image off;
     ap.wf_draw('ccf', [0.5 0.5 0.5]);
     clim([ 0, 1]);
-    colormap( ap.colormap('WB' ));
+    colormap(a1, ap.colormap(['W' group_colors{curr_group}]));
+    colorbar
+
 end
 
-colorbar
 exportgraphics(gcf, fullfile(plab.locations.server_path,...
     'Lab\Papers\Song_2025\submission_3_NatureCommunications\revisions\revision_figures\eps\Fig_EDF_C2.eps'), ...
     'ContentType','vector');
 
 %% EDF D audio balance to visual
-
-
+clear all
 animals = {'DS029','DS030','DS031'};
+Path= [plab.locations.server_path,'Lab\Papers\Song_2025\data\revision\single_data'];
+U_master = plab.wf.load_master_U;
+surround_window = [-0.5,1];
+surround_samplerate = 35;
+t = surround_window(1):1/surround_samplerate:surround_window(2);
+t_kernels=[-10:30]/surround_samplerate;
+period=find(t_kernels>0&t_kernels<0.2);
+load('C:\Users\dsong\Documents\MATLAB\Da_Song\DS_scripts_ptereslab\General_information\roi.mat');
+
 
 temp_data_all=table;
 for curr_animal=1:length(animals)
@@ -933,22 +965,14 @@ t = surround_window(1):1/surround_samplerate:surround_window(2);
 t_kernels=[-10:30]/surround_samplerate;
 period=find(t_kernels>0&t_kernels<0.2);
 
-
 temp_perform=cellfun(@(s) feval(@(a)  cat(2,a{:}) ,cellfun(@(x) ...
     nanmean(x,2), s.kernels_data.performance,'UniformOutput',false)),tempdata,'uni',false     );
-
 temp_perform_mean=cellfun(@(x) mean(x,2),temp_perform,'UniformOutput',false);
 temp_perform_error=cellfun(@(x) std(x,0,2)./sqrt(size(x,2)),temp_perform,'UniformOutput',false);
-
-
-
 temp_rxt=cellfun(@(s) feval(@(a)  cat(2,a{:}) ,cellfun(@(x) ...
     nanmean(x,2), s.kernels_data.react_time,'UniformOutput',false)),tempdata,'uni',false     );
-
 temp_rxt_mean=cellfun(@(x) mean(x,2),temp_rxt,'UniformOutput',false);
 temp_rxt_error=cellfun(@(x) std(x,0,2)./sqrt(size(x,2)),temp_rxt,'UniformOutput',false);
-
-
 
 figure('Position',[50 50 400 200])
 nexttile
@@ -1102,7 +1126,6 @@ exportgraphics(gcf, fullfile(plab.locations.server_path,...
 %% EDF G  visual passive size 20 60
 
 clear all
-
 save_path = '\\qnap-ap001.dpag.ox.ac.uk\APlab\Lab\Papers\Song_2025\data';
 load(fullfile(save_path,'revision','visual_size_passive_compare.mat'));
 surround_window = [-0.5,1];
@@ -1111,9 +1134,7 @@ t = surround_window(1):1/surround_samplerate:surround_window(2);
 t_kernels=[-10:30]/surround_samplerate;
 period=find(t_kernels>0&t_kernels<0.2);
 load('C:\Users\dsong\Documents\MATLAB\Da_Song\DS_scripts_ptereslab\General_information\roi.mat')
-
 U_master = plab.wf.load_master_U;
-
 
 tem_passive_s_image=cell(2,1);
 tem_passive_l_image=cell(2,1);
@@ -1175,8 +1196,6 @@ trace_l_all_error=std(cat(3,trace_l_mean{:}),0,3)./sqrt(length(trace_l_mean));
 tem_passive_l_image_all=nanmean(cat(3,tem_passive_l_image{:}),3);
 tem_passive_s_image_all=nanmean(cat(3,tem_passive_s_image{:}),3);
 
-
-
 max_data_s=feval(@(a) cat(2,a{:}), cellfun(@(x) max(x([1 7],period),[],2),   trace_s_mean,'UniformOutput',false))
 max_data_l=feval(@(a) cat(2,a{:}), cellfun(@(x) max(x([1 7],period),[],2),   trace_l_mean,'UniformOutput',false))
 
@@ -1229,15 +1248,10 @@ exportgraphics(gcf, fullfile(plab.locations.server_path,...
 
 %%     EDF H  block test
 
-
-
 load(fullfile(plab.locations.server_path,'Lab\Papers\Song_2025\data\revision\wf_block_test.mat') )
-
 U_master = plab.wf.load_master_U;
 load('C:\Users\dsong\Documents\MATLAB\Da_Song\DS_scripts_ptereslab\General_information\roi.mat');
-
 animals =     { 'AP030','AP032','DS030','DS031','DS029'};
-
 temp_image_max=cell(length(animals),1);
 temp_plot_tace=cell(length(animals),1);
 temp_image_trace=cell(length(animals),1);
@@ -1310,7 +1324,7 @@ exportgraphics(gcf, fullfile(plab.locations.server_path,...
     'ContentType','vector');
 
 
-%%  nose movement in passive
+%% EDF I nose movement in passive
 clear all
 groups_name={'VA','AV'};
 modes_name={'Visual','Auditory'};
@@ -1767,7 +1781,6 @@ axis square
 drawnow
 
 
-
 % nose move  trace
 
 plot_fig=tiledlayout(mainfig,2, 2);
@@ -1905,7 +1918,7 @@ exportgraphics(gcf, fullfile(plab.locations.server_path,...
 %%    EDF J    mPFC aPFC ephys 
 clear all
 
-Path='D:\Data process\project_cross_model\wf_data\data_package';
+Path= [plab.locations.server_path,'Lab\Papers\Song_2025\data\revision\single_data'];
 U_master = plab.wf.load_master_U;
 
 surround_samplerate = 35;
@@ -1968,8 +1981,7 @@ exportgraphics(gcf, fullfile(plab.locations.server_path,...
     'ContentType','vector'); 
 
 
-
-Path='D:\Data process\project_cross_model\wf_data\data_package';
+Path=[plab.locations.server_path 'Lab\Papers\Song_2025\data\revision\single_data'];
 raster_window = [-0.5,1];
 psth_bin_size = 0.001;
 t_bins = raster_window(1):psth_bin_size:raster_window(2);
@@ -1985,9 +1997,8 @@ responsive_audio_all=cell(2,1);
 responsive_or_all=cell(2,1);
 visual_passive_all=cell(2,1);
 audio_passive_all=cell(2,1);
-visual_task_all=cell(2,1);
-audio_task_all=cell(2,1);
-ephys_data_all=cell(2,1);
+visual_passive_all_2=cell(2,1);
+audio_passive_all_2=cell(2,1);
 for curr_group=1:2
     switch curr_group
         case 1
@@ -1997,10 +2008,13 @@ for curr_group=1:2
     end
 
 
-    visual_task=cell(length(animals),1);
-    audio_task=cell(length(animals),1);
-    visual_passive=cell(length(animals),1);
-    audio_passive=cell(length(animals),1);
+    % visual_task=cell(length(animals),1);
+    % audio_task=cell(length(animals),1);
+    visual_passive_1=cell(length(animals),1);
+    audio_passive_1=cell(length(animals),1);
+    visual_passive_2=cell(length(animals),1);
+    audio_passive_2=cell(length(animals),1);
+
     responsive_idx=cell(length(animals),1);
     responsive_visual=cell(length(animals),1);
     responsive_audio=cell(length(animals),1);
@@ -2035,12 +2049,16 @@ for curr_group=1:2
             responsive_visual{curr_animal}{curr_day}=feval(@(a) a((find(depth_idx))), ephys_visual{temp_day}.response_p{3}>0.95);
             responsive_audio{curr_animal}{curr_day}=feval(@(a) a((find(depth_idx))), ephys_audio{temp_day}.response_p{2}>0.95);
 
-            visual_task{curr_animal}{curr_day}= ephys_task{temp_day}.psth(depth_idx,:,1);
-            audio_task{curr_animal}{curr_day}= ephys_task{temp_day}.psth(depth_idx,:,2);
-            visual_passive{curr_animal}{curr_day}=ephys_visual{temp_day}.psth(depth_idx,:,3);
-            audio_passive{curr_animal}{curr_day}=ephys_audio{temp_day}.psth(depth_idx,:,2);
+            % visual_task{curr_animal}{curr_day}= ephys_task{temp_day}.psth(depth_idx,:,1);
+            % audio_task{curr_animal}{curr_day}= ephys_task{temp_day}.psth(depth_idx,:,2);
+            visual_passive_1{curr_animal}{curr_day}=ephys_visual{temp_day}.psth(depth_idx,:,3);
+            audio_passive_1{curr_animal}{curr_day}=ephys_audio{temp_day}.psth(depth_idx,:,2);
 
-            temp_ephys{curr_animal}{curr_day}= cat(3,ephys_task{temp_day}.psth(depth_idx,:,:),...
+            visual_passive_2{curr_animal}{curr_day}=ephys_visual{temp_day}.psth(depth_idx,:,9);
+            audio_passive_2{curr_animal}{curr_day}=ephys_audio{temp_day}.psth(depth_idx,:,8);
+
+
+            temp_ephys{curr_animal}{curr_day}= cat(3,...
                 ephys_visual{temp_day}.psth(depth_idx,:,:),...
                  ephys_audio{temp_day}.psth(depth_idx,:,:));
 
@@ -2053,11 +2071,14 @@ for curr_group=1:2
     responsive_visual_all{curr_group}=cat(2,responsive_visual{:});
     responsive_audio_all{curr_group}=cat(2,responsive_audio{:});
     responsive_or_all{curr_group}=cat(2,responsive_idx{:});
-    visual_passive_all{curr_group}=cat(2,visual_passive{:});
-    audio_passive_all{curr_group}=cat(2,audio_passive{:});
-    visual_task_all{curr_group}=cat(2,visual_task{:});
-    audio_task_all{curr_group}=cat(2,audio_task{:});
-    ephys_data_all{curr_group}=cat(2,temp_ephys{:});
+    visual_passive_all{curr_group}=cat(2,visual_passive_1{:});
+    audio_passive_all{curr_group}=cat(2,audio_passive_1{:});
+
+    visual_passive_all_2{curr_group}=cat(2,visual_passive_1{:});
+    audio_passive_all_2{curr_group}=cat(2,audio_passive_1{:});
+    % visual_task_all{curr_group}=cat(2,visual_task{:});
+    % audio_task_all{curr_group}=cat(2,audio_task{:});
+    % ephys_data_all{curr_group}=cat(2,temp_ephys{:});
 
 end
 
@@ -2073,15 +2094,30 @@ idx_A_only = cellfun(@(x,y)  find(x&~y),temp_v_idx,temp_a_idx,'UniformOutput',fa
 idx_AB     = cellfun(@(x,y) find (x&y),temp_v_idx,temp_a_idx,'UniformOutput',false);
 idx_B_only = cellfun(@(x,y)  find(~x&y),temp_v_idx,temp_a_idx,'UniformOutput',false);
 
-idx_order=cellfun(@(x,y)  [find(x&~y); find(x&y); find(~x&y)],temp_v_idx,temp_a_idx,'UniformOutput',false);
-idx_orders=cellfun(@(x,y)  {find(x&~y); find(x&y); find(~x&y)},temp_v_idx,temp_a_idx,'UniformOutput',false);
 
 temp_v_p=cellfun(@(x)     cat(1,x{:}), visual_passive_all,'UniformOutput',false);
 temp_a_p=cellfun(@(x)     cat(1,x{:}), audio_passive_all,'UniformOutput',false);
-temp_v_t=cellfun(@(x)     cat(1,x{:}), visual_task_all,'UniformOutput',false);
-temp_a_t=cellfun(@(x)     cat(1,x{:}), audio_task_all,'UniformOutput',false);
+temp_v_p_2=cellfun(@(x)     cat(1,x{:}), visual_passive_all_2,'UniformOutput',false);
+temp_a_p_2=cellfun(@(x)     cat(1,x{:}), audio_passive_all_2,'UniformOutput',false);
 
-temp_all=cellfun(@(x)     cat(1,x{:}), ephys_data_all,'UniformOutput',false);
+
+
+[~,max_idx_v]=cellfun(@(x)    max(x(:,period) ,[],2)  ,temp_v_p_2,'UniformOutput',false);
+[~,sort_idx_v] = cellfun(@(x) sortrows( x,"ascend"),max_idx_v,'uni',false);
+
+[~,max_idx_a]=cellfun(@(x)    max(x(:,period) ,[],2)  ,temp_a_p_2,'UniformOutput',false);
+[~,sort_idx_a] = cellfun(@(x) sortrows( x,"ascend"),max_idx_a,'uni',false);
+
+idx_order_sort=cellfun(@(x,y,z,a) [ z(ismember(z,(find(x&~y))));...
+    z(ismember(z,(find(x&y))));...
+    a(ismember(z,(find(~x&y))))],...
+    temp_v_idx,temp_a_idx,sort_idx_v,sort_idx_a,'UniformOutput',false);
+
+
+
+% idx_order=cellfun(@(x,y)  [find(x&~y); find(x&y); find(~x&y)],temp_v_idx,temp_a_idx,'UniformOutput',false);
+
+idx_orders=cellfun(@(x,y)  {find(x&~y); find(x&y); find(~x&y)},temp_v_idx,temp_a_idx,'UniformOutput',false);
 
 
 
@@ -2090,33 +2126,7 @@ temp_v_p_mean=cellfun(@(x,y) feval(@(m) cat(1,m{:}),  cellfun(@(a,b)  nanmean(a(
 temp_a_p_mean=cellfun(@(x,y) feval(@(m) cat(1,m{:}),  cellfun(@(a,b)  nanmean(a(b,:),1),x,y,'UniformOutput',false)) ,...
     audio_passive_all,responsive_or_all,'UniformOutput',false);
 
-temp_v_t_mean=cellfun(@(x,y) feval(@(m) cat(1,m{:}),  cellfun(@(a,b)  nanmean(a(b,:),1),x,y,'UniformOutput',false)) ,...
-    visual_task_all,responsive_or_all,'UniformOutput',false);
-temp_a_t_mean=cellfun(@(x,y) feval(@(m) cat(1,m{:}),  cellfun(@(a,b)  nanmean(a(b,:),1),x,y,'UniformOutput',false)) ,...
-    audio_task_all,responsive_or_all,'UniformOutput',false);
 
-
-
-for curr_group=1:2
-    figure
-    tiledlayout(2,11,"TileIndexing","columnmajor")
-    for curr_stat=1:11
-        nexttile
-        imagesc(t_bins,[],temp_all{curr_group}(idx_order{curr_group},:,curr_stat) )
-        clim([0 3])
-        xlim([-0.2 0.5])
-        colormap(ap.colormap(['WB']))
-        yline(size(idx_A_only{curr_group},1),'LineWidth',1,'Color',[0 0 0])
-        yline(size([idx_A_only{curr_group}; idx_AB{curr_group}],1),'LineWidth',1,'Color',[0 0 0])
-        nexttile
-        hold on
-        for curr_type=1:3
-            ap.errorfill(t_bins,nanmean(temp_all{curr_group}(idx_orders{curr_group}{curr_type},:,curr_stat),1),...
-                std(temp_all{curr_group}(idx_orders{curr_group}{curr_type},:,curr_stat),0,1)./100)
-            ylim([0 5])
-        end
-    end
-end
 
 for curr_group=1:2
 
@@ -2124,44 +2134,38 @@ for curr_group=1:2
     figure;
     mainfig=tiledlayout(1,3,'TileSpacing','tight')
 
-    % A1=nexttile
-    % imagesc(t_bins,[],temp_v_t{curr_group}(idx_order{curr_group},:) )
-    % clim([0 3])
-    % xlim([-0.2 0.5])
-    % colormap(A1,ap.colormap(['WB']))
-    % yline(size(idx_A_only{curr_group},1),'LineWidth',1,'Color',[0 0 0])
-    % yline(size([idx_A_only{curr_group}; idx_AB{curr_group}],1),'LineWidth',1,'Color',[0 0 0])
-    % xline(0)
-    % axis off
-    % A2=nexttile
-    % imagesc(t_bins,[],temp_a_t{curr_group}(idx_order{curr_group},:) )
-    % clim([0 3])
-    % xlim([-0.2 0.5])
-    % colormap(A2,ap.colormap(['WR']))
-    % yline(size(idx_A_only{curr_group},1),'LineWidth',1,'Color',[0 0 0])
-    % yline(size([idx_A_only{curr_group}; idx_AB{curr_group}],1),'LineWidth',1,'Color',[0 0 0])
-    % xline(0)
-    % axis off
+
 
     A1=nexttile
-    imagesc(t_bins,[],temp_v_p{curr_group}(idx_order{curr_group},:) )
+
+
+     imagesc(t_bins,[],temp_v_p{curr_group}(idx_order_sort{curr_group},:) )
+
+
+    % imagesc(t_bins,[],temp_v_p{curr_group}(idx_order{curr_group},:) )
     clim([0 3])
-    xlim([-0.2 0.5])
+    xlim([-0.1 0.5])
     colormap(A1,ap.colormap(['WB']))
     yline(size(idx_A_only{curr_group},1),'LineWidth',1,'Color',[0 0 0])
     yline(size([idx_A_only{curr_group}; idx_AB{curr_group}],1),'LineWidth',1,'Color',[0 0 0])
     xline(0)
-
+    colorbar('southoutside')
     axis off
+
     A2=nexttile
-    imagesc(t_bins,[],temp_a_p{curr_group}(idx_order{curr_group},:) )
+    imagesc(t_bins,[],temp_a_p{curr_group}(idx_order_sort{curr_group},:) )
     clim([0 3])
-    xlim([-0.2 0.5])
+    xlim([-0.1 0.5])
     colormap(A2,ap.colormap(['WR']))
     yline(size(idx_A_only{curr_group},1),'LineWidth',1,'Color',[0 0 0])
     yline(size([idx_A_only{curr_group}; idx_AB{curr_group}],1),'LineWidth',1,'Color',[0 0 0])
     xline(0)
+    line ([-0.1 0],[1 1],'linewidth',1,'color','k')
+        line ([-0.1 -0.1],[0 100],'linewidth',1,'color','k')
+
+    colorbar('southoutside')
     axis off
+
 
 
     plot_fig=tiledlayout(mainfig,2 ,1, ...
@@ -2186,12 +2190,12 @@ for curr_group=1:2
     set(gca,'Color','none')
 
 
-ds.shuffle_test(temp_frac{curr_group}{1},temp_frac{curr_group}{2},1)
+    ds.shuffle_test(temp_frac{curr_group}{1},temp_frac{curr_group}{2},1)
 
 
-exportgraphics(gcf, fullfile(plab.locations.server_path,...
-    ['Lab\Papers\Song_2025\submission_3_NatureCommunications\revisions\revision_figures\eps\Fig_EDF_Ja' num2str(curr_group)   '.eps']), ...
-    'ContentType','vector'); 
+    exportgraphics(gcf, fullfile(plab.locations.server_path,...
+        ['Lab\Papers\Song_2025\submission_3_NatureCommunications\revisions\revision_figures\eps\Fig_EDF_Ja' num2str(curr_group)   '.eps']), ...
+        'ContentType','vector');
 
 end
 
@@ -2223,7 +2227,7 @@ line_error_both=cellfun(@(a) (prctile(a,95)-...
 
 
 colors = {[0 0 1],[ 1.0, 0.647, 0.0],[1 0 0]};
-
+title_names={'mPFC','aPFC'}
 
 scales_all=[0 20 80];
 scales = {[0 20 80],[0 8 20],[0 4 10]};
@@ -2300,9 +2304,10 @@ colors={[0 0.5 0],[0.5 0 0.2]};
 maker_size=20;
 
 hold on
-ds.make_bar_plot(response_both_fration_both,'ColorCell',colors,'BarAlpha',0.2,'DotSize',maker_size)
 arrayfun(@(curr_group)  ap.errorfill(curr_group-0.4:0.8:curr_group+0.4,[line_mean_both{curr_group} line_mean_both{curr_group}],...
     [line_error_both{curr_group} line_error_both{curr_group}],[0.5 0.5 0.5],1),1:2);
+ds.make_bar_plot(response_both_fration_both,'ColorCell',colors,'BarAlpha',0.2,'DotSize',maker_size)
+
 ylim([0 0.5])
 yticks([0 0.5])
 xticks([1 2])

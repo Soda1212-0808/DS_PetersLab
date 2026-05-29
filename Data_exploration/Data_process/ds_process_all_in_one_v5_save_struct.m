@@ -1,7 +1,7 @@
 clear all
 
-% Path = 'D:\Data process\project_cross_model\wf_data\data_package\';
-Path = 'D:\Data process\project_SNr\data\ephys_data\package\';
+Path = 'D:\Data process\project_cross_model\wf_data\data_package\';
+% Path = 'D:\Data process\project_SNr\data\ephys_data\package\';
 
 surround_window = [-0.5, 1];
 mousecam_framerate = 30;
@@ -10,7 +10,8 @@ time_period = surround_window(1):1/mousecam_framerate:surround_window(2);
 % animals = { ...
 %     'DS007','DS010','AP019','AP021','DS011','AP022', ...
 %     'DS000','DS004','DS014','DS015','DS016'};
-animals={'DS025','DS022','DS023'};
+ % animals={'DS025','DS022','DS023'};
+animals={'DS029','DS030','DS031'};
 
 % =====选择需要处理的workflow   select the workflows   ========
 for  workflow_option=1
@@ -102,9 +103,9 @@ for workflow_set_up=1
         'field_behavior', '', 'field_wf', '',  'field_face', '' );
 
     cfg1 = default_cfg;
-    cfg1.run_behavior = 1;
-    cfg1.run_wf_task = 1;
-    cfg1.run_ephys = 1;
+    cfg1.run_behavior = 0;
+    cfg1.run_wf_task = 0;
+    cfg1.run_ephys = 0;
     cfg1.run_face = 0;
     cfg1.field_task_name = 'task_name';
     cfg1.field_behavior = 'behavior_task';
@@ -119,8 +120,8 @@ for workflow_set_up=1
         cfg.field_face = ['face_' workflows{k}{1}];
         cfg.field_ephys = ['ephys_' workflows{k}{1}];
         cfg.run_ephys = 1;
-        cfg.run_wf_passive = 1;
-        cfg.run_face = 1;
+        cfg.run_wf_passive = 0;
+        cfg.run_face = 0;
         workflow_cfg{k} = cfg;
     end
     struct_names=[{'day';cfg1.field_task_name;cfg1.field_behavior;...
@@ -147,9 +148,9 @@ for wf_process=1
 
 end
 % 是否重写
-overwrite=0;
+overwrite=1;
 % 想跑哪些 workflow   task, lcr_passive, hml_passive_audio
-workflow_idx = [1 2 3 4 5];
+workflow_idx = [2 3];
 
 
 for curr_animal = 1:length(animals)

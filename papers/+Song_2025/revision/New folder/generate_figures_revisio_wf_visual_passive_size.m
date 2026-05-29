@@ -92,10 +92,7 @@ for curr_animal_idx=1:length(animals)
 end
 
 
-
-
-save_path = '\\qnap-ap001.dpag.ox.ac.uk\APlab\Lab\Papers\Song_2025\data';
-save(fullfile(save_path,'revision','visual_size_passive_compare.mat'),'passive_data','-v7.3');
+save(fullfile('\\qnap-ap001.dpag.ox.ac.uk\APlab\Lab\Papers\Song_2025\data\revision','visual_size_passive_compare.mat'),'passive_data','-v7.3');
 
 %%
 clear all
