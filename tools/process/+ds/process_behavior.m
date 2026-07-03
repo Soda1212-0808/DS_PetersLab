@@ -29,9 +29,9 @@ stim_move_aligned_wheel_vel = cellfun(@(x) interp1(timelite.timestamps, ...
 event_aligned_wheel_move = cellfun(@(x) interp1(timelite.timestamps, ...
     +wheel_move,x,'previous'),pull_times,'uni',false);
 
-pull_times_iti_move= iti_move_time + surround_time_points ;
+pull_times_iti_move= cellfun(@(x) x + surround_time_points,iti_move_time,'UniformOutput',false) ;
 iti_move_aligned_wheel_vel=cellfun(@(x) interp1(timelite.timestamps, ...
-    wheel_velocity,x,'previous'),{pull_times_iti_move},'uni',false);
+    wheel_velocity,x,'previous'),pull_times_iti_move,'uni',false);
 
 
 stats={'mad','median','mean'};

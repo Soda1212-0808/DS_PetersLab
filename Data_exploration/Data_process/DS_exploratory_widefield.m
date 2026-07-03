@@ -1,6 +1,6 @@
 %% Exploratory widefield analysis
 clear all
-animal='DS031';
+animal='DS033';
 load_parts = struct;
 load_parts.behavior = true;
 load_parts.widefield_master = true;
@@ -300,6 +300,9 @@ switch bonsai_workflow
         stim_type = vertcat(trial_events.values.PictureID);
     case{ 'hml_passive_audio_earphone_balance'  , 'hml_passive_audio_earphone_balance_only'}     
         stim_type = vertcat(trial_events.values.trialID);
+    case{'lcr_passive_Vstim1','lcr_passive_Vstim2'}
+        stim_type = vertcat(trial_events.values.StimX);
+
 end
 
 stimOn_times=stimOn_times(1:min(length(stimOff_times),length(stimOn_times)));

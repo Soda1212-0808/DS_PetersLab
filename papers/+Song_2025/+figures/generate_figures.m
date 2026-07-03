@@ -1,7 +1,7 @@
 %% Generate figures for Song et al 2025
 clear all
 clc
-Path = '\\qnap-ap001.dpag.ox.ac.uk\APlab\Lab\Papers\Song_2025';
+Path = '\\qnap-ap001.dpag.ox.ac.uk\APlab\Lab\Papers\Song_2026';
 
 % Path='D:\Data process\slide\papers';
 U_master = plab.wf.load_master_U;
@@ -1212,8 +1212,8 @@ figure('Position',[50 50 200 150]);
 hold on
 plot( photodiode_trace(time_period(1):time_period(2))>3,'LineWidth',line_width,'Color','k')
 plot( reward_timeline-1.1,'LineWidth',line_width,'Color','k')
-% plot(wheel_move(time_period(1):time_period(2))-2.2,'LineWidth',line_width,'Color','k')
-% ylim([-0.1 1.1])
+ plot(wheel_move(time_period(1):time_period(2))-2.2,'LineWidth',line_width,'Color','k')
+ ylim([-0.1 1.1])
 hold on
 wheel_vel=wheel_velocity(time_period(1):time_period(2));
 wheel_vel_norm = (wheel_vel - min(wheel_vel)) / (max(wheel_vel) - min(wheel_vel));

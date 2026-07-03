@@ -1,16 +1,16 @@
 %% Exploratory ephys analysis
 % close all
 clear all
-animal='DS025';
- load_probe=1;
-% rec_day='2026-01-05';
- % rec_day='2026-03-23'
+animal='DS022';
+load_probe=1;
+ rec_day='2025-12-23';
+% rec_day='2026-03-23'
 
 % use_workflow =...
 %     {'stim_wheel_Vcenter_cross_movement_stage*','stim_wheel_Afreq2_cross_movement_stage*',...
 %     'stim_wheel_VcenterAfreq2_cross_movement_stage*'};
-% 
-% 
+%
+%
 % recordings = plab.find_recordings(animal,rec_day,use_workflow);
 % rec_time=recordings.recording{1};
 
@@ -75,7 +75,7 @@ behavior.velocity=event_aligned_wheel_vel;
 behavior.tasktype=tasktype(1:n_trials);
 outcome=cat(1,trial_events.values.Outcome);
 behavior.outcome=outcome(1:n_trials);
-    
+
 % align_times=arrayfun(@(b) arrayfun(@(a) stimOn_times(task_types==a & task_outcome==b) ,0:3,'uni',false),0:1,'uni',false)
 %  align_times=cat(2,align_times{:});
 align_times= arrayfun(@(a) stimOn_times(behavior.tasktype==a & behavior.outcome==1) , unique(behavior.tasktype),'uni',false);
@@ -88,9 +88,9 @@ psth_all_selected=psth_all(curr_neurons_id,:,:);
 
 
 if load_probe==2
-fr_scale=[-0.5 1];
+    fr_scale=[-0.5 1];
 elseif load_probe==1
- fr_scale=[-0.5 5];
+    fr_scale=[-0.5 5];
 end
 
 task_name_all={'VL','VR','AL','AR'};
@@ -216,20 +216,20 @@ for curr_depth = 1:size(depth_corr_bins,2)
     curr_depth_templates_idx = ...
         find(template_depths >= depth_corr_bins(1,curr_depth) & ...
         template_depths < depth_corr_bins(2,curr_depth));
-    
+
     binned_spikes_depth(curr_depth,:) = histcounts(spike_times_timelite( ...
         ismember(spike_templates,curr_depth_templates_idx)),spike_binning_t_edges);
 end
 
 mua_corr = corrcoef(binned_spikes_depth');
 
-% 
+%
 % binned_spikes_depth1 = zeros(size(depth_corr_bins,2),length(spike_binning_t_edges)-1);
 % for curr_depth = 1:size(depth_corr_bins,2)
 %     curr_depth_templates_idx = ...
 %         find(template_depths >= depth_corr_bins(1,curr_depth) & ...
 %         template_depths < depth_corr_bins(2,curr_depth));
-% 
+%
 %     binned_spikes_depth1(curr_depth,:) = histcounts(spike_times_timelite( ...
 %         ismember(spike_templates,curr_depth_templates_idx)),spike_binning_t_edges);
 % end
@@ -251,17 +251,20 @@ colormap(ap.colormap('BWR'))
 if contains(bonsai_workflow,{'passive','Image'})
     % (L/C/R passive)
 
-     if isfield(trial_events.values,'TrialStimX')
-        align_category_all = vertcat(trial_events.values.TrialStimX);
+    if isfield(trial_events.values,'TrialStimX')
+        align_category_all = vertcat (trial_events.values.TrialStimX);
     elseif isfield(trial_events.values,'StimFrequence')
         align_category_all = vertcat(trial_events.values.StimFrequence);
     elseif isfield(trial_events.values,'PictureID')
         align_category_all = vertcat(trial_events.values.PictureID);
+    elseif isfield(trial_events.values,'StimX')
+        align_category_all = vertcat(trial_events.values.StimX);
+
     end
-minlength=min (length(stimOn_times),length(align_category_all));
+    minlength=min (length(stimOn_times),length(align_category_all));
     stimOn_times=stimOn_times(1:minlength);
-    align_times_all = stimOn_times; 
-   
+    align_times_all = stimOn_times;
+
     % (get only quiescent trials)
     stim_window = [0,0.5];
     quiescent_trials = arrayfun(@(x) ~any(wheel_move(...
@@ -277,7 +280,7 @@ elseif contains(bonsai_workflow,'stim_wheel')
     % (regular task)
     wheel_starts = timelite.timestamps(diff([0;wheel_move]) == 1);
     wheel_stops = timelite.timestamps(diff([0;wheel_move]) == -1);
-    
+
     % (get wheel starts when no stim on screen: not sure this works yet)
     iti_move_idx = interp1(photodiode_times, ...
         photodiode_values,wheel_starts,'previous') == 0;
@@ -293,7 +296,7 @@ elseif contains(bonsai_workflow,'stim_wheel')
     else
         [~,type_rxn_sort_idx] = sortrows([vertcat(trial_events.values(1:n_trials).TaskType),stim_to_move]);
         trial_sort_idx = [vertcat(trial_events.values(1:n_trials).TaskType),type_rxn_sort_idx,rxn_sort_idx];
-        % 
+        %
         % TaskTypes=vertcat(trial_events.values(1:n_trials).TaskType);
         % buff=TaskTypes;
         % buff(vertcat(trial_events.values(1:n_trials).Outcome)==0)=...
@@ -333,14 +336,14 @@ elseif contains(bonsai_workflow,'stim_wheel')
     align_times = {stimOn_times,stim_move_time,reward_times};
 end
 
-% 
+%
 % task_types=[trial_events.values.TaskType];
 % task_types=task_types(1:n_trials);
 % task_outcome=[trial_events.values.Outcome];
 stimOn_times=stimOn_times(1:n_trials);
 
 % align_times=arrayfun(@(b) arrayfun(@(a) stimOn_times(task_types==a & task_outcome==b) ,0:3,'uni',false),0:1,'uni',false)
- % align_times=cat(2,align_times{:});
+% align_times=cat(2,align_times{:});
 % align_times= arrayfun(@(a) stimOn_times(task_types==a & task_outcome==1) ,0:3,'uni',false)
 
 [unit_psth,~,unit_psth_t] = ...
@@ -350,7 +353,7 @@ stimOn_times=stimOn_times(1:n_trials);
 % Plot sorted
 % (sort depth)
 [~,sort_idx] = sort(template_depths);
-% 
+%
 % % (sort max time)
 % [~,max_idx] = max(max(abs(unit_psth),[],3),[],2);
 % [~,sort_idx] = sort(max_idx);
@@ -401,7 +404,7 @@ lambda = 15;
 cv_fold = 5;
 cell=885
 [kernels,predicted_signals,explained_var] = ...
-   ap.regresskernel(cat(1,SP_V{cell}), ...
+    ap.regresskernel(cat(1,SP_V{cell}), ...
     stim_regressors,-frame_shifts,lambda,[],cv_fold)
 
 
@@ -459,7 +462,7 @@ responsive_units = find(event_response_p < 0.05 | event_response_p > 0.95);
 
 % % (sort by max amplitude from avg across alignments)
 % [~,sort_idx] = sort(nanmean(unit_psth(responsive_units,psth_use_t,:),[2,3]));
-% 
+%
 % % (sort by max time in single alignment)
 % sort_align = 1;
 % [~,max_t] = max(unit_psth(responsive_units,:,sort_align),[],2);
@@ -642,7 +645,7 @@ for px_x = 1:nX
 
         stim_times_grid{px_y,px_x} = align_times;
     end
-end       
+end
 
 
 % Vectorize stim times by y,x position
@@ -888,7 +891,7 @@ axis image off
 %     timelite.timestamps >= stimOn_times(x)+stim_window(1) & ...
 %     timelite.timestamps <= stimOn_times(x)+stim_window(2))), ...
 %     1:length(stimOn_times))';
-% 
+%
 % stim_x = vertcat(trial_events.values.TrialStimX);
 % align_times = stimOn_times(quiescent_trials & stim_x == 90);
 
@@ -927,7 +930,7 @@ AP_stackplot(aligned_trace_predicted_mean_norm',t,yscale,[],'r');
 xline(0);
 
 %% Widefield/ephys regression (JUST ITI) DOESN'T WORK
-% THIS DOESNT WORK 
+% THIS DOESNT WORK
 
 % Set upsample value for regression
 upsample_factor = 1;
@@ -1133,7 +1136,7 @@ for curr_animal = 1:length(animals)
 
         histology_dir = dir(fullfile(histology_path,'**','slice_*.tif'));
         [~,sort_idx] = natsortfiles({histology_dir.name});
-        
+
         histology_im = cell(length(histology_dir),1);
         for curr_slice = 1:length(histology_dir)
             histology_im{curr_slice} = imread(fullfile( ...
@@ -1235,7 +1238,7 @@ for curr_recording = 1:length(recordings)
     % Load data
     rec_day = recordings(curr_recording).day;
     rec_time = recordings(curr_recording).recording{end};
-   
+
     load_parts = struct;
     load_parts.ephys = true;
     ap.load_recording;
@@ -1309,7 +1312,7 @@ for curr_recording = 1:length(recordings)
     % Load data
     rec_day = recordings(curr_recording).day;
     rec_time = recordings(curr_recording).recording{end};
-   
+
     load_parts = struct;
     load_parts.ephys = true;
     ap.load_recording;
@@ -1388,7 +1391,7 @@ end
 
 
 % Plot MUA
-figure; 
+figure;
 h = tiledlayout(1,length(day_mua));
 for curr_day = 1:length(day_mua)
 

@@ -1,3 +1,5 @@
+ephys_data=struct;
+preload_vars = who;
 
 % Set times for PSTH
 raster_window = [-0.5,1];
@@ -14,10 +16,7 @@ response_t_stim = [0,0.2];
 baseline_t_move = [-0.3,-0.1];
 response_t_move = [-0.1,0.1];
 
-
-
- % psth_use_t_stim = t_bins >= response_t_stim(1) & t_bins <= response_t_stim(2);
-
+% psth_use_t_stim = t_bins >= response_t_stim(1) & t_bins <= response_t_stim(2);
 
 % (get quiescent trials)
 stim_window = [0,0.3];
@@ -27,24 +26,25 @@ quiescent_trials = arrayfun(@(x) ~any(wheel_move(...
     (1:length(stimOn_times))');
 
 
-
 if contains(bonsai_workflow,'lcr')
-        % (vis passive)
-        stim_type = vertcat(trial_events.values.TrialStimX);
-        min_idx=min(length(stim_type),length(stimOn_times));
-        stimOn_times=stimOn_times(1:min_idx);
-        quiescent_trials=quiescent_trials(1:min_idx);
-        stim_values = unique(stim_type);
-        
-        use_align_0 = arrayfun(@(x) stimOn_times(stim_type(1:length(stimOn_times)) == x & quiescent_trials), stim_values, 'UniformOutput', false);
-        labels=arrayfun(@(x) ['stim_'  num2str(x) ] ,stim_values, 'UniformOutput', false);
+    % (vis passive)
+    stim_type = vertcat(trial_events.values.TrialStimX);
+    min_idx=min(length(stim_type),length(stimOn_times));
+    stimOn_times=stimOn_times(1:min_idx);
+    quiescent_trials=quiescent_trials(1:min_idx);
+    stim_values = unique(stim_type);
+
+    use_align_0 = arrayfun(@(x) stimOn_times(stim_type(1:length(stimOn_times)) == x & quiescent_trials), stim_values, 'UniformOutput', false);
+    labels=arrayfun(@(x) ['stim_'  num2str(x) ] ,stim_values, 'UniformOutput', false);
 
 
     use_align_new = [cellfun(@(x) sort(x(1:floor(numel(x)/2))), ...
         cellfun(@(x)x(randperm(numel(x))), use_align_0, 'uni', 0), 'uni', 0); ...
         cellfun(@(x) sort(x(floor(numel(x)/2)+1:end)), ...
         cellfun(@(x)x(randperm(numel(x))), use_align_0, 'uni', 0), 'uni', 0)];
-    use_align=[use_align_0;use_align_new];
+   % use_align=[use_align_0;use_align_new];
+        use_align=use_align_0;
+        group_idx=labels;
 
 
 elseif contains(bonsai_workflow,'hml')
@@ -63,11 +63,13 @@ elseif contains(bonsai_workflow,'hml')
         cellfun(@(x)x(randperm(numel(x))), use_align_0, 'uni', 0), 'uni', 0); ...
         cellfun(@(x) sort(x(floor(numel(x)/2)+1:end)), ...
         cellfun(@(x)x(randperm(numel(x))), use_align_0, 'uni', 0), 'uni', 0)];
-    use_align=[use_align_0;use_align_new];
+    % use_align=[use_align_0;use_align_new];
+        use_align=use_align_0;
 
+group_idx=labels;
 elseif contains(bonsai_workflow,'stim_wheel')
     % (task)
-success=vertcat(trial_events.values.Outcome);
+    success=vertcat(trial_events.values.Outcome);
 
     if  isfield(trial_events.values,'TaskType')
         curr_tasktype_0=vertcat(trial_events.values.TaskType);
@@ -83,8 +85,8 @@ success=vertcat(trial_events.values.Outcome);
         unique(stim_to_move_idx), 'UniformOutput', false), [1 0], 'UniformOutput', false));
 
     ds.load_iti_move
-    use_align =   [cellfun(@(x) stimOn_times(x),group_idx,'uni',false );
-        cellfun(@(x) stim_move_time(x),group_idx,'uni',false );{iti_move_time}];
+    use_align =   [cellfun(@(x) stimOn_times(x),group_idx,'uni',false );...
+        cellfun(@(x) stim_move_time(x),group_idx,'uni',false );iti_move_time];
 
 
     labels=[...
@@ -92,11 +94,11 @@ success=vertcat(trial_events.values.Outcome);
         arrayfun(@(x) ['stim_'  num2str(x) 'error'] ,unique(stim_to_move_idx), 'UniformOutput', false);
         arrayfun(@(x) ['move_'  num2str(x) 'correct' ] ,unique(stim_to_move_idx), 'UniformOutput', false);
         arrayfun(@(x) ['move_'  num2str(x) 'error' ] ,unique(stim_to_move_idx), 'UniformOutput', false);
-        {'iti_move'}];
+        {'iti_move_l'};{'iti_move_r'}];
 
 end
 
-    nonempty_idx=cellfun(@(x)  ~isempty(x),use_align,'UniformOutput',true);
+nonempty_idx=cellfun(@(x)  ~isempty(x),use_align,'UniformOutput',true);
 
 [all_unit_psth,temp_raster,t]=...
     ap.psth(spike_times_timelite,use_align,spike_templates,...
@@ -120,26 +122,30 @@ if contains(bonsai_workflow,'lcr')|contains(bonsai_workflow,'hml')
 elseif contains(bonsai_workflow,'stim_wheel')
 
 
-movelabel=cellfun(@(x) contains(x,'move'),labels,'UniformOutput',true);
-baseline_t=cell(length(use_align),1);
-baseline_t(movelabel)= repmat({baseline_t_move}, sum(movelabel), 1);
-baseline_t(~movelabel)= repmat({baseline_t_stim}, sum(~movelabel), 1);
+    movelabel=cellfun(@(x) contains(x,'move'),labels,'UniformOutput',true);
+    baseline_t=cell(length(use_align),1);
+    baseline_t(movelabel)= repmat({baseline_t_move}, sum(movelabel), 1);
+    baseline_t(~movelabel)= repmat({baseline_t_stim}, sum(~movelabel), 1);
 
-response_t=cell(length(use_align),1);
-response_t(movelabel)= repmat({response_t_move}, sum(movelabel), 1);
-response_t(~movelabel)= repmat({response_t_stim}, sum(~movelabel), 1);
+    response_t=cell(length(use_align),1);
+    response_t(movelabel)= repmat({response_t_move}, sum(movelabel), 1);
+    response_t(~movelabel)= repmat({response_t_stim}, sum(~movelabel), 1);
 end
 
 baseline_bins =cellfun(@(x,y) x + y,baseline_t,use_align,'UniformOutput',false);
 response_bins =cellfun(@(x,y) x + y,response_t,use_align,'UniformOutput',false);
 event_bins=cellfun(@(x,y) [x,y], baseline_bins,response_bins,'UniformOutput',false );
 
+
+spikes_binned_continuous=cell(length(use_align),1);
 spikes_binned_continuous(nonempty_idx) = cellfun(@(x) histcounts2(spike_times_timelite,spike_templates, ...
     reshape(x',[],1),1:size(templates,1)+1),event_bins(nonempty_idx),'UniformOutput',false );
 
+event_spikes=cell(length(use_align),1);
 event_spikes(nonempty_idx) =cellfun(@(x,y) permute(reshape(x(1:2:end,:),2, ...
-                    size(y,1),[]),[2,1,3]),spikes_binned_continuous(nonempty_idx),event_bins(nonempty_idx)','UniformOutput',false);
+    size(y,1),[]),[2,1,3]),spikes_binned_continuous(nonempty_idx),event_bins(nonempty_idx),'UniformOutput',false);
 
+event_response=cell(length(use_align),1);
 event_response(nonempty_idx) =cellfun(@(x) squeeze(mean(diff(x,[],2),1)),event_spikes(nonempty_idx),'UniformOutput',false);
 
 
@@ -148,7 +154,11 @@ event_response_shuff(nonempty_idx) = cellfun(@(x) cell2mat(arrayfun(@(shuff) ...
     squeeze(mean(diff(ap.shake(x,2),[],2),1)), ...
     1:n_shuff,'uni',false)),event_spikes(nonempty_idx),'UniformOutput',false);
 
-event_response_rank(nonempty_idx) =cellfun(@(x,y) tiedrank(horzcat(x,y)')',event_response(nonempty_idx),event_response_shuff(nonempty_idx),'UniformOutput',false);
+
+event_response_rank=cell(length(use_align),1);
+event_response_rank(nonempty_idx) =cellfun(@(x,y) tiedrank(horzcat(x,y)')',event_response(nonempty_idx),event_response_shuff(nonempty_idx)','UniformOutput',false);
+
+event_response_p=cell(length(use_align),1);
 event_response_p(nonempty_idx)=cellfun(@(x) x(:,1)./(n_shuff+1),event_response_rank(nonempty_idx),'UniformOutput',false);
 
 
@@ -159,5 +169,7 @@ ephys_data.raster=temp_raster;
 ephys_data.response_p=event_response_p;
 ephys_data.depth=template_tipdist;
 ephys_data.labels=labels;
-% ephys_data.event_idx=group_idx;
-ephys_data.raster_t=t;
+ephys_data.event_idx=group_idx;
+ephys_data.raster_t=t;           
+
+clearvars('-except',preload_vars{:});

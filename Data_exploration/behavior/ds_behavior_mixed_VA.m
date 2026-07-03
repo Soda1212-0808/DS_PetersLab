@@ -2,7 +2,7 @@
 clear all
 Path = 'D:\Data process\wf_data\';
 
-animals = {'DS025'};
+animals = {'DS032','DS033','DS034','DS035'};
 
 
 f1=figure('Position',[50 50 length(animals)*300 900]);
@@ -13,14 +13,14 @@ tt2 = tiledlayout(f2,1,length(animals),'TileSpacing','tight');
 for curr_animal_idx = 1:length(animals)
     animal = animals{curr_animal_idx};
 
-    % use_workflow = {'stim_wheel_right_stage2_mixed_VA*'};
+    use_workflow = {'stim_wheel*'};
 
+    % % use_workflow =...
+    % %     {'stim_wheel_Vcenter_cross_movement_stage*','stim_wheel_Afreq2_cross_movement_stage*'};
+    % 
     % use_workflow =...
-    %     {'stim_wheel_Vcenter_cross_movement_stage*','stim_wheel_Afreq2_cross_movement_stage*'};
-
-    use_workflow =...
-        {'stim_wheel_Vcenter_cross_movement_stage*','stim_wheel_Afreq2_cross_movement_stage*',...
-        'stim_wheel_VcenterAfreq2_cross_movement_stage*'};
+    %     {'stim_wheel_Vcenter_cross_movement_stage*','stim_wheel_Afreq2_cross_movement_stage*',...
+    %     'stim_wheel_VcenterAfreq2_cross_movement_stage*'};
 
     recordings = plab.find_recordings(animal,[],use_workflow);
     % only ephys data
@@ -46,10 +46,10 @@ for curr_animal_idx = 1:length(animals)
     frac_move_stimalign{2} = nan(length(recordings),length(surround_time_points));
     % frac_move_stimalign_2 = nan(length(recordings),length(surround_time_points));
 
-    rxn_stat_p_mean = nan(length(recordings),5);
+    rxn_stat_p_mean = nan(length(recordings),3);
     workflow_name= cell(length(recordings),1);
-    n_trials_types= nan(length(recordings),4);
-    wheel_vel_by_type_mean=cell(length(recordings),4);
+    n_trials_types= nan(length(recordings),2);
+    wheel_vel_by_type_mean=cell(length(recordings),2);
     wheel_vel_by_type_mean(:)={zeros(1, 1001)};
 
     for curr_recording =1: length(recordings)
@@ -198,10 +198,10 @@ for curr_animal_idx = 1:length(animals)
             unique(tasktype),'UniformOutput',false);
 
 
-        [rxn_stat_p_mean(curr_recording,[1 unique(tasktype)+2]),...
-            stim2move_mad(curr_recording,[1 unique(tasktype)+2]),...
-            stim2move_mad_null(curr_recording,[1 unique(tasktype)+2])] = ...
-            AP_stimwheel_association_pvalue3( ...
+        [rxn_stat_p_mean(curr_recording,[1 :length(unique(tasktype))]),...
+            stim2move_mad(curr_recording,[1 :length(unique(tasktype))]),...
+            stim2move_mad_null(curr_recording,[1 :length(unique(tasktype))])] = ...
+            ds.stimwheel_association_pvalue( ...
             stimOn_times,trial_events,stim_to_lastmove,tasktype,'mad');
 
 
@@ -218,8 +218,8 @@ for curr_animal_idx = 1:length(animals)
     workflow_name = workflow_name(:);  % n×1 cell of char / string
 
     % Define learned day from reaction stat p-value and reaction time
-    learned_day = rxn_stat_p_mean(:,2:5) < 0.05 & rxn_med < 2;
-    wheel_vel_mean=arrayfun(@(state)  cat(1,wheel_vel_by_type_mean{:,state} ) ,1:4 ,'UniformOutput',false  );
+    learned_day = rxn_stat_p_mean(:,1:2) < 0.05 & rxn_med(:,1:2) < 2;
+    wheel_vel_mean=arrayfun(@(state)  cat(1,wheel_vel_by_type_mean{:,state} ) ,1:2 ,'UniformOutput',false  );
 
 
     relative_day = days(datetime({recordings.day}) - datetime({recordings(1).day}))+1;
@@ -271,8 +271,8 @@ for curr_animal_idx = 1:length(animals)
     nexttile(t_animal);
     react_null_index=(stim2move_mad_null-stim2move_mad)./(stim2move_mad+stim2move_mad_null);
     hold on
-    plot(relative_day,react_null_index(:,2:5), 'LineWidth',1)
-    plot(relative_day,react_null_index(:,2:5), 'o', 'MarkerSize',2)
+    plot(relative_day,react_null_index(:,1:2), 'LineWidth',1)
+    plot(relative_day,react_null_index(:,1:2), 'o', 'MarkerSize',2)
     set(gca,'ColorOrder',[0.0000    0.4470    0.7410; 0.8500    0.3250    0.0980; 0.0000    0.4470    0.7410; 0.8500    0.3250    0.0980])
     if any(nonrecorded_day)
         xline(nonrecorded_day,'--k');
@@ -357,9 +357,9 @@ for curr_animal_idx = 1:length(animals)
 
     titlename={'V-L','V-R','A-L','A-R'};
 
-    figure
-    t_animal2=tiledlayout(4,3)
-    for curr_state=1:4
+    % figure
+    % t_animal2=tiledlayout(2,3)
+    for curr_state=1:2
         nexttile(t_animal2);
 
         wheel_vel_mean = cellfun(@(x) ...
@@ -404,8 +404,9 @@ for curr_animal_idx = 1:length(animals)
     end
 
     drawnow;
+    nexttile(t_animal2);
 
-    figure;
+    % figure;
     plot(relative_day,rxn_med)
     hold on
     % plot(relative_day,rxn_med, 'o', 'MarkerSize',2)
