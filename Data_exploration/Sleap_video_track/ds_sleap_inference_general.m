@@ -5,8 +5,12 @@ OUTPUT_ROOT = 'D:\Data process\project_cross_model\face_data\sleap\track_data\pu
 MODEL_DIRS = { 'D:\Data process\project_cross_model\face_data\sleap\pupil\251117_190801.centroid.n=625',...
     'D:\Data process\project_cross_model\face_data\sleap\pupil\251117_212458.centered_instance.n=625' };
 
-animals =     { 'DS022','DS023','DS024','DS025'};
 
+today = datetime('today','Format','yyyy-MM-dd');
+
+
+folderNames= {dir(plab.locations.server_data_path).name};
+animals=folderNames(~ismember(folderNames,{'.','..'}));
 
 for curr_animal=1:length(animals)
     animal=animals{curr_animal};

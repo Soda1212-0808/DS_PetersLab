@@ -2,9 +2,41 @@
 function  sleap_inference(MODEL_DIRS,mousecam_fn,outSLP,outH5)
 
 tStart = tic;
-PYTHON_EXE = 'C:\Users\dsong\AppData\Roaming\uv\tools\sleap\Scripts\python.exe';
-% Test whether sleap-convert exists in PATH (system 'where' -- Windows)
-venvScripts = 'C:\Users\dsong\AppData\Roaming\uv\tools\sleap\Scripts';
+% PYTHON_EXE = 'C:\Users\dsong\AppData\Roaming\uv\tools\sleap\Scripts\python.exe';
+% % Test whether sleap-convert exists in PATH (system 'where' -- Windows)
+% venvScripts = 'C:\Users\dsong\AppData\Roaming\uv\tools\sleap\Scripts';
+
+% Automatically locate the SLEAP Python environment and Scripts directory.
+% 自动定位 SLEAP 的 Python 环境及 Scripts 目录。
+
+[status, out] = system('where python');
+assert(status == 0, '没有找到 Python。');
+pythonList = splitlines(strtrim(out));
+pythonList = pythonList(~cellfun(@isempty, pythonList));
+
+PYTHON_EXE = '';
+for i = 1:numel(pythonList)
+
+    cmd = sprintf('"%s" -c "import sleap"', pythonList{i});
+    [status, ~] = system(cmd);
+
+    if status == 0
+        PYTHON_EXE = pythonList{i};
+        break
+    end
+
+end
+
+if isempty(PYTHON_EXE)
+    error('There is no Python installed in Sleap; 没有找到安装 SLEAP 的 Python。');
+end
+
+% 由 python.exe 自动得到 Scripts 目录
+venvScripts = fileparts(PYTHON_EXE);
+
+
+
+
 sleapConvertExe = fullfile(venvScripts,'sleap-convert.exe');
 if exist(sleapConvertExe,'file') == 2
     have_sleap_convert = true;

@@ -441,16 +441,16 @@ end
 
 
 %%
-colors={'B','R'}
+colors={'B','R','G'}
 colors_grade=ap.colormap('bwr')
 
 figure('Position',[50 50 200 400])
-fig1=tiledlayout(3,2,'TileSpacing','tight')
+fig1=tiledlayout(3,3,'TileSpacing','tight')
 
 figure('Position',[50 50 200 400])
 fig2=tiledlayout(3,2,'TileSpacing','tight')
 
-for curr_stage=3
+for curr_stage=1:3
     switch curr_stage
         case 1
             response_stim1=response_all_passive2{1}>0&response_all_passive2{2}==0;
@@ -481,7 +481,7 @@ for curr_stage=3
 temp_mean=cell(2,1);
 temp_error=cell(2,1);
 
-for curr_state=1:2
+for curr_state=1:3
     a1=nexttile(fig1)
     imagesc(raster_t,[],temp_psth{curr_state}(A_sorted,:))
     clim([-2 2])
@@ -502,6 +502,8 @@ a2=nexttile(fig2)
 hold on
 ap.errorfill(raster_t,temp_mean{1}{2},temp_error{1}{2},colors_grade(1,:))
 ap.errorfill(raster_t,temp_mean{2}{2},temp_error{2}{2},colors_grade(end,:))
+ap.errorfill(raster_t,temp_mean{3}{2},temp_error{3}{2},colors_grade(100,:))
+
 xlim([-0.2 0.5])
 ylim([-0.2 1.2])
 axis off
@@ -510,6 +512,8 @@ a2=nexttile(fig2)
 hold on
 ap.errorfill(raster_t,temp_mean{1}{1},temp_error{1}{1},colors_grade(1,:))
 ap.errorfill(raster_t,temp_mean{2}{1},temp_error{2}{1},colors_grade(end,:))
+ap.errorfill(raster_t,temp_mean{3}{1},temp_error{3}{1},colors_grade(100,:))
+
 xlim([-0.2 0.5])
 ylim([-0.5 0.9])
 axis off
@@ -592,18 +596,22 @@ response_all2=cellfun(@(x) 2*(x>0.95)+1*(x<0.05)     ,response_all,'UniformOutpu
 colors={'B','R'}
 
 figure('Position',[50 50 200 400])
-fig1=tiledlayout(3,2,'TileSpacing','tight')
+fig1=tiledlayout(3,6,'TileSpacing','tight')
 
 figure('Position',[50 50 200 400])
 fig2=tiledlayout(3,2,'TileSpacing','tight')
 
-for curr_stage=3
+for curr_stage=1:3
     switch curr_stage
         case 1
 
 
             response_stim1=response_all2{1}>0&response_all2{2}==0;
             temp_psth=  psth_all(response_stim1,:,5:6);
+            temp_psth_task=  psth_all(response_stim1,:,3:4);
+            temp_psth_task_error=  psth_all(response_stim1,:,9:10);
+
+
             temp_A=[response_all2{1}(response_stim1)  max(temp_psth(:,raster_t>0&raster_t<0.2,1),[],2)];
             [~, A_sorted] = sortrows(temp_A, [-1 -2]);
             response_num(1,:)=arrayfun(@(id) sum(response_all2{1}(response_stim1)==id),1:2,'UniformOutput',true)
@@ -612,6 +620,9 @@ for curr_stage=3
 
             response_over=response_all2{1}>0&response_all2{2}>0;
             temp_psth= psth_all(response_over,:,5:6);
+            temp_psth_task=  psth_all(response_over,:,3:4);
+            temp_psth_task_error=  psth_all(response_over,:,9:10);
+
             temp_A=[response_all2{1}(response_over)  max(temp_psth(:,raster_t>0&raster_t<0.2,1),[],2)];
             [~, A_sorted] = sortrows(temp_A, [-1 -2]);
             response_num(2,:)=arrayfun(@(id) sum(response_all2{1}(response_over)==id),1:2,'UniformOutput',true)
@@ -620,6 +631,9 @@ for curr_stage=3
 
             response_stim2=response_all2{1}==0&response_all2{2}>0;
             temp_psth= psth_all(response_stim2,:,5:6);
+            temp_psth_task=  psth_all(response_stim2,:,3:4);
+            temp_psth_task_error=  psth_all(response_stim2,:,9:10);
+
             temp_A=[response_all2{2}(response_stim2)  max(temp_psth(:,raster_t>0&raster_t<0.2,2),[],2)];
             [~, A_sorted] = sortrows(temp_A, [-1 -2]);
             response_num(3,:)=arrayfun(@(id) sum(response_all2{2}(response_stim2)==id),1:2,'UniformOutput',true)
@@ -647,6 +661,50 @@ for curr_stage=3
         temp_error{curr_state}= arrayfun(@(x)    std(temp_psth(temp_A(:,1)==1,:,curr_state),0,1)./sqrt(sum(temp_A(:,1)==x)),1:2,'UniformOutput',false)
 
     end
+    temp_task_mean=cell(2,1);
+    temp_task_error=cell(2,1);
+
+    for curr_state=1:2
+        a1=nexttile(fig1)
+        imagesc(raster_t,[],temp_psth_task(A_sorted,:,curr_state))
+        clim([-2 2])
+        colormap(a1,ap.colormap(['KW' colors{curr_state}]))
+        xlim([-0.2 0.5])
+        ylim([0.5 400])
+        axis off
+        line([0 0],[0 size(temp_psth_task(A_sorted,:,curr_state),1)],'color','k')
+
+
+        line([-0.2 -0.2],[0 response_num(curr_stage,2)],'color','r')
+        line([-0.2 -0.2],[response_num(curr_stage,2) sum(response_num(curr_stage,:),2)],'color','k')
+
+        temp_task_mean{curr_state}=  arrayfun(@(x)    nanmean(temp_psth_task(temp_A(:,1)==x,:,curr_state),1),1:2,'UniformOutput',false)
+        temp_task_error{curr_state}= arrayfun(@(x)    std(temp_psth_task(temp_A(:,1)==1,:,curr_state),0,1)./sqrt(sum(temp_A(:,1)==x)),1:2,'UniformOutput',false)
+
+    end
+    temp_task_error_mean=cell(2,1);
+    temp_task_error_error=cell(2,1);
+
+    for curr_state=1:2
+        a1=nexttile(fig1)
+        imagesc(raster_t,[],temp_psth_task_error(A_sorted,:,curr_state))
+        clim([-2 2])
+        colormap(a1,ap.colormap(['KW' colors{curr_state}]))
+        xlim([-0.2 0.5])
+        ylim([0.5 400])
+        axis off
+        line([0 0],[0 size(temp_psth_task(A_sorted,:,curr_state),1)],'color','k')
+
+
+        line([-0.2 -0.2],[0 response_num(curr_stage,2)],'color','r')
+        line([-0.2 -0.2],[response_num(curr_stage,2) sum(response_num(curr_stage,:),2)],'color','k')
+
+         temp_task_error_mean{curr_state}=  arrayfun(@(x)    nanmean(temp_psth_task_error(temp_A(:,1)==x,:,curr_state),1),1:2,'UniformOutput',false)
+         temp_task_error_error{curr_state}= arrayfun(@(x)    std(temp_psth_task_error(temp_A(:,1)==1,:,curr_state),0,1)./sqrt(sum(temp_A(:,1)==x)),1:2,'UniformOutput',false)
+
+    end
+
+
 
     a2=nexttile(fig2)
     hold on
@@ -655,6 +713,22 @@ for curr_stage=3
     xlim([-0.2 0.5])
     ylim([-0.2 2])
     axis off
+
+    % a2=nexttile(fig2)
+    % ap.errorfill(raster_t,temp_task_mean{1}{2},temp_task_error{1}{2},colors_grade(1,:))
+    % ap.errorfill(raster_t,temp_task_mean{2}{2},temp_task_error{2}{2},colors_grade(end,:))
+    % 
+    % xlim([-0.2 0.5])
+    % ylim([-0.2 3])
+    % axis off
+    % 
+    % a2=nexttile(fig2)
+    % ap.errorfill(raster_t,temp_task_error_mean{1}{2},temp_task_error_error{1}{2},colors_grade(1,:))
+    % ap.errorfill(raster_t,temp_task_error_mean{2}{2},temp_task_error_error{2}{2},colors_grade(end,:))
+    % 
+    % xlim([-0.2 0.5])
+    % ylim([-0.2 3])
+    % axis off
 
     a2=nexttile(fig2)
     hold on

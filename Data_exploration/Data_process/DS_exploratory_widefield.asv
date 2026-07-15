@@ -1,6 +1,6 @@
 %% Exploratory widefield analysis
 clear all
-animal='DS024';
+animal='DS025';
 load_parts = struct;
 load_parts.behavior = true;
 load_parts.widefield_master = true;
@@ -557,7 +557,7 @@ wf_t_only_iti = interp1([pho_on_times;pho_off_times], ...
     wf_t,'previous')==1;
 
 wf_regressor_bins = [wf_t;wf_t(end)+1/wf_framerate];
-iti_move_regressors=histcounts(iti_move_time{2},wf_regressor_bins);
+iti_move_regressors=histcounts(iti_move_time{1},wf_regressor_bins);
 
 
 n_components = 200;
