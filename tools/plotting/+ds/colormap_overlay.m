@@ -25,6 +25,9 @@ end
 % 强制大写
 colA = upper(colA);
 colB = upper(colB);
+%%
+A(isnan(A)) = 0;
+B(isnan(B)) = 0;
 
 %% ---------- 拼 colormap ----------
 cmapA_type = ['W' colA];

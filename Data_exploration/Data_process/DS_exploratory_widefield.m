@@ -1,6 +1,6 @@
 %% Exploratory widefield analysis
 clear all
-animal='DS024';
+animal='DS043';
 load_parts = struct;
 load_parts.behavior = true;
 load_parts.widefield_master = true;
@@ -8,7 +8,7 @@ load_parts.widefield = true;
 load_parts.widefield_align= true;
 %recordings= plab.find_recordings(animal,[],'stim_wheel_right_stage2_25contrast');
 
-   plab.find_recordings(animal,[],'*')
+   % plab.find_recordings(animal,[],'*')
 ap.load_recording;
 
 
@@ -291,7 +291,10 @@ end
 %% Passive kernel separated types
 
 switch bonsai_workflow
-    case {'lcr_passive','lcr_passive_size60','r_passive_contrast','lcr_passive_grating_size40','lcr_passive_contrast25','r_passive_contrast_up_to25','lcr_passive_corner_CS+_big_stim'}
+    case {'lcr_passive','lcr_passive_size60','r_passive_contrast',...
+            'lcr_passive_grating_size40','lcr_passive_contrast25',...
+            'r_passive_contrast_up_to25','lcr_passive_corner_CS+_big_stim',...
+            'lcr_passive_checkerboard'}
         stim_type = vertcat(trial_events.values.TrialStimX);
     case {'hml_passive_audio','hml_passive_audio_mixed',...
             'm_8k_passive_audio_volume','hml_passive_audio_earphone_freq','hml_passive_audio_earphone'}
@@ -308,7 +311,7 @@ end
 stimOn_times=stimOn_times(1:min(length(stimOff_times),length(stimOn_times)));
 
 wf_regressor_bins = [wf_t;wf_t(end)+1/wf_framerate];
-stim_type= stim_type(1:length(stimOn_times));
+% stim_type= stim_type(1:length(stimOn_times));
 
 stim_regressors = repmat({zeros(length(wf_t),1)}, length(unique(stim_type)), 1);
 stim_regressors= arrayfun(@(a)  histcounts(stimOn_times(stim_type == a),wf_regressor_bins)',...
@@ -431,8 +434,20 @@ wf_regressor_bins = [wf_t;wf_t(end)+1/wf_framerate];
 real_stimOn_times=stimOn_times(1:n_trials);
 curr_tasktype_0=vertcat(trial_events.values.TaskType);
 
+curr_tasktype_0=curr_tasktype_0(1:n_trials);
+Outcome=vertcat(trial_events.values.Outcome);
+Outcome=Outcome(1:n_trials);
 
-stim_to_move_idx= curr_tasktype_0(1:n_trials);
+label = zeros(size(Outcome));
+label(curr_tasktype_0==0 & Outcome==1) = 1;
+label(curr_tasktype_0==0 & Outcome==0) = 2;
+label(curr_tasktype_0==1 & Outcome==1) = 3;
+label(curr_tasktype_0==1 & Outcome==0) = 4;
+
+stim_to_move_idx= label;
+
+
+
 stim_regressors = repmat({zeros(length(wf_t),1)}, 2, 1);
 temp_idx=1:length(unique(stim_to_move_idx));
 stim_regressors(temp_idx)= arrayfun(@(a)  histcounts(real_stimOn_times(stim_to_move_idx==a),wf_regressor_bins)',...

@@ -1,19 +1,36 @@
 %% Exploratory behavior analysis
 clear all
-animal='DS035'
+animal='DS038'
 
 load_parts = struct;
 load_parts.behavior = true;
 load_parts.mousecam = true;
 
+load_parts.ephys_axons=true;
 ap.load_recording;
 %%
-outcome=[trial_events.values.Outcome]
+outcome=[trial_events.values.Outcome];
+outcome=outcome(1:n_trials);
+No_tasktype=[trial_events.values.TaskType];
+No_tasktype=No_tasktype(1:n_trials);
+outcome_by_type=arrayfun(@(type) outcome(No_tasktype==type),unique(No_tasktype),'UniformOutput',false);
+outcome_by_type_id=arrayfun(@(type) find(No_tasktype==type),unique(No_tasktype),'UniformOutput',false);
 
 figure;
-plot(outcome)
-ylim([-0.5 1.5])
+% nexttile
+hold on
+colors=hsv(length(outcome_by_type_id));
+for curr_i=1:length(outcome_by_type_id)
+plot(outcome_by_type_id{curr_i},outcome(outcome_by_type_id{curr_i}),'.','MarkerSize',10,'Color',colors(curr_i,:))
+% plot(outcome_by_type_id{2},outcome(outcome_by_type_id{2}),'.r','MarkerSize',10)
+end
+plot(outcome,'Color','k')
 
+legend('Location', 'northeastoutside');
+legend boxoff
+
+ylim([-0.5 3])
+title ([animal ' ' rec_day])
 %% Align wheel to event
 
 align_times = stimOn_times;
@@ -74,7 +91,8 @@ wheel_vel_by_type=feval(@(x)  cat(2,x{:}) ,arrayfun(@(perform) arrayfun(@(type) 
 stim2move_type=arrayfun(@(type) stim_to_move(tasktype(1:n_trials)==type&outcome(1:n_trials)==1),No_tasktype,'UniformOutput',false  )
 stim2outcome_type=arrayfun(@(type) stim_to_outcome(tasktype(1:n_trials)==type&outcome(1:n_trials)==1),No_tasktype,'UniformOutput',false  )
 
-figure('Position',[50 50 400 300]);
+% figure('Position',[50 50 400 300]);
+figure
 tiledlayout(2,length(No_tasktype)+1)
 for curr_type=1:length(No_tasktype)
     nexttile;plot(stim2move_type{curr_type},'.k');box off;ylim([-0.1 0.3]);ylabel('reaction time (s)')
@@ -93,7 +111,8 @@ ylim([0 3])
 
 
 
-figure('Position',[50 50 800 300]);
+% figure('Position',[50 50 800 300]);
+figure
 tiledlayout(2,length(wheel_vel_by_type),'TileIndexing','columnmajor')
 for curr_image=1:length(wheel_vel_by_type)
 nexttile
@@ -155,7 +174,7 @@ xlabel('Time from event');
    [rxn_stat_p_mean([1 unique(tasktype)+2]),...
             stim2move_mad([1 unique(tasktype)+2]),...
             stim2move_mad_null([1 unique(tasktype)+2])] = ...
-            AP_stimwheel_association_pvalue3( ...
+            ds.stimwheel_association_pvalue( ...
             stimOn_times,trial_events,stim_to_lastmove,tasktype,'mad');
 
 
@@ -258,14 +277,14 @@ quiescent_trials = arrayfun(@(x) ~any(wheel_move(...
 % stim_x = vertcat(trial_events.values.StimFrequence);
 % use_align = stimOn_times(stim_x == 8000  & quiescent_trials);
 
-stim_x = vertcat(trial_events.values.TrialStimX);
-use_align = stimOn_times(quiescent_trials & stim_x == 90);
+% stim_x = vertcat(trial_events.values.TrialStimX);
+% use_align = stimOn_times(quiescent_trials & stim_x == 90);
 
 % stim_x = vertcat(trial_events.values.TrialX);
 % use_align = stimOn_times(stim_x(1:n_trials) == 90);
 
-% modality = vertcat(trial_events.values(1:n_trials).TaskType);
-% use_align = stimOn_times(modality == 1);
+modality = vertcat(trial_events.values(1:n_trials).TaskType);
+use_align = stimOn_times(modality == 1);
 
 % use_align = reward_times;
 

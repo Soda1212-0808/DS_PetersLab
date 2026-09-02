@@ -1,7 +1,7 @@
 %% Create across-day alignments
 
 % Define animal
- animal = 'DS033';
+ animal = 'DS029';
 % Create across-day alignments
 plab.wf.wf_align([],animal,[],'new_days');
 % Get and save VFS maps for animal

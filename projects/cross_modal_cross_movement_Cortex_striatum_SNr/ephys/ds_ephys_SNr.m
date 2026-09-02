@@ -209,7 +209,6 @@ for curr_recording=1:length(neuron_id)
     %     savefig(gcf,fullfile(Path ,[animal ' ' rec_day  ' cell ' num2str(cell_id(curr_cell_id)) ' state_' cat(2,temp_stim{curr_cell_id,:}) '.fig']))
     % end
 
-
     % for curr_cell=1:length(cell_ids)
     %     curr_cell_id=cell_ids(curr_cell);
     %     [raster_y,raster_x] =cellfun(@(x,y) find(x(y,:,curr_cell_id)),temp_task_raster(1:6),...

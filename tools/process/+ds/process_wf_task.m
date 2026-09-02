@@ -27,6 +27,7 @@ selected_tasks = find(task_flags);
 
 wf_task_data=struct;
 ds.load_iti_move
+iti_move_time=cat(1,iti_move_time{:});
 if length(iti_move_time)==1
     iti_move_time=[iti_move_time ;iti_move_time];
 end

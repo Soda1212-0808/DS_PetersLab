@@ -3,7 +3,10 @@ clear all
 % Path = 'D:\Data process\wf_data\';
 
 
-animals = {'DS032','DS033','DS034','DS035' };
+animals = {'DS036','DS037','DS038' ,'DS039' ,'DS041' ,'DS042','DS043'};
+
+% animals = {'DS034','DS033','DS034','DS035' };
+
  % animals = {'AP030','AP031','AP032'};
 % animals= { 'PG001'};
 
@@ -23,107 +26,73 @@ tt = tiledlayout(1,length(animals),'TileSpacing','tight');
 for curr_animal_idx = 1:length(animals)
 
     animal = animals{curr_animal_idx};
-% 
-% use_workflow=['stim_wheel_center_stage1$|' ...
-%     'stim_wheel_center_stage2*$|']
-% use_workflow =...
-%     ['stim_wheel_right_stage1*$|' ...
-%     'stim_wheel_right_stage2*$|' ...
-%     'stim_wheel_right_stage1_opacity$|' ...
-%     'stim_wheel_right_stage2_opacity$|' ...
-%     'stim_wheel_right_stage1_angle$|' ...
-%     'stim_wheel_right_stage2_angle$|' ...
-%     'stim_wheel_right_stage2_angle_size60$|' ...
-%     'stim_wheel_right_stage1_size_up$|' ...
-%     'stim_wheel_right_stage2_size_up$|' ...
-%     'stim_wheel_right_stage1_audio_volume*$|'...
-%     'stim_wheel_right_stage2_audio_volume*$|' ...
-%     'stim_wheel_right_stage1_audio_frequency$|' ...
-%     'stim_wheel_right_stage2_audio_frequency$|' ...
-%     'stim_wheel_right_frequency_stage2_mixed_VA$|' ...
-%     'stim_wheel_right_stage2_mixed_VA$'...
-%     'stim_wheel_Vcenter_cross_movement_stage*'...
-%     'stim_wheel_center_stage1$|' ...
-%     'stim_wheel_center_stage2*$|'];
 
     use_workflow =...
         [ 'stim_wheel*'];
 
     recordings = plab.find_recordings(animal,[],use_workflow);
 
+% 
+% % 选择某一个日期后的记录
+%     dt = datetime({recordings.day}, 'InputFormat', 'yyyy-MM-dd');
+%     idx = find(dt > datetime('2026-07-22', 'InputFormat', 'yyyy-MM-dd'));
+%     recordings=recordings(idx);
+
+
     %只保留widefiled的数据
     recordings(find([recordings.ephys])) = [];
     % recordings = recordings(1:8);
 
-    workflow_day={recordings.day}';
+    workflow_time= cat(2,recordings.recording);
+    workflow_day= feval(@(a) cat(1,a{:}) , cellfun(@(x,y) repmat({x},length(y),1), {recordings.day}, { recordings.index},'UniformOutput',false));
+    % workflow_day={recordings.day}';
+    n_session=length(workflow_day);
+
+workflow_name=vertcat(recordings.workflow);
+
     surround_time = [-5,5];
     surround_sample_rate = 100;
     surround_time_points = surround_time(1):1/surround_sample_rate:surround_time(2);
 
-    n_trials_water = nan(length(recordings),2);
-    frac_move_day = nan(length(recordings),1);
-    success = nan(length(recordings),1);
-    rxn_med = nan(length(recordings),1);
-    stim_on_to_off_times=cell(length(recordings),1);
-    % stim2move_mean = nan(length(recordings),1);
-    % stim2move_mean_null = nan(length(recordings),1);
-    % stim2move_med_null = nan(length(recordings),1);
-    % stim2move_med = nan(length(recordings),1);
+    n_trials_water = nan(n_session,2);
+    frac_move_day = nan(n_session,1);
+    success = nan(n_session,1);
+    rxn_med = nan(n_session,1);
+    stim_on_to_off_times=cell(n_session,1);
+ 
+    stim2move_time=cell(n_session,1);
 
-    stim2move_time=cell(length(recordings),1);
+    stim2move_mad_null = nan(n_session,1);
+    stim2move_mad = nan(n_session,1);
 
-    stim2move_mad_null = nan(length(recordings),1);
-    stim2move_mad = nan(length(recordings),1);
+    frac_move_stimalign = nan(n_session,length(surround_time_points));
+    frac_velocity_stimalign= nan(n_session,length(surround_time_points));
 
-    frac_move_stimalign = nan(length(recordings),length(surround_time_points));
-    frac_velocity_stimalign= nan(length(recordings),length(surround_time_points));
+    frac_move_stimalign_trialbytrial =cell(n_session,1);
+    frac_velocity_stimalign_trialbytrial=cell(n_session,1);
 
-    frac_move_stimalign_trialbytrial =cell(length(recordings),1);
-    frac_velocity_stimalign_trialbytrial=cell(length(recordings),1);
-
-    rxn_stat_p = nan(length(recordings),1);
-    workflow_name= cell(length(recordings),1);
-    trials_success= nan(length(recordings),1);
-    trials_iti_move= nan(length(recordings),1);
+    rxn_stat_p = nan(n_session,1);
+    trials_success= nan(n_session,1);
+    trials_iti_move= nan(n_session,1);
 
     % figure
-    for curr_recording =1: length(recordings)
+    for curr_recording =1: n_session
     % for curr_recording =1: 8
 
         % Grab pre-load vars
         preload_vars = who;
 
         % Load data
-        rec_day = recordings(curr_recording).day;
+        rec_day = workflow_day{curr_recording};
 
-        clear time
-        if length(recordings(curr_recording).index)>1
-            for mm=1:length(recordings(curr_recording).index)
-                rec_time = recordings(curr_recording).recording{mm};
-                % verbose = true;
-                % ap.load_timelite
-
-                timelite_fn = plab.locations.filename('server',animal,rec_day,rec_time,'timelite.mat');
-                timelite = load(timelite_fn);
-                time(mm)=length(timelite.timestamps);
-            end
-            [~,index_real]=max(time);
-        else index_real=1;
-        end
-
-        rec_time = recordings(curr_recording).recording{index_real};
+   
+        rec_time = workflow_time{curr_recording};
 
         load_parts = struct;
         load_parts.behavior = true;
 
         ap.load_recording;
-        
-        % Get task types
-        % No_tasktype=length(unique([trial_events.values.TaskType]));
-
-        % tasktype=[trial_events.values.TaskType];
-
-% stimOn_times=audio_onsets;
+   
 
         % Get total trials/water
         n_trials_water(curr_recording,:) = [length(trial_events.timestamps), ...
@@ -232,17 +201,33 @@ for curr_animal_idx = 1:length(animals)
 
         % Clear vars except pre-load for next loop
         clearvars('-except',preload_vars{:});
-        ap.print_progress_fraction(curr_recording,length(recordings));
+        ap.print_progress_fraction(curr_recording,n_session);
 
     end
 
 
     % Define learned day from reaction stat p-value and reaction time
     learned_day = rxn_stat_p < 0.05 & rxn_med < reaction_time;
-    relative_day = days(datetime({recordings.day}) - datetime({recordings(1).day}))+1;
-    nonrecorded_day = setdiff(1:length(recordings),relative_day);
+    % relative_day = days(datetime({recordings.day}) - datetime({recordings(1).day}))+1;
 
-    % workflow_name_2=arrayfun(@(idx) recordings(idx).workflow{1},1:length(recordings),  'UniformOutput', false)';
+    % 转成 datetime
+    d = datetime(workflow_day);
+
+    % 每一步至少增加1；
+    % 如果日期跨了多天，则按实际跨过的天数增加
+    relative_day = zeros(size(d));
+    relative_day(1) = 1;
+
+    for i = 2:numel(d)
+        day_diff = days(d(i) - d(i-1));
+
+        % 同一天重复也算1天
+        relative_day(i) = relative_day(i-1) + max(1, day_diff);
+    end
+
+    nonrecorded_day = setdiff(1:n_session,relative_day);
+
+    % workflow_name_2=arrayfun(@(idx) recordings(idx).workflow{1},1:n_session,  'UniformOutput', false)';
     % matches = unique(workflow_name, 'stable');
     % different_day_1= cellfun(@(x) relative_day(find(strcmp(workflow_name,x))),matches,'UniformOutput',false);
     % different_day_2= cellfun(@(x) find(strcmp(workflow_name,x)),matches,'UniformOutput',false);
@@ -270,6 +255,25 @@ for curr_animal_idx = 1:length(animals)
         xline(relative_day(learned_day),'g');
     end
     xlim([range_t1,relative_day(end)])
+   
+    idx_left  = contains(workflow_name,'left');
+    idx_right = contains(workflow_name,'right');
+    idx_mixed_v = ~idx_left & ~idx_right & contains(workflow_name,'Vcenter');
+
+    type=1*double(idx_left)+2*(idx_right)+3*double(idx_mixed_v);
+    x = relative_day';
+    yl = ylim;
+    X = [x-0.5; x+0.5; x+0.5; x-0.5];
+    Y = repmat([yl(1); yl(1); yl(2); yl(2)], 1, numel(x));
+    colors = [ ...
+        0.8 0.9 1.0;   % type 1  淡蓝
+        1.0 0.9 0.8;   % type 2  淡橙
+        0.9  0.9 1 ];  % type 3  淡绿
+    patch(X, Y, permute(colors(type,:),[3 1 2]), ...
+        'EdgeColor','none', 'FaceAlpha',0.4)
+
+
+
 
 
     % figure 2
@@ -354,9 +358,9 @@ for curr_animal_idx = 1:length(animals)
     imagesc(surround_time_points,[],frac_move_stimalign); hold on;
     clim([0,1]);
     colormap(gca,ap.colormap('WK'));
-    set(gca,'YTick',1:length(recordings),'YTickLabel', ...
+    set(gca,'YTick',1:n_session,'YTickLabel', ...
         cellfun(@(day,num) sprintf('%d (%s)',num,day(6:end)), ...
-        {recordings.day},num2cell(1:length(recordings)),'uni',false));
+        workflow_day',num2cell(1:n_session),'uni',false));
     xlabel('Time from stim');
     if any(learned_day)
         plot(0,find(learned_day),'.g')
@@ -371,7 +375,7 @@ for curr_animal_idx = 1:length(animals)
 
 
     nexttile(t_animal); hold on
-    set(gca,'ColorOrder',copper(length(recordings)));
+    set(gca,'ColorOrder',copper(n_session));
     %plot(surround_time_points,frac_move_stimalign','linewidth',2);
     plot(surround_time_points,frac_move_stimalign(range_t1:end,:)','linewidth',2);
     xline(0,'color','k');
@@ -395,9 +399,9 @@ for curr_animal_idx = 1:length(animals)
 
     nexttile(t_animal);
     plot(react_index)
-    set(gca,'XTick',1:length(recordings),'XTickLabel', ...
+    set(gca,'XTick',1:n_session,'XTickLabel', ...
         cellfun(@(day,num) sprintf('%d (%s)',num,day(6:end)), ...
-        {recordings.day},num2cell(1:length(recordings)),'uni',false));
+           workflow_day',num2cell(1:n_session),'uni',false));
     hold on
     yline(0)
     ylim([-1, 1])
@@ -408,9 +412,9 @@ for curr_animal_idx = 1:length(animals)
     nexttile(t_animal);
     react_null_index=(stim2move_mad_null-stim2move_mad)./(stim2move_mad+stim2move_mad_null);
     plot(react_null_index)
-    set(gca,'XTick',1:length(recordings),'XTickLabel', ...
+    set(gca,'XTick',1:n_session,'XTickLabel', ...
         cellfun(@(day,num) sprintf('%d (%s)',num,day(6:end)), ...
-        {recordings.day},num2cell(1:length(recordings)),'uni',false));
+         workflow_day',num2cell(1:n_session),'uni',false));
     hold on
     yline(0)
     % ylim([-1, 1])
@@ -420,10 +424,10 @@ for curr_animal_idx = 1:length(animals)
     nexttile(t_animal);
     imagesc(surround_time_points,[],frac_velocity_stimalign); hold on;
     clim([-500,500]);
-    colormap(gca,ap.colormap('PWG'));
-    set(gca,'YTick',1:length(recordings),'YTickLabel', ...
+    colormap(gca,ap.colormap('BWR'));
+    set(gca,'YTick',1:n_session,'YTickLabel', ...
         cellfun(@(day,num) sprintf('%d (%s)',num,day(6:end)), ...
-        {recordings.day},num2cell(1:length(recordings)),'uni',false));
+        workflow_day',num2cell(1:n_session),'uni',false));
     xlabel('Time from stim');
     if any(learned_day)
         plot(-0.2,find(learned_day),'.g')
