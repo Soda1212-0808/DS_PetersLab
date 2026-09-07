@@ -1,6 +1,6 @@
 %% Exploratory behavior analysis
 clear all
-animal='DS038'
+animal='DS036'
 
 load_parts = struct;
 load_parts.behavior = true;

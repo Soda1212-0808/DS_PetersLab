@@ -2,7 +2,7 @@
 clear all
 animal='DS041';
 load_probe=1;
-rec_day='2026-08-25';
+rec_day='2026-08-31';
 
 load_parts.ephys=true;
 load_parts.ephys_axons=true;

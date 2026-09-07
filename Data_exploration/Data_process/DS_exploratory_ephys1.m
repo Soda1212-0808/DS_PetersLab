@@ -1,9 +1,9 @@
 %% Exploratory ephys analysis
 % close all
 clear all
-animal='DS042';
+animal='DS041';
 load_probe=1;
-rec_day='2026-08-26';
+rec_day='2026-08-28';
 % rec_day='2025-12-23';
 % rec_day='2026-03-23'
 

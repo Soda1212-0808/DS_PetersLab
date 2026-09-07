@@ -1,4 +1,5 @@
 ephys_data=struct;
+fprintf('Processing ephys data... \n')
 preload_vars = who;
 
 % Set times for PSTH
@@ -42,9 +43,9 @@ if contains(bonsai_workflow,'lcr')
         cellfun(@(x)x(randperm(numel(x))), use_align_0, 'uni', 0), 'uni', 0); ...
         cellfun(@(x) sort(x(floor(numel(x)/2)+1:end)), ...
         cellfun(@(x)x(randperm(numel(x))), use_align_0, 'uni', 0), 'uni', 0)];
-   % use_align=[use_align_0;use_align_new];
-        use_align=use_align_0;
-        group_idx=labels;
+    % use_align=[use_align_0;use_align_new];
+    use_align=use_align_0;
+    group_idx=labels;
 
 
 elseif contains(bonsai_workflow,'hml')
@@ -64,9 +65,9 @@ elseif contains(bonsai_workflow,'hml')
         cellfun(@(x) sort(x(floor(numel(x)/2)+1:end)), ...
         cellfun(@(x)x(randperm(numel(x))), use_align_0, 'uni', 0), 'uni', 0)];
     % use_align=[use_align_0;use_align_new];
-        use_align=use_align_0;
+    use_align=use_align_0;
 
-group_idx=labels;
+    group_idx=labels;
 elseif contains(bonsai_workflow,'stim_wheel')
     % (task)
     success=vertcat(trial_events.values.Outcome);
@@ -170,6 +171,6 @@ ephys_data.response_p=event_response_p;
 ephys_data.depth=template_tipdist;
 ephys_data.labels=labels;
 ephys_data.event_idx=group_idx;
-ephys_data.raster_t=t;           
+ephys_data.raster_t=t;
 
 clearvars('-except',preload_vars{:});

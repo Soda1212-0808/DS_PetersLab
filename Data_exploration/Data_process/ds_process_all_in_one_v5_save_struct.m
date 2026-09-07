@@ -1,6 +1,6 @@
 clear all
 
-Path = 'D:\Data process\project_cross_model\wf_data\data_package\';
+Path = 'D:\Data process\project_SNr\data\ephys_data\package\';
 % Path = 'D:\Data process\project_SNr\data\ephys_data\package\';
 
 surround_window = [-0.5, 1];
@@ -11,7 +11,7 @@ time_period = surround_window(1):1/mousecam_framerate:surround_window(2);
 %     'DS007','DS010','AP019','AP021','DS011','AP022', ...
 %     'DS000','DS004','DS014','DS015','DS016'};
  % animals={'DS025','DS022','DS023'};
-animals={'DS029','DS030','DS031'};
+animals={'DS036','DS038','DS041','DS042','DS043'};
 
 % =====选择需要处理的workflow   select the workflows   ========
 for  workflow_option=1
@@ -103,9 +103,9 @@ for workflow_set_up=1
         'field_behavior', '', 'field_wf', '',  'field_face', '' );
 
     cfg1 = default_cfg;
-    cfg1.run_behavior = 0;
+    cfg1.run_behavior = 1;
     cfg1.run_wf_task = 0;
-    cfg1.run_ephys = 0;
+    cfg1.run_ephys = 1;
     cfg1.run_face = 0;
     cfg1.field_task_name = 'task_name';
     cfg1.field_behavior = 'behavior_task';
@@ -150,8 +150,8 @@ end
 % 是否重写
 overwrite=1;
 % 想跑哪些 workflow   task, lcr_passive, hml_passive_audio
-workflow_idx = [2 3];
-
+% workflow_idx = [2 3];
+workflow_idx=1:length(workflows)
 
 for curr_animal = 1:length(animals)
     main_preload_vars = who;
@@ -237,10 +237,16 @@ for curr_animal = 1:length(animals)
             if cfg.run_ephys&& recordings(curr_day).ephys &&...
                     (overwrite||  isempty(temp_strcut_idx.(['ephys_' workflows_short{curr_workflow}])))
                 load_parts.ephys = true;
+                load_parts.ephys_axons=true;
+
             end
+            try
+                ap.load_recording;
+            catch ME
+                fprintf('Error: %s\n', ME.message);
 
-            ap.load_recording;
-
+                continue  % 跳到下一次 for 循环
+            end
             % workflow 1 才有 task_name
             if ~isempty(cfg.field_task_name)
                 data_all.(cfg.field_task_name){curr_day,1} = bonsai_workflow;
