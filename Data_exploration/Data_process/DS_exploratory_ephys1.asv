@@ -15,37 +15,18 @@ ap.load_recording
 %% probe location
 
 brain_region='SNr';
-% ap.ccf_outline_3d([],{'brain',brain_region});
-
+ap.ccf_outline_3d([],{'brain',brain_region});
 % On this plot, we can draw a dot for each unit at it's CCF location:
-% scatter3(template_ccf(:,1),template_ccf(:,3),template_ccf(:,2),10,'k','filled');
+scatter3(template_ccf(:,1),template_ccf(:,3),template_ccf(:,2),10,'k','filled');
 
 idx = find(ismember(probe_histology.acronym,brain_region));
 
-% idx(probe_histology.probe_shank(idx)==1)
-region_dist=arrayfun(@(probe) probe_histology.tip_distance(idx(probe_histology.probe_shank(idx)==probe),:),1:4,'UniformOutput',false);
+idx(probe_histology.probe_shank(idx)==1)
+probe_histology.tip_distance(idx(probe_histology.probe_shank(idx)==1),:)
 
-temp_id=find(feval(@(x) sum( cat(2,x{:}),2), arrayfun(@(probe) template_tipdist>region_dist{probe}(2) & template_tipdist<region_dist{probe}(1)...
-    &  template_shanks==probe,1:4,'UniformOutput',false)));
+template_tipdist(template_shanks==1)
 
-ap.ccf_outline_3d([],{brain_region});
-scatter3(template_ccf(temp_id,1),template_ccf(temp_id,3),template_ccf(temp_id,2),10,'k','filled');
-
-%%
-ds.process_ephys
-
-resp_idx=find(ephys_data.response_p{2}>0.99);
-
-idx_all=intersect(temp_id,resp_idx)
-ap.ccf_outline_3d([],{brain_region});
-
-
-scatter3(template_ccf(idx_all,1)+ 5 * (rand(size(idx_all)) - 0.5),...
-    template_ccf(idx_all,3)+  5* (rand(size(idx_all)) - 0.5),template_ccf(idx_all,2),10,'k','filled');
-
-figure;
-nexttile
-plot(permute(nanmean(ephys_data.psth(temp_id,:,:),1),[2,3,1]))
+probe_histology.safe_name
 
 %%
 ds.process_behavior

@@ -172,5 +172,8 @@ ephys_data.depth=template_tipdist;
 ephys_data.labels=labels;
 ephys_data.event_idx=group_idx;
 ephys_data.raster_t=t;
+ephys_data.shank=template_shanks;
+ephys_data.probe_histology=probe_histology;
+ephys_data.ccf=template_ccf;
 
 clearvars('-except',preload_vars{:});

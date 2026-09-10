@@ -11,7 +11,7 @@ time_period = surround_window(1):1/mousecam_framerate:surround_window(2);
 %     'DS007','DS010','AP019','AP021','DS011','AP022', ...
 %     'DS000','DS004','DS014','DS015','DS016'};
  % animals={'DS025','DS022','DS023'};
-animals={'DS036','DS038','DS041','DS042','DS043'};
+animals={'DS036','DS041','DS043'};
 
 % =====选择需要处理的workflow   select the workflows   ========
 for  workflow_option=1

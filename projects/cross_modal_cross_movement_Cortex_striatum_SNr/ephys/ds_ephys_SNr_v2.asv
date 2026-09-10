@@ -1,0 +1,63 @@
+clc
+clear
+Path='D:\Data process\project_SNr\data\ephys_data\package';
+animal='DS043';
+rec_day='2026-08-18';
+passive_workflows={'lcr_passive_white_circle_size40','lcr_passive_black_square',...
+    'lcr_passive_grating_size40','lcr_passive_checkerboard','lcr_passive_squareHorizontalStripes'};
+
+data=load(fullfile(Path,[animal '_all_data.mat' ]));
+
+data_id=find(ismember(data.day,rec_day));
+
+temp_data_task=data.ephys_task(data_id);
+temp_data_passive= cellfun(@(x) data.(['ephys_' x] ){data_id},passive_workflows,'UniformOutput',false);
+
+%%
+
+brain_region='SNr';
+
+idx = find(ismember(temp_data_task{1}.probe_histology.acronym,brain_region));
+
+region_dist=arrayfun(@(probe) temp_data_task{1}.probe_histology.tip_distance(idx(temp_data_task{1}.probe_histology.shank(idx)==probe),:),...
+    1:4,'UniformOutput',false);
+
+temp_id=find(feval(@(x) sum( cat(2,x{:}),2), arrayfun(@(probe)  temp_data_task{1}.depth>region_dist{probe}(2) & ...
+    temp_data_task{1}.depth<region_dist{probe}(1)...
+    &  temp_data_task{1}.shank==probe,1:4,'UniformOutput',false)));
+
+ap.ccf_outline_3d([],{'brain',brain_region});
+scatter3(temp_data_task{1}.ccf(temp_id,1),temp_data_task{1}.ccf(temp_id,3),temp_data_task{1}.ccf(temp_id,2),10,'k','filled');
+
+[~,label_idx]=ismember ({'stim_0correct','stim_1correct'},temp_data_task{1}.labels);
+temp_psth_task=temp_data_task{1}.psth(temp_id,:,label_idx);
+temp_psth_passive=feval(@(a)  cat(3,a{:}), cellfun(@(x) x.psth(temp_id,:,2)  ,temp_data_passive,'UniformOutput',false));
+temp_psth_all=cat(3,temp_psth_task,temp_psth_passive);
+
+temp_peak=permute(nanmean(temp_psth_all(:,temp_data_task{1}.raster_t>0&temp_data_task{1}.raster_t<0.2,:),2),[1,3,2]);
+
+%%
+figure;
+tiledlayout(7,7)
+titles=[{'task_white_sircle','task_black_square'} passive_workflows]
+for curr_peak=1:size(temp_psth_all,3)
+    [~,peak_id]=sort(temp_peak(:,curr_peak),'descend');
+
+for curr_psth=1:size(temp_psth_all,3)
+    nexttile
+imagesc(temp_data_task{1}.raster_t,[],  temp_psth_all(peak_id,:,curr_psth))
+clim([-2 2])
+colormap(ap.colormap('pwg'))
+if curr_peak==1
+title(titles{curr_psth})
+end
+end
+end
+
+%%
+figure
+temp_psth_plot_mean=squeeze(nanmean(temp_psth_all,1));
+temp_psth_plot_error=squeeze(nanstd(temp_psth_all,0,1)./sqrt(size(temp_psth_all,1)));
+colors=[1 0 0; 0 0 1;1 0.5 0.5;0.5 0.5 1; 0.5 1 0.5;0 0 0;0 0 0]
+nexttile
+ap.errorfill(temp_data_task{1}.raster_t,temp_psth_plot_mean,temp_psth_plot_error,colors)

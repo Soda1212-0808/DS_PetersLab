@@ -1,14 +1,15 @@
 % close all
 clear all
-animal='DS041';
+animal='DS043';
 load_probe=1;
-rec_day='2026-08-31';
+rec_day='2026-08-15';
 
 load_parts.ephys=true;
 load_parts.ephys_axons=true;
 
 
-workflows={'lcr_passive_black_square','lcr_passive_white_circle_size40','lcr_passive_grating_size40','lcr_passive_checkerboard','lcr_passive_squareHorizontalStripes'};
+workflows={'lcr_passive_black_square','lcr_passive_white_circle_size40',...
+    'lcr_passive_grating_size40','lcr_passive_checkerboard','lcr_passive_squareHorizontalStripes'};
 
 
 multi_align_times=cell(length(workflows),1);
@@ -53,3 +54,6 @@ multi_spike_timelite{curr_workflow}= spike_times_timelite;
 end
 
 ds.cellraster_multi(multi_align_times,multi_align_groups,workflows)
+
+plab.histology.adjust_probe_areas(animal,rec_day,1)
+

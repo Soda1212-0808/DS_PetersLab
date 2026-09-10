@@ -1,7 +1,7 @@
 clc
 clear all
 
-animals={'DS038','DS036','DS041','DS043','DS042'};
+animals={'DS036','DS041','DS043'};
 workflows={'stim_wheel_Vcenter_X_move_stage2_BW','stim_wheel_Vcenter_X_move_stage2_BWG'};
 
 ephys_data_all=table;
