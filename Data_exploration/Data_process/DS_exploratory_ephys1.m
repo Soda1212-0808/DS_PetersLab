@@ -1,14 +1,14 @@
 %% Exploratory ephys analysis
 % close all
 clear all
-animal='DS043';
+animal='DS022';
 load_probe=1;
-rec_day='2026-08-15';
+rec_day='2025-12-20';
 
 % recordings = plab.find_recordings(animal,rec_day,use_workflow);
 % rec_time=recordings.recording{1};
 load_parts.ephys=true;
-load_parts.ephys_axons=true;
+% load_parts.ephys_axons=true;
 ap.load_recording
 
 

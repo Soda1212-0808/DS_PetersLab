@@ -55,7 +55,7 @@ function h = make_bar_plot(dataCell, varargin)
     defaultBarAlpha = 0.5;
     defaultShowDots = 1;
     defaultDotSize  = 40;
-
+defaultSwitchN = 25;
     % =========================================================
     % inputParser
     % =========================================================
@@ -91,7 +91,7 @@ function h = make_bar_plot(dataCell, varargin)
         @(x) ischar(x) || (isstring(x) && isscalar(x)));
 
     % 新增：bar / box 分界值
-    addParameter(p, 'SwitchN', [], ...
+    addParameter(p, 'SwitchN', defaultSwitchN, ...
         @(x) isempty(x) || ...
         (isnumeric(x) && isscalar(x) && x >= 0 && isfinite(x)));
 

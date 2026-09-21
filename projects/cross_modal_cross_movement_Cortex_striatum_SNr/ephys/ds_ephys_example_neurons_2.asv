@@ -143,7 +143,7 @@ for curr_animal=1:length(animals)
                         case {2,3,4,5}
                                 [raster_y,raster_x] =cellfun(@(x) find(x(:,:,curr_neuron)),raster_stim,'UniformOutput',false  );
 
-                                nexttile(h,tilenum(h,workflow_idx,2)); hold on;
+                                nexttile(h,tilenum(h,workflow_idx+2,2)); hold on;
                                 plot(raster_t_stim{1}(raster_x{2}),raster_y{2},'.k');
                                 xlim(raster_window)
                                 axis off
@@ -159,7 +159,7 @@ for curr_animal=1:length(animals)
 
                 end
 
-            
+            end
 
             save_filename = fullfile(Path, sprintf('%s_%s_probe%d_unit%d.png', ...
                 animal, rec_day, curr_probe,curr_neuron));

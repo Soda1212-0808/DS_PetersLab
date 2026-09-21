@@ -1,0 +1,51 @@
+clc
+clear
+
+surround_time = [-5,5];
+surround_sample_rate = 100;
+surround_time_points = surround_time(1):1/surround_sample_rate:surround_time(2);
+
+
+animals={'DS036','DS038','DS039','DS041','DS042','DS043'};
+workflow='stim_wheel_Vcenter_X_move_stage2_BW';
+temp_s2m_median=cell(length(animals),1);
+temp_wheel_vel=cell(length(animals),1);
+temp_iti_move=cell(length(animals),1);
+for curr_animal=1:length(animals)
+    animal=animals{curr_animal};
+    recordings=plab.find_recordings(animal,[],workflow);
+    for curr_recording=1:length(recordings)
+        rec_day=recordings(curr_recording).day;
+        rec_time=recordings(curr_recording).recording{1};
+        load_parts=struct;
+        load_parts.behavior = true;
+        ap.load_recording
+        ds.process_behavior
+        temp_s2m_median{curr_animal}{curr_recording}=behavior.stim2move_f_stats(:,2);
+        temp_wheel_vel{curr_animal}{curr_recording}=feval(@(a)  cat(1,a{:}),...
+            cellfun(@(x)  nanmean(x,1), behavior.stim_move_aligned_wheel_vel,'uni',false));
+       temp_iti_move{curr_animal}{curr_recording}= behavior.iti_move_aligned_wheel_vel;
+    end
+
+end
+
+iti_move_number= cellfun(@(x)   size(x,1)  ,feval(@(a)  cat(2,a{:}),cat(2,temp_iti_move{:})),'uni',true);
+iti_move_vel=cellfun(@(x)   nanmean(x,1)  ,feval(@(a)  cat(2,a{:}),cat(2,temp_iti_move{:})),'uni',false);
+figure;
+hold on
+ap.errorfill  (surround_time_points,nanmean(cat(1,iti_move_vel{1,:}),1),nanstd(cat(1,iti_move_vel{1,:}),0,1)./sqrt(size(,1)))
+plot(surround_time_points,nanmean(cat(1,iti_move_vel{2,:}),1))
+
+ds.make_bar_plot({iti_move_number(1,:),iti_move_number(2,:)},'CentralTendency','median','SwitchN',50)
+
+s2m_all= feval(@(a)  cat(2,a{:}), cat(2,temp_s2m_median{:}));
+wheel_vel_all= feval(@(a)  cat(3,a{:}), cat(2,temp_wheel_vel{:}));
+wheel_vel_mean=nanmean(wheel_vel_all,3);
+wheel_vel_error=nanstd(wheel_vel_all,0,3)./sqrt(size(wheel_vel_all,3));
+figure;
+nexttile
+ds.make_bar_plot({s2m_all(1,:),s2m_all(2,:)},'CentralTendency','median')
+ylim([0 0.3])
+nexttile
+ap.errorfill(surround_time_points,wheel_vel_mean',wheel_vel_error')
+xlim([-.5 2])

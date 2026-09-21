@@ -175,5 +175,5 @@ ephys_data.raster_t=t;
 ephys_data.shank=template_shanks;
 ephys_data.probe_histology=probe_histology;
 ephys_data.ccf=template_ccf;
-
+ephys_data.unit_label=template_qc_labels;
 clearvars('-except',preload_vars{:});
