@@ -1,13 +1,15 @@
 %% Exploratory behavior analysis
 clear all
-animal='DS036'
+animal='DS052'
 
 load_parts = struct;
 load_parts.behavior = true;
 load_parts.mousecam = true;
 
-load_parts.ephys_axons=true;
+% load_parts.ephys_axons=true;
 ap.load_recording;
+%%
+ds.expscroll
 %%
 outcome=[trial_events.values.Outcome];
 outcome=outcome(1:n_trials);

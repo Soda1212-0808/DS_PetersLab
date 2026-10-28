@@ -1,13 +1,14 @@
 %% Exploratory widefield analysis
 clear all
-animal='DS043';
+animal='DS044';
 load_parts = struct;
 load_parts.behavior = true;
 load_parts.widefield_master = true;
 load_parts.widefield = true;
 load_parts.widefield_align= true;
-%recordings= plab.find_recordings(animal,[],'stim_wheel_right_stage2_25contrast');
-
+ recordings= plab.find_recordings(animal,[],'*passive*');
+% rec_day=recordings(5).day;
+% rec_time=recordings(5).recording{1}
    % plab.find_recordings(animal,[],'*')
 ap.load_recording;
 
@@ -17,7 +18,7 @@ ap.load_recording;
 if contains(bonsai_workflow,'passive')
 
     % LCR passive: align to quiescent stim onset
-    stim_window = [0,0.3];
+    stim_window = [0,0.1];
     quiescent_trials = arrayfun(@(x) ~any(wheel_move(...
         timelite.timestamps >= stimOn_times(x)+stim_window(1) & ...
         timelite.timestamps <= stimOn_times(x)+stim_window(2))), ...
@@ -31,6 +32,8 @@ if contains(bonsai_workflow,'passive')
         align_category_all = vertcat(trial_events.values.StimFrequence);
     elseif isfield(trial_events.values,'trialID')
         align_category_all = vertcat(trial_events.values.trialID);
+    elseif isfield(trial_events.values,'StimID')
+        align_category_all = vertcat(trial_events.values.StimID);
     end
     align_category = align_category_all(quiescent_trials);
 
@@ -305,10 +308,13 @@ switch bonsai_workflow
         stim_type = vertcat(trial_events.values.trialID);
     case{'lcr_passive_Vstim1','lcr_passive_Vstim2'}
         stim_type = vertcat(trial_events.values.StimX);
+    case{'c_passive_5stim'}
+        stim_type = vertcat(trial_events.values.StimID);
 
 end
 
-stimOn_times=stimOn_times(1:min(length(stimOff_times),length(stimOn_times)));
+stim_type=stim_type(1:length(stimOn_times));
+% stimOn_times=stimOn_times(1:min(length(stimOff_times),length(stimOn_times)));
 
 wf_regressor_bins = [wf_t;wf_t(end)+1/wf_framerate];
 % stim_type= stim_type(1:length(stimOn_times));

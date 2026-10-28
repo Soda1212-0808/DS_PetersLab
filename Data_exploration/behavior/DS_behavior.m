@@ -3,7 +3,7 @@ clear all
 % Path = 'D:\Data process\wf_data\';
 
 
-animals = {'DS036','DS037','DS038' ,'DS039' ,'DS041' ,'DS042','DS043'};
+animals = {'DS044','DS045','DS046' ,'DS047' ,'DS049' ,'DS050','DS051','DS052'};
 
 % animals = {'DS034','DS033','DS034','DS035' };
 
@@ -258,7 +258,7 @@ workflow_name=vertcat(recordings.workflow);
    
     idx_left  = contains(workflow_name,'left');
     idx_right = contains(workflow_name,'right');
-    idx_mixed_v = ~idx_left & ~idx_right & contains(workflow_name,'Vcenter');
+    idx_mixed_v = ~idx_left & ~idx_right & contains(workflow_name,'X');
 
     type=1*double(idx_left)+2*(idx_right)+3*double(idx_mixed_v);
     x = relative_day';
@@ -268,7 +268,7 @@ workflow_name=vertcat(recordings.workflow);
     colors = [ ...
         0.8 0.9 1.0;   % type 1  淡蓝
         1.0 0.9 0.8;   % type 2  淡橙
-        0.9  0.9 1 ];  % type 3  淡绿
+        0.9  1 0.6 ];  % type 3  淡绿
     patch(X, Y, permute(colors(type,:),[3 1 2]), ...
         'EdgeColor','none', 'FaceAlpha',0.4)
 

@@ -3,6 +3,8 @@ clear all
 Path = 'D:\Data process\wf_data\';
 
 animals = {'DS036','DS037','DS038'  ,'DS041' ,'DS042','DS043'};
+animals = {'DS049'};
+
  % animals = {'DS022','DS023','DS024','DS025'};
 
 f1=figure('Position',[50 50 length(animals)*300 900]);

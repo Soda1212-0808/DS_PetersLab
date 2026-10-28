@@ -88,7 +88,8 @@ elseif contains(bonsai_workflow,'stim_wheel')
     ds.load_iti_move
     use_align =   [cellfun(@(x) stimOn_times(x),group_idx,'uni',false );...
         cellfun(@(x) stim_move_time(x),group_idx,'uni',false );iti_move_time];
-
+        
+    stim2move_groups=cellfun(@(x) stim_to_move(x),group_idx,'uni',false );
 
     labels=[...
         arrayfun(@(x) ['stim_'  num2str(x) 'correct'] ,unique(stim_to_move_idx), 'UniformOutput', false);
@@ -176,4 +177,9 @@ ephys_data.shank=template_shanks;
 ephys_data.probe_histology=probe_histology;
 ephys_data.ccf=template_ccf;
 ephys_data.unit_label=template_qc_labels;
+
+if contains(bonsai_workflow,'stim_wheel')
+ephys_data.stim2move=stim2move_groups;
+end
+
 clearvars('-except',preload_vars{:});

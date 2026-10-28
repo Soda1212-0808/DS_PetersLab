@@ -2,21 +2,13 @@
 clear all
 Path = 'D:\Data process\wf_data\';
 
-animals = {'DS036','DS038'  ,'DS041' ,'DS042','DS043'};
- % animals = {'DS022','DS023','DS024','DS025'};
+animals = {'DS044','DS045','DS046' ,'DS047' ,'DS049' ,'DS050','DS051','DS052'};
+% animals = {'DS036','DS038','DS041' ,'DS042' ,'DS043'};
 
-
+      % animals={'DS052','DS045'}
 for curr_animal_idx = 1:length(animals)
     animal = animals{curr_animal_idx};
-
     use_workflow = {'stim_wheel*'};
-
-    % % use_workflow =...
-    % %     {'stim_wheel_Vcenter_cross_movement_stage*','stim_wheel_Afreq2_cross_movement_stage*'};
-    %
-    % use_workflow =...
-    %     {'stim_wheel_Vcenter_cross_movement_stage*','stim_wheel_Afreq2_cross_movement_stage*',...
-    %     'stim_wheel_VcenterAfreq2_cross_movement_stage*'};
 
     recordings = plab.find_recordings(animal,[],use_workflow);
     % only ephys data
@@ -28,40 +20,30 @@ for curr_animal_idx = 1:length(animals)
     n_session=length(workflow_day);
     workflow_name=vertcat(recordings.workflow);
 
-
-
     % % 选择某一个日期后的记录
     % dt = datetime({recordings.day}, 'InputFormat', 'yyyy-MM-dd');
     % idx = find(dt > datetime('2026-07-22', 'InputFormat', 'yyyy-MM-dd'));
     % recordings=recordings(idx);
 
-
-
     surround_time = [-5,5];
     surround_sample_rate = 100;
     surround_time_points = surround_time(1):1/surround_sample_rate:surround_time(2);
-
     n_trials_water = nan(n_session,2);
-
     frac_move_day = nan(n_session,1);
-
     success = nan(n_session,4);
-    rxn_med = nan(n_session,4);
+    rxn_med = nan(n_session,2);
     stim2move_mad = nan(n_session,5);
-
     stim2move_mad_null = nan(n_session,5);
 
     frac_move_stimalign=cell(4,1);
     for curr_i=1:4
     frac_move_stimalign{curr_i} = nan(n_session,length(surround_time_points));
     end
-    % frac_move_stimalign_2 = nan(n_session,length(surround_time_points));
-    rxn_stat_p_mean = nan(n_session,3);
+    rxn_stat_p_mean = nan(n_session,2);
     n_trials_types= nan(n_session,2);
     wheel_vel_by_type_mean=cell(n_session,4);
     wheel_vel_by_type_mean(:)={zeros(1, 1001)};
     iti_move_all= nan(n_session,2);
-
     for curr_recording =1: n_session
 
         % Grab pre-load vars
@@ -82,6 +64,8 @@ for curr_animal_idx = 1:length(animals)
         % tasktype=tasktype';
 
         tasktype=[trial_events.values.TaskType];
+        tasktype=tasktype+1;
+
 
         No_tasktype =unique(tasktype);
 
@@ -93,7 +77,7 @@ for curr_animal_idx = 1:length(animals)
 
 
         % Get median stim-outcome time
-        n_trials = length([trial_events.timestamps.Outcome]);
+        n_trials = min(length([trial_events.timestamps.Outcome]),length(stimOff_times));
 
         % stim_on2off_time=arrayfun(@(type) seconds([trial_events.timestamps(find(tasktype(1:n_trials)==type)).Outcome] - ...
         %     cellfun(@(x) x(1),{trial_events.timestamps(find(tasktype(1:n_trials)==type)).StimOn})),No_tasktype,'UniformOutput',false);
@@ -102,19 +86,21 @@ for curr_animal_idx = 1:length(animals)
         stim_on2off_time= seconds([trial_events.timestamps(1:n_trials).Outcome] - ...
             cellfun(@(x) x(1),{trial_events.timestamps(1:n_trials).StimOn}));
 
+
+        Outcome=[trial_events.values.Outcome];
         stim_on2off_time_correct=...
             arrayfun(@(type) ...
-            stim_on2off_time(tasktype(1:n_trials)==type &[trial_events.values.Outcome]==1),No_tasktype,'UniformOutput',false);
+            stim_on2off_time(tasktype(1:n_trials)==type &Outcome(1:n_trials)==1),No_tasktype,'UniformOutput',false);
 
 
 
-        n_trials_types(curr_recording,unique(tasktype)+1)=cellfun(@length,stim_on2off_time_correct,'UniformOutput',true);
+        n_trials_types(curr_recording,No_tasktype)=cellfun(@length,stim_on2off_time_correct,'UniformOutput',true);
 
         % rxn_med(curr_recording,unique(tasktype)+1)   = cellfun(@median, stim_on2off_time_correct,'UniformOutput',true);
 
 
-        rxn_med(curr_recording,unique(tasktype)+1)   = cellfun(@(aa) median(aa(aa>0)),   arrayfun(@(type) ...
-            stim_to_lastmove(tasktype(1:n_trials)==type &[trial_events.values.Outcome]==1),No_tasktype,'UniformOutput',false),'UniformOutput',true);
+        rxn_med(curr_recording,No_tasktype)   = cellfun(@(aa) median(aa(aa>0)),   arrayfun(@(type) ...
+            stim_to_lastmove(tasktype(1:n_trials)==type &Outcome(1:n_trials)==1),No_tasktype,'UniformOutput',false),'UniformOutput',true);
 
 
         % Align wheel movement to stim onset
@@ -154,7 +140,7 @@ for curr_animal_idx = 1:length(animals)
         corrIdx = find(corrMask);
         normalIdx = ~corrMask;
 
-        success(curr_recording,unique(tasktype)+1)=...
+        success(curr_recording,No_tasktype)=...
             arrayfun(@(id) sum(tasktype(normalIdx(1:n_trials))==id&outcome(normalIdx(1:n_trials))==1)/...
             sum(tasktype(normalIdx(1:n_trials))==id),unique(tasktype),'UniformOutput',true);
 
@@ -171,7 +157,7 @@ for curr_animal_idx = 1:length(animals)
 
         % frac_move_stimalign{1}(curr_recording,:) = nanmean(event_aligned_wheel_move,1);
         for curr_id=unique(tasktype)
-            frac_move_stimalign{curr_id+1}(curr_recording,:)= nanmean(event_aligned_wheel_move(tasktype(1:n_trials)==curr_id,:),1);
+            frac_move_stimalign{curr_id}(curr_recording,:)= nanmean(event_aligned_wheel_move(tasktype(1:n_trials)==curr_id,:),1);
         end
 
 
@@ -184,16 +170,16 @@ for curr_animal_idx = 1:length(animals)
         %     arrayfun(@(id) arrayfun(@(success)  ...
         %     mean(event_aligned_wheel_vel(tasktype(1:n_trials)==id & outcome(1:n_trials)==success,:),1),...
         %     0:1,'uni',false),unique(tasktype),'UniformOutput',false));
-        wheel_vel_by_type_mean(curr_recording,unique(tasktype)+1)=arrayfun(@(id)  ...
+        wheel_vel_by_type_mean(curr_recording,No_tasktype)=arrayfun(@(id)  ...
             mean(event_aligned_wheel_vel(tasktype(1:n_trials)==id & outcome(1:n_trials)==1,:),1),...
             unique(tasktype),'UniformOutput',false);
 
 
-        [rxn_stat_p_mean(curr_recording,[1 :length(unique(tasktype))]),...
-            stim2move_mad(curr_recording,[1 :length(unique(tasktype))]),...
-            stim2move_mad_null(curr_recording,[1 :length(unique(tasktype))])] = ...
+        [rxn_stat_p_mean(curr_recording,No_tasktype),...
+            stim2move_mad(curr_recording,No_tasktype),...
+            stim2move_mad_null(curr_recording,No_tasktype)] = ...
             ds.stimwheel_association_pvalue( ...
-            stimOn_times,trial_events,stim_to_lastmove,tasktype,'mad');
+            stimOn_times(1:n_trials),trial_events,stim_to_lastmove(1:n_trials),tasktype,'mad');
 
 
         %  % Get association stat
@@ -202,16 +188,12 @@ for curr_animal_idx = 1:length(animals)
         % Clear vars except pre-load for next loop
         clearvars('-except',preload_vars{:});
         ap.print_progress_fraction(curr_recording,n_session);
-
+        % fprintf('\n')
     end
 
-
-
     % Define learned day from reaction stat p-value and reaction time
-    learned_day = rxn_stat_p_mean(:,1:2) < 0.05 & rxn_med(:,1:2) < 2;
+    learned_day = rxn_stat_p_mean(:,1:end) < 0.05 & rxn_med(:,1:end) < 2;
     wheel_vel_mean=arrayfun(@(state)  cat(1,wheel_vel_by_type_mean{:,state} ) ,1:size(wheel_vel_by_type_mean,2) ,'UniformOutput',false  );
-
-
 
     % 转成 datetime
     d = datetime(workflow_day);
@@ -220,7 +202,6 @@ for curr_animal_idx = 1:length(animals)
     % 如果日期跨了多天，则按实际跨过的天数增加
     relative_day = zeros(size(d));
     relative_day(1) = 1;
-
     for i = 2:numel(d)
         day_diff = days(d(i) - d(i-1));
 
@@ -230,25 +211,23 @@ for curr_animal_idx = 1:length(animals)
 
     nonrecorded_day = setdiff(1:n_session,relative_day);
 
-
-
     figure
-   sgtitle(animal);
+    tt = tiledlayout(size(n_trials_types,2)+1,1,'TileSpacing','tight');
+    t_row = tiledlayout(tt,1,5);
+    t_row.Layout.Tile = 1;
 
-    nexttile;
+    % trial number 
+    nexttile(t_row);
     hold on;
     plot(relative_day,n_trials_types);
     ylabel('# trials');
-
     xlabel('Day');
     if any(nonrecorded_day)
         xline(nonrecorded_day,'--k');
     end
-
     idx_left  = contains(workflow_name,'left');
     idx_right = contains(workflow_name,'right');
     idx_mixed_v = ~idx_left & ~idx_right & contains(workflow_name,'Vcenter');
-
     type=1*double(idx_left)+2*(idx_right)+3*double(idx_mixed_v);
     x = relative_day';
     yl = ylim;
@@ -260,17 +239,35 @@ for curr_animal_idx = 1:length(animals)
         0.9  0.9 1 ];  % type 3  淡绿
     patch(X, Y, permute(colors(type,:),[3 1 2]), ...
         'EdgeColor','none', 'FaceAlpha',0.4)
-
-    
-    
-    
     uistack(findobj(gca,'Type','patch'),'bottom')
-
     xlim([relative_day(1) relative_day(end)])
 
 
+    % reaction time 
+    nexttile(t_row);
+    plot(relative_day,rxn_med)
+    ylabel('reaction time')
+    hold on
+    plot(relative_day,rxn_med, 'o', 'MarkerSize',2)
+    if any(nonrecorded_day)
+        xline(nonrecorded_day,'--k');
+    end
+     set(gca, 'YScale', 'log')
+    yl = ylim;
+    X = [x-0.5; x+0.5; x+0.5; x-0.5];
+    Y = repmat([yl(1); yl(1); yl(2); yl(2)], 1, numel(x));
+    colors = [ ...
+        0.8 0.9 1.0;   % type 1  淡蓝
+        1.0 0.9 0.8;   % type 2  淡橙
+        0.9  0.9 1 ];  % type 3  淡绿
+    patch(X, Y, permute(colors(type,:),[3 1 2]), ...
+        'EdgeColor','none', 'FaceAlpha',0.4)
+    uistack(findobj(gca,'Type','patch'),'bottom')
+    xlim([relative_day(1) relative_day(end)])
 
-    nexttile;
+
+    % performance
+    nexttile(t_row);
     react_null_index=(stim2move_mad_null-stim2move_mad)./(stim2move_mad+stim2move_mad_null);
     hold on
     plot(relative_day,react_null_index, 'LineWidth',1)
@@ -279,17 +276,14 @@ for curr_animal_idx = 1:length(animals)
     if any(nonrecorded_day)
         xline(nonrecorded_day,'--k');
     end
-
     x = relative_day';
     yl = ylim;
     X = [x-0.5; x+0.5; x+0.5; x-0.5];
     Y = repmat([yl(1); yl(1); yl(2); yl(2)], 1, numel(x));
-
     patch(X, Y, permute(colors(type,:),[3 1 2]), ...
         'EdgeColor','none', 'FaceAlpha',0.4)
     uistack(findobj(gca,'Type','patch'),'bottom')
-
-    ylabel('perform');
+    ylabel('performance');
     yline(0);
     xlabel('Day');
     xlim([1,relative_day(end)]);
@@ -298,9 +292,11 @@ for curr_animal_idx = 1:length(animals)
         xline(nonrecorded_day,'--k');
     end
 
-    nexttile; hold on
+    % success rate
+        nexttile(t_row);
+        hold on
     plot(relative_day,success);
-    plot(relative_day,success, 'o', 'MarkerSize',2)
+    plot(relative_day,success, 'o', 'MarkerSize',2,'MarkerFaceColor','auto')
     set(gca,'ColorOrder',[0.0000    0    1; 1    00    0; 0.0000    0.4470    0.7410; 0.8500    0.3250    0.0980])
     ylim([0 1])
     ylabel('success');
@@ -308,8 +304,6 @@ for curr_animal_idx = 1:length(animals)
     if any(nonrecorded_day)
         xline(nonrecorded_day,'--k');
     end
-
-
     x = relative_day';
     yl = ylim;
     X = [x-0.5; x+0.5; x+0.5; x-0.5];
@@ -319,10 +313,12 @@ for curr_animal_idx = 1:length(animals)
     uistack(findobj(gca,'Type','patch'),'bottom')
     xlim([1,relative_day(end)]);
 
-    nexttile
-    plot(relative_day,(iti_move_all(:,1)-iti_move_all(:,2))./(iti_move_all(:,1)+iti_move_all(:,2)));
+    % iti move balance 
+        nexttile(t_row);
 
-    ylabel('iti move');
+    plot(relative_day,(iti_move_all(:,1)-iti_move_all(:,2))./(iti_move_all(:,1)+iti_move_all(:,2)));
+    ylim([-1 1])
+    ylabel('iti move (l-r)');
     xlabel('day');
     if any(nonrecorded_day)
         xline(nonrecorded_day,'--k');
@@ -336,12 +332,20 @@ for curr_animal_idx = 1:length(animals)
     uistack(findobj(gca,'Type','patch'),'bottom')
     xlim([1,relative_day(end)]);
     yline(0)
+    sgtitle(animal);
+
+    % move across days
+    type_names={'white circle','black square','grating circle','black checkerboard'};
 
 
+    for curr_type=1:size(learned_day,2)
+        t_row = tiledlayout(tt,1,4);
 
-    for curr_type=1:length(frac_move_stimalign)
+        t_row.Layout.Tile = curr_type+1;
+
         frac_move_stimalign{curr_type}(isnan(frac_move_stimalign{curr_type})) = 0;
-        nexttile
+        nexttile(t_row);
+
         imagesc(surround_time_points,[],frac_move_stimalign{curr_type}); hold on;
         clim([0,1]);
         colormap(gca,ap.colormap('WK'));
@@ -349,41 +353,37 @@ for curr_animal_idx = 1:length(animals)
             cellfun(@(day,num) sprintf('%d (%s)',num,day(6:end)), ...
             workflow_day',num2cell(1:n_session),'uni',false));
         xlabel('Time from stim');
-        title('Type')
-        if any(learned_day(:,1))
-            plot(0,find(learned_day(:,1)),'.g')
+        title(type_names{curr_type})
+        if any(learned_day(:,curr_type))
+            plot(0,find(learned_day(:,curr_type)),'.g')
         end
-    end
 
-    for curr_type=1:length(frac_move_stimalign)
 
-        nexttile; hold on
+        nexttile(t_row);
+        hold on
         set(gca,'ColorOrder',copper(n_session));
-
+        hold on
         plot(surround_time_points,frac_move_stimalign{curr_type}(1:end,:)','linewidth',2);
-
+        % ylim([-3000 3000])
         xline(0,'color','k');
         ylabel('Fraction moving');
         xlabel('Time from stim');
-        if any(learned_day)
-            ap.errorfill(surround_time_points,frac_move_stimalign{curr_type}(learned_day(:,1),:)', ...
-                0.02,[0,1,0],0.1,false);
+        title(type_names{curr_type})
 
+        if size(learned_day,2)>=curr_type
+            if any(learned_day(:,curr_type))
+                ap.errorfill(surround_time_points,frac_move_stimalign{curr_type}(learned_day(:,curr_type),:)', ...
+                    0.02,[0,1,0],0.1,false);
+            end
         end
+        % velocity across days
 
-    end
-
-    drawnow;
-
-
-    for curr_state=1:length(frac_move_stimalign)
-        nexttile;
-
+        nexttile(t_row);
         wheel_vel_mean = cellfun(@(x) ...
             fillmissing(x,'constant',0), ...
             wheel_vel_mean, 'UniformOutput', false);
 
-        imagesc(surround_time_points,[],wheel_vel_mean{curr_state})
+        imagesc(surround_time_points,[],wheel_vel_mean{curr_type})
         xline(0,'color','k');
         % clim(max(abs(clim)).*[-1,1])
         clim([-2000 2000])
@@ -393,27 +393,26 @@ for curr_animal_idx = 1:length(animals)
             workflow_day',num2cell(1:n_session),'uni',false));
         xlabel('Time from stim');
 
-        % title(titlename{curr_state})
+        title(type_names{curr_type})
+        hold on
+        if any(learned_day(:,curr_type))
+            plot(0,find(learned_day(:,curr_type)),'.g')
+        end
+        ax=        nexttile(t_row);
 
-        ax=nexttile;
-        plot(surround_time_points,wheel_vel_mean{curr_state}(1:end,:)','linewidth',2);
+        plot(surround_time_points,wheel_vel_mean{curr_type}(1:end,:)','linewidth',2);
+        ylim([-3000 3000])
+
         xline(0,'color','k');
         ylabel('velocity');
         xlabel('Time from stim');
         set(ax,'ColorOrder',copper(n_session));
+        title(type_names{curr_type})
 
 
     end
 
     drawnow;
-    nexttile;
-
-    % figure;
-    plot(relative_day,rxn_med)
-    hold on
-    % plot(relative_day,rxn_med, 'o', 'MarkerSize',2)
-
-    set(gca, 'YScale', 'log')
 
 end
 

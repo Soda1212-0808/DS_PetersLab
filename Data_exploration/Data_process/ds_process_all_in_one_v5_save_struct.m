@@ -90,7 +90,7 @@ for  workflow_option=1
     %     'lcr_passive'; ...
     %     'hml_passive_audio'};
 
-    workflows_short=['task';arrayfun(@(id) workflows{id}{1},2:numel(workflows),'UniformOutput',false )']
+    workflows_short=['task';arrayfun(@(id) workflows{id}{1},2:numel(workflows),'UniformOutput',false )'];
 
 end
 
@@ -151,7 +151,7 @@ end
 overwrite=1;
 % 想跑哪些 workflow   task, lcr_passive, hml_passive_audio
 % workflow_idx = [2 3];
-workflow_idx=1:length(workflows)
+workflow_idx=1:length(workflows);
 
 for curr_animal = 1:length(animals)
     main_preload_vars = who;

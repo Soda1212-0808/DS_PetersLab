@@ -1,14 +1,14 @@
 %% Exploratory ephys analysis
 % close all
 clear all
-animal='DS022';
+animal='DS049';
 load_probe=1;
-rec_day='2025-12-20';
+% rec_day='2025-12-20';
 
 % recordings = plab.find_recordings(animal,rec_day,use_workflow);
 % rec_time=recordings.recording{1};
 load_parts.ephys=true;
-% load_parts.ephys_axons=true;
+ load_parts.ephys_axons=false;
 ap.load_recording
 
 
@@ -289,13 +289,15 @@ if contains(bonsai_workflow,{'passive','Image'})
         align_category_all = vertcat(trial_events.values.PictureID);
     elseif isfield(trial_events.values,'StimX')
         align_category_all = vertcat(trial_events.values.StimX);
+    elseif isfield(trial_events.values,'StimID')
+        align_category_all = vertcat(trial_events.values.StimID);
     end
     minlength=min (length(stimOn_times),length(align_category_all));
     stimOn_times=stimOn_times(1:minlength);
     align_times_all = stimOn_times;
 
     % (get only quiescent trials)
-    stim_window = [0,0.5];
+    stim_window = [0,0.3];
     quiescent_trials = arrayfun(@(x) ~any(wheel_move(...
         timelite.timestamps >= stimOn_times(x)+stim_window(1) & ...
         timelite.timestamps <= stimOn_times(x)+stim_window(2))), ...
