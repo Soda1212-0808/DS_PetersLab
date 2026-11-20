@@ -19,6 +19,7 @@ surround_time_points = surround_time(1):1/surround_sample_rate:surround_time(2);
 
 %% success
 outcome=cat(1,trial_events.values.Outcome)';
+outcome=outcome(1:n_trials);
 if contains('TaskType', fieldnames(trial_events.values))
 
     % 识别 correction trials
@@ -75,12 +76,24 @@ pull_move_times=stim_move_time + surround_time_points;
 stim_move_aligned_wheel_vel=interp1(timelite.timestamps, ...
     wheel_velocity,pull_move_times,'previous');
 
+
+
+
+temp_position=interp1(timelite.timestamps, ...
+   wheel_position ,pull_move_times,'previous');
+stim_move_aligned_wheel_position=temp_position-temp_position(:,surround_time_points==0);
+
+
+
+
+stimOn_times=stimOn_times(1:n_trials);
 pull_stim_times=stimOn_times(1:n_trials) + surround_time_points;
 stim_aligned_wheel_vel=interp1(timelite.timestamps, ...
     wheel_velocity,pull_stim_times,'previous');
 
 
 stim_move_aligned_wheel_vel_sort=cellfun(@(x) stim_move_aligned_wheel_vel(x,:), type_sort,'UniformOutput',false );
+stim_move_aligned_wheel_position_sort=cellfun(@(x) stim_move_aligned_wheel_position(x,:), type_sort,'UniformOutput',false );
 
 stim_aligned_wheel_vel_sort=cellfun(@(x) stim_aligned_wheel_vel(x,:), type_sort,'UniformOutput',false );
 
@@ -109,6 +122,7 @@ iti_move_aligned_wheel_vel=cellfun(@(x) interp1(timelite.timestamps, ...
 %% save in behavior
 
 behavior.stim_move_aligned_wheel_vel=stim_move_aligned_wheel_vel_sort;
+behavior.stim_move_aligned_wheel_position=stim_move_aligned_wheel_position_sort;
 behavior.stim_aligned_wheel_vel=stim_aligned_wheel_vel_sort;
 behavior.wheel_vel_labels=labels;
 behavior.iti_move_aligned_wheel_vel=iti_move_aligned_wheel_vel;

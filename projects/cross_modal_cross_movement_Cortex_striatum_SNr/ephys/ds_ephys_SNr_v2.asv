@@ -20,7 +20,6 @@ animal_rec_days = [animal_rec_days{:}];
 
 position_all={{'l','r'},{'l','l','r','r'},{'l'}};
 
-
 %
 temp_data_task=cell(length(animals),1);
 temp_data_passive=cell(length(animals),1);
@@ -109,6 +108,9 @@ ylabel('iti wheel move')
 
 
 %%
+
+data_task_all=behavior_tasks;
+
 
 brain_region='SNr';
 idx =cellfun(@(data) find(ismember(data.probe_histology.acronym,brain_region)), data_task_all,'UniformOutput',false);
@@ -205,30 +207,71 @@ cellfun(@(x,y)...
     x.ccf(y,3),...
     x.ccf(y,2),10,'k','filled'),...
     data_task_all,region_id,'UniformOutput',false);
+%% singLe recording
+
+curr_recording=7
+
+% ap.ccf_outline_3d([],{brain_region});
+% hold on
+% cellfun(@(x,y)...
+%     scatter3(x.ccf(y,1),...
+%     x.ccf(y,3),...
+%     x.ccf(y,2),10,'k','filled'),...
+%     data_task_all(curr_recording),region_id(curr_recording),'UniformOutput',false);
+
+
+temp_passive_peak_all= cellfun(@(x) permute(sum(x(:,raster_t>0&raster_t<0.2,:),2),[1,3,2]),temp_psth_passive,'uni',false);
+
+ap.ccf_outline_3d([],{brain_region});
+hold on
+cellfun(@(x,y)...
+    scatter3(x.ccf(y,1),...
+    x.ccf(y,3),...
+    x.ccf(y,2),10,'filled','MarkerFaceColor',[0.8 0.8 0.8]),...
+    data_task_all(curr_recording),region_id(curr_recording),'UniformOutput',false);
+hold on
+cellfun(@(data,id,repo,peak)...
+    scatter3(data.ccf(id(repo(:,1)>0.95),1),...
+    data.ccf(id(repo(:,1)>0.95),3),...
+    data.ccf(id(repo(:,1)>0.95),2),4*sqrt(peak(repo(:,1)>0.95,1)),'b','filled'),...
+    data_task_all(curr_recording),region_id(curr_recording),temp_respo_passive(curr_recording),temp_passive_peak_all(curr_recording),'UniformOutput',false);
+
+hold on
+cellfun(@(data,id,repo,peak)...
+    scatter3(data.ccf(id(repo(:,2)>0.95),1),...
+    data.ccf(id(repo(:,2)>0.95),3),...
+    data.ccf(id(repo(:,2)>0.95),2),4*sqrt(abs(peak(repo(:,2)>0.95,2))),'r','filled'),...
+    data_task_all(curr_recording),region_id(curr_recording),temp_respo_passive(curr_recording),temp_passive_peak_all(curr_recording),'UniformOutput',false);
+hold on
+cellfun(@(data,id,repo,peak)...
+    scatter3(data.ccf(id(repo(:,2)>0.95&repo(:,1)>0.95),1),...
+    data.ccf(id(repo(:,2)>0.95&repo(:,1)>0.95),3),...
+    data.ccf(id(repo(:,2)>0.95&repo(:,1)>0.95),2),...
+    4*sqrt(abs(max(peak(repo(:,2)>0.95&repo(:,1)>0.95,1:2),[],2))),'g','filled'),...
+    data_task_all(curr_recording),region_id(curr_recording),temp_respo_passive(curr_recording),temp_passive_peak_all(curr_recording),'UniformOutput',false);
 %%
 
 figure;
-curr_recording=6
 
 temp_raster= cat(1,temp_raster_task{curr_recording});
 
 stim_move=temp_psth_stim2move{curr_recording};
 
-[~,temp_sort]=cellfun(@(a) sort(a,'ascend'), stim_move,'UniformOutput',false )
+[stim_move_all,temp_sort]=cellfun(@(a) sort(a,'ascend'), stim_move,'UniformOutput',false );
 temp_raster_sort=cellfun(@(a,idx)   a(idx,:,:) ,temp_raster,temp_sort,'UniformOutput',false);
-temp_raster_sort=cat(1,temp_raster_sort{:})
+temp_raster_sort=cat(1,temp_raster_sort{:});
 
-raster_baseline = repmat(nanmean(temp_raster_sort(:,raster_t>-0.5&raster_t<0,:),2),[1 size(temp_raster,2) 1]);
-temp_raster1 = (temp_raster - raster_baseline)./(raster_baseline + 1);
+raster_baseline = repmat(nanmean(temp_raster_sort(:,raster_t>-0.5&raster_t<0,:),2),[1 size(temp_raster_sort,2) 1]);
+temp_raster1 = (temp_raster_sort - raster_baseline)./(raster_baseline + 1);
 
 imagesc(raster_t,[],smoothdata(nanmean(temp_raster1,3),2,'gaussian',11))
 hold on
-plot(stim_move,1:length(stim_move), 'r.', 'MarkerSize', 15)
+plot(cat(1,stim_move_all{:}),1:length(cat(1,stim_move_all{:})), 'r.', 'MarkerSize', 5)
  clim([-10 10])
 colormap(ap.colormap('kwg'))
  xlim([-0.2 0.5])
 %%  single recording
-for curr_recording =1:length(temp_psth_task);
+for curr_recording =1:length(temp_psth_task)
 temp_psth_merge=cellfun(@(x,y) cat(3,x,y), temp_psth_task,temp_psth_passive,'UniformOutput',false );
 figure('Name', sprintf(['PSTH = ' animal_rec_days{curr_recording}  ] ), 'NumberTitle', 'off');
 
@@ -269,6 +312,7 @@ arrayfun(@(n)  plot3(seqTrain(n).xorth(1,:),seqTrain(n).xorth(2,:),seqTrain(n).x
     1:length(seqTrain),'UniformOutput',false)
 view(3)
 
+
 %PCA
 
 temp_psth_all_smooth=smoothdata(temp_psth_merge{curr_recording}(:,501:650,:),2,"gaussian",5);
@@ -297,6 +341,7 @@ xlabel('PC1');
 ylabel('PC2');
 zlabel('PC3');
 view(3);
+legend({'TWC','TBC','TGC','TWE','TBE','TGE','PW','PB','PG'})
 end
 %%
 % respo_passive_all=cat(1,temp_respo_passive{:})

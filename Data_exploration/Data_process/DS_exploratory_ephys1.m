@@ -3,7 +3,7 @@
 clear all
 animal='DS049';
 load_probe=1;
-% rec_day='2025-12-20';
+rec_day='2026-10-21';
 
 % recordings = plab.find_recordings(animal,rec_day,use_workflow);
 % rec_time=recordings.recording{1};
@@ -11,11 +11,15 @@ load_parts.ephys=true;
  load_parts.ephys_axons=false;
 ap.load_recording
 
+%%
+plab.histology.adjust_probe_areas(animal,rec_day,1)
+
 
 %% probe location
 
 brain_region='SNr';
 % ap.ccf_outline_3d([],{'brain',brain_region});
+% brain_region='STR';
 
 % On this plot, we can draw a dot for each unit at it's CCF location:
 % scatter3(template_ccf(:,1),template_ccf(:,3),template_ccf(:,2),10,'k','filled');

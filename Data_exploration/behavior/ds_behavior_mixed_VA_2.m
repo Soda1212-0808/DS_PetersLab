@@ -2,7 +2,7 @@
 clear all
 Path = 'D:\Data process\wf_data\';
 
-animals = {'DS044','DS045','DS046' ,'DS047' ,'DS049' ,'DS050','DS051','DS052'};
+animals = {'DS050','DS051','DS052','DS044','DS046' ,'DS047' ,'DS049','DS045'};
 % animals = {'DS036','DS038','DS041' ,'DS042' ,'DS043'};
 
       % animals={'DS052','DS045'}

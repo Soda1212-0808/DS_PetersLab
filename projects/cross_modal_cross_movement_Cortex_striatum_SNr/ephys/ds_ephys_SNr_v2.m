@@ -109,6 +109,8 @@ ylabel('iti wheel move')
 
 %%
 
+
+
 brain_region='SNr';
 idx =cellfun(@(data) find(ismember(data.probe_histology.acronym,brain_region)), data_task_all,'UniformOutput',false);
 region_dist=cellfun(@(data,id) arrayfun(@(probe)...
@@ -206,7 +208,7 @@ cellfun(@(x,y)...
     data_task_all,region_id,'UniformOutput',false);
 %% singLe recording
 
-curr_recording=7
+curr_recording=1
 
 % ap.ccf_outline_3d([],{brain_region});
 % hold on
